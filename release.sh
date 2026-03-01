@@ -121,7 +121,12 @@ if [[ $REPLY =~ ^[Nn]$ ]]; then
     error "Release cancelled"
 fi
 
-inPush release branch
+info "Committing version bump..."
+git add pyproject.toml CHANGELOG.md 2>/dev/null || git add pyproject.toml
+git commit -m "chore: bump version to ${VERSION}"
+success "Committed version ${VERSION}"
+
+# Push release branch
 echo
 read -p "Push release branch to origin? (Y/n) " -n 1 -r
 echo

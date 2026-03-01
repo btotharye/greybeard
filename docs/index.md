@@ -25,7 +25,7 @@ The greybeard has been paged at 3am. They've watched confident decisions become 
 ## What it does
 
 - **Sanity-checks** architecture decisions and design docs
-- **Surfaces** operational risks, ownership gaps, and maintenance burden  
+- **Surfaces** operational risks, ownership gaps, and maintenance burden
 - **Coaches** you on how to communicate concerns to peers, teams, and leadership
 - **Teaches** Staff-level reasoning through mentorship mode
 - **Reviews** your own thinking before you share it with others
@@ -65,6 +65,6 @@ but there are operational concerns worth addressing before shipping.
 
 - [Installation](getting-started/installation.md)
 - [Quick Start](getting-started/quickstart.md)
-- [LLM Backends](guides/backends.md) — OpenAI, Claude, Ollama, LM Studio, GitHub Copilot
+- [LLM Backends](guides/backends.md) — OpenAI, Claude, Ollama, LM Studio
 - [Content Packs](guides/packs.md) — install community packs or write your own
 - [MCP Integration](guides/mcp.md) — use greybeard inside Claude Desktop, Cursor, Zed

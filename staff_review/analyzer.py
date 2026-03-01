@@ -5,7 +5,7 @@ Supports multiple backends via the greybeard config:
   - anthropic   (claude-3-5-sonnet)
   - ollama      (local, llama3.2 or any model)
   - lmstudio    (local OpenAI-compatible server)
-  - github-copilot (uses GITHUB_TOKEN)
+
 
 All backends except anthropic are accessed via the OpenAI-compatible API.
 Anthropic uses its own SDK.
@@ -17,9 +17,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from rich.console import Console
+
 from .config import GreybeardConfig, LLMConfig
 from .models import ReviewRequest
 from .modes import build_system_prompt
+
+console = Console()
 
 MAX_INPUT_CHARS = 120_000  # ~30k tokens, warn above this
 
@@ -62,11 +66,11 @@ def _run_openai_compat(
     user_message: str,
     stream: bool = True,
 ) -> str:
-    """Run via any OpenAI-compatible API (openai, ollama, lmstudio, github-copilot)."""
+    """Run via any OpenAI-compatible API (openai, ollama, lmstudio)."""
     try:
         from openai import OpenAI
     except ImportError:
-        print("Error: openai package not installed. Run: pip install openai", file=sys.stderr)
+        print("Error: openai package not installed. Run: uv pip install openai", file=sys.stderr)
         sys.exit(1)
 
     api_key = llm.resolved_api_key()
@@ -109,8 +113,7 @@ def _run_anthropic(
         import anthropic
     except ImportError:
         print(
-            "Error: anthropic package not installed.\n"
-            "Run: pip install anthropic",
+            "Error: anthropic package not installed.\nRun: uv pip install anthropic",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -118,8 +121,7 @@ def _run_anthropic(
     api_key = llm.resolved_api_key()
     if not api_key:
         print(
-            f"Error: {llm.resolved_api_key_env()} is not set.\n"
-            "Export it or run: greybeard init",
+            f"Error: {llm.resolved_api_key_env()} is not set.\nExport it or run: greybeard init",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -152,12 +154,13 @@ def _run_anthropic(
 def _stream_openai(client, model: str, messages: list) -> str:
     """Stream an OpenAI-compatible response."""
     full_text = ""
+    console.print()  # Add spacing before output
     with client.chat.completions.create(model=model, messages=messages, stream=True) as s:
         for chunk in s:
             delta = chunk.choices[0].delta.content or ""
             print(delta, end="", flush=True)
             full_text += delta
-    print()
+    console.print("\n")  # Clean newline at end
     return full_text
 
 
@@ -192,7 +195,7 @@ def _build_user_message(request: ReviewRequest) -> str:
 
     if len(combined) > MAX_INPUT_CHARS:
         print(
-            f"Warning: input is large (~{len(combined)//4} tokens estimated). "
+            f"Warning: input is large (~{len(combined) // 4} tokens estimated). "
             "Consider trimming or using --repo with a focused diff.",
             file=sys.stderr,
         )

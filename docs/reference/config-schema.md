@@ -13,7 +13,7 @@ default_mode: review
 
 llm:
   # Backend to use
-  # Options: openai | anthropic | ollama | lmstudio | github-copilot
+  # Options: openai | anthropic | ollama | lmstudio
   backend: openai
 
   # Model name. Leave empty to use the backend's default.
@@ -21,7 +21,6 @@ llm:
   # anthropic default:      claude-3-5-sonnet-20241022
   # ollama default:         llama3.2
   # lmstudio default:       local-model
-  # github-copilot default: gpt-4o
   model: ""
 
   # Base URL for the API. Leave empty to use the backend's default.
@@ -33,7 +32,6 @@ llm:
   # Leave empty to use the backend's default env var.
   # openai default:         OPENAI_API_KEY
   # anthropic default:      ANTHROPIC_API_KEY
-  # github-copilot default: GITHUB_TOKEN
   # ollama/lmstudio:        (no key needed)
   api_key_env: ""
 
@@ -43,13 +41,12 @@ pack_sources: []
 
 ## Default values per backend
 
-| Backend | Default model | Default base URL | API key env |
-|---------|--------------|-----------------|-------------|
-| `openai` | `gpt-4o` | (OpenAI default) | `OPENAI_API_KEY` |
-| `anthropic` | `claude-3-5-sonnet-20241022` | (Anthropic default) | `ANTHROPIC_API_KEY` |
-| `ollama` | `llama3.2` | `http://localhost:11434/v1` | (none) |
-| `lmstudio` | `local-model` | `http://localhost:1234/v1` | (none) |
-| `github-copilot` | `gpt-4o` | `https://api.githubcopilot.com` | `GITHUB_TOKEN` |
+| Backend     | Default model                | Default base URL            | API key env         |
+| ----------- | ---------------------------- | --------------------------- | ------------------- |
+| `openai`    | `gpt-4o`                     | (OpenAI default)            | `OPENAI_API_KEY`    |
+| `anthropic` | `claude-3-5-sonnet-20241022` | (Anthropic default)         | `ANTHROPIC_API_KEY` |
+| `ollama`    | `llama3.2`                   | `http://localhost:11434/v1` | (none)              |
+| `lmstudio`  | `local-model`                | `http://localhost:1234/v1`  | (none)              |
 
 ## Managing config
 

@@ -65,9 +65,16 @@ class TestBuildSystemPrompt:
         prompt = build_system_prompt(mode, staff_core)  # type: ignore[arg-type]
         assert len(prompt) > 200
 
-    @pytest.mark.parametrize("pack_name", [
-        "staff-core", "oncall-future-you", "mentor-mode", "solutions-architect", "idp-readiness",
-    ])
+    @pytest.mark.parametrize(
+        "pack_name",
+        [
+            "staff-core",
+            "oncall-future-you",
+            "mentor-mode",
+            "solutions-architect",
+            "idp-readiness",
+        ],
+    )
     def test_all_packs_build_valid_prompt(self, pack_name):
         pack = load_pack(pack_name)
         prompt = build_system_prompt("review", pack)

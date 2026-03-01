@@ -60,16 +60,20 @@ class TestLoadBuiltinPacks:
 class TestLoadCustomPack:
     def test_loads_from_yaml_file(self, tmp_path):
         pack_file = tmp_path / "my-pack.yaml"
-        pack_file.write_text(yaml.dump({
-            "name": "my-pack",
-            "perspective": "A test perspective",
-            "tone": "testing tone",
-            "focus_areas": ["area1", "area2"],
-            "heuristics": ["heuristic one", "heuristic two"],
-            "example_questions": ["Question 1?"],
-            "communication_style": "Be clear.",
-            "description": "Test pack",
-        }))
+        pack_file.write_text(
+            yaml.dump(
+                {
+                    "name": "my-pack",
+                    "perspective": "A test perspective",
+                    "tone": "testing tone",
+                    "focus_areas": ["area1", "area2"],
+                    "heuristics": ["heuristic one", "heuristic two"],
+                    "example_questions": ["Question 1?"],
+                    "communication_style": "Be clear.",
+                    "description": "Test pack",
+                }
+            )
+        )
         pack = load_pack(str(pack_file))
         assert pack.name == "my-pack"
         assert pack.perspective == "A test perspective"
@@ -116,12 +120,16 @@ class TestListInstalledPacks:
         source_dir = cache / "test__source"
         source_dir.mkdir(parents=True)
         pack_file = source_dir / "my-cached-pack.yaml"
-        pack_file.write_text(yaml.dump({
-            "name": "my-cached-pack",
-            "perspective": "Cached perspective",
-            "tone": "calm",
-            "description": "A cached test pack",
-        }))
+        pack_file.write_text(
+            yaml.dump(
+                {
+                    "name": "my-cached-pack",
+                    "perspective": "Cached perspective",
+                    "tone": "calm",
+                    "description": "A cached test pack",
+                }
+            )
+        )
         monkeypatch.setattr("staff_review.packs.PACK_CACHE_DIR", cache)
 
         result = list_installed_packs()

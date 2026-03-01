@@ -1,0 +1,70 @@
+name: Content Pack Submission
+description: Submit a new content pack for review
+title: "[Pack]: "
+labels: ["content-pack", "community"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing a content pack! This helps the whole community.
+
+  - type: input
+    id: pack-name
+    attributes:
+      label: Pack Name
+      description: What's the name of your pack?
+      placeholder: e.g., security-engineer, sre-perspective
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What perspective does this pack provide?
+      placeholder: This pack provides a security engineer's perspective, focusing on...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: submission-type
+    attributes:
+      label: Submission Type
+      options:
+        - New pack for this repository (packs/ directory)
+        - Link to my pack repository
+    validations:
+      required: true
+
+  - type: textarea
+    id: pack-yaml
+    attributes:
+      label: Pack Content
+      description: If submitting to this repo, paste your pack YAML here
+      render: yaml
+
+  - type: input
+    id: pack-url
+    attributes:
+      label: Pack Repository URL
+      description: If you have a pack repository, link it here
+      placeholder: https://github.com/username/my-greybeard-packs
+
+  - type: textarea
+    id: example-output
+    attributes:
+      label: Example Output
+      description: Optional but helpful - show an example of a review using this pack
+      render: markdown
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pack Checklist
+      options:
+        - label: Pack follows the schema documented in docs/reference/pack-schema.md
+          required: true
+        - label: I've tested this pack with greybeard
+          required: true
+        - label: The perspective is clear and distinct from existing packs
+          required: true

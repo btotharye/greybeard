@@ -17,7 +17,7 @@ CONFIG_FILE = CONFIG_DIR / "config.yaml"
 PACK_CACHE_DIR = CONFIG_DIR / "packs"
 
 # Backend names we know about
-KNOWN_BACKENDS = ["openai", "anthropic", "ollama", "lmstudio", "github-copilot"]
+KNOWN_BACKENDS = ["openai", "anthropic", "ollama", "lmstudio"]
 
 # Default models per backend
 DEFAULT_MODELS: dict[str, str] = {
@@ -25,14 +25,12 @@ DEFAULT_MODELS: dict[str, str] = {
     "anthropic": "claude-3-5-sonnet-20241022",
     "ollama": "llama3.2",
     "lmstudio": "local-model",
-    "github-copilot": "gpt-4o",
 }
 
 # Default base URLs for local/alternate backends
 DEFAULT_BASE_URLS: dict[str, str] = {
     "ollama": "http://localhost:11434/v1",
     "lmstudio": "http://localhost:1234/v1",
-    "github-copilot": "https://api.githubcopilot.com",
 }
 
 # Default API key env vars per backend
@@ -41,7 +39,6 @@ DEFAULT_API_KEY_ENVS: dict[str, str] = {
     "anthropic": "ANTHROPIC_API_KEY",
     "ollama": "",  # no key needed
     "lmstudio": "",  # no key needed
-    "github-copilot": "GITHUB_TOKEN",
 }
 
 
@@ -50,9 +47,9 @@ class LLMConfig:
     """LLM backend configuration."""
 
     backend: str = "openai"
-    model: str = ""              # empty = use DEFAULT_MODELS[backend]
-    base_url: str = ""           # empty = use DEFAULT_BASE_URLS[backend] if known
-    api_key_env: str = ""        # empty = use DEFAULT_API_KEY_ENVS[backend]
+    model: str = ""  # empty = use DEFAULT_MODELS[backend]
+    base_url: str = ""  # empty = use DEFAULT_BASE_URLS[backend] if known
+    api_key_env: str = ""  # empty = use DEFAULT_API_KEY_ENVS[backend]
 
     def resolved_model(self) -> str:
         return self.model or DEFAULT_MODELS.get(self.backend, "gpt-4o")

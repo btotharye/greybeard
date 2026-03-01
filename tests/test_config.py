@@ -92,15 +92,19 @@ class TestGreybeardConfig:
 
     def test_load_from_yaml(self, tmp_path, monkeypatch):
         config_file = tmp_path / "config.yaml"
-        config_file.write_text(yaml.dump({
-            "default_pack": "mentor-mode",
-            "default_mode": "mentor",
-            "llm": {
-                "backend": "ollama",
-                "model": "llama3.2",
-                "base_url": "http://localhost:11434/v1",
-            },
-        }))
+        config_file.write_text(
+            yaml.dump(
+                {
+                    "default_pack": "mentor-mode",
+                    "default_mode": "mentor",
+                    "llm": {
+                        "backend": "ollama",
+                        "model": "llama3.2",
+                        "base_url": "http://localhost:11434/v1",
+                    },
+                }
+            )
+        )
         monkeypatch.setattr("staff_review.config.CONFIG_FILE", config_file)
 
         cfg = GreybeardConfig.load()

@@ -103,12 +103,14 @@ def list_installed_packs() -> list[dict]:
         for pack_file in sorted(source_dir.glob("*.yaml")):
             try:
                 pack = _load_from_file(pack_file)
-                results.append({
-                    "name": pack.name,
-                    "source": source_dir.name,
-                    "path": str(pack_file),
-                    "description": pack.description,
-                })
+                results.append(
+                    {
+                        "name": pack.name,
+                        "source": source_dir.name,
+                        "path": str(pack_file),
+                        "description": pack.description,
+                    }
+                )
             except Exception:
                 pass
     return results
@@ -146,6 +148,7 @@ def remove_pack_source(source_slug: str) -> int:
 
     count = len(list(target.glob("*.yaml")))
     import shutil
+
     shutil.rmtree(target)
     return count
 
@@ -344,6 +347,7 @@ def _source_slug(source: str) -> str:
 def _fetch_json(url: str) -> list | dict:
     """Fetch a URL and parse as JSON."""
     import json
+
     req = urllib.request.Request(url, headers={"User-Agent": "greybeard-cli/0.1"})
     with urllib.request.urlopen(req, timeout=10) as resp:
         return json.loads(resp.read().decode("utf-8"))

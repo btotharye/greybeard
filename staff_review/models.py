@@ -49,7 +49,7 @@ class ReviewRequest:
 
     mode: Mode
     pack: ContentPack
-    input_text: str = ""         # diff, design doc, or other input
-    context_notes: str = ""      # user-provided context
+    input_text: str = ""  # diff, design doc, or other input
+    context_notes: str = ""  # user-provided context
     audience: Audience | None = None
     repo_path: str | None = None

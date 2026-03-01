@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://greybeard.readthedocs.io
+    about: Check the documentation for guides and reference
+  - name: Discussions
+    url: https://github.com/btotharye/greybeard/discussions
+    about: Ask questions, share ideas, and discuss with the community

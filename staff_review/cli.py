@@ -53,6 +53,7 @@ def _read_stdin_if_available() -> str:
 
 def _save_output(text: str, path: str) -> None:
     import pathlib
+
     p = pathlib.Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(text)
@@ -89,16 +90,30 @@ def cli() -> None:
 
 
 @cli.command()
-@click.option("--mode", "-m", type=click.Choice(MODES), default=None,
-              help="Review mode (default from config, usually 'review').")
-@click.option("--pack", "-p", default=None,
-              help="Content pack name or path (default from config).")
-@click.option("--repo", "-r", default=None, type=click.Path(exists=True, file_okay=False),
-              help="Path to a repository for context.")
+@click.option(
+    "--mode",
+    "-m",
+    type=click.Choice(MODES),
+    default=None,
+    help="Review mode (default from config, usually 'review').",
+)
+@click.option("--pack", "-p", default=None, help="Content pack name or path (default from config).")
+@click.option(
+    "--repo",
+    "-r",
+    default=None,
+    type=click.Path(exists=True, file_okay=False),
+    help="Path to a repository for context.",
+)
 @click.option("--context", "-c", default="", help="Additional context notes.")
 @click.option("--model", default=None, help="Override LLM model.")
-@click.option("--audience", "-a", type=click.Choice(AUDIENCES), default=None,
-              help="Audience (for coach mode).")
+@click.option(
+    "--audience",
+    "-a",
+    type=click.Choice(AUDIENCES),
+    default=None,
+    help="Audience (for coach mode).",
+)
 @click.option("--output", "-o", default=None, help="Save review to a markdown file.")
 def analyze(mode, pack, repo, context, model, audience, output) -> None:
     """Analyze a decision, diff, or document.
@@ -124,8 +139,7 @@ def analyze(mode, pack, repo, context, model, audience, output) -> None:
 
     if not input_text and not repo and not context:
         console.print(
-            "[yellow]No input provided.[/yellow] "
-            "Pipe in a diff, pass --repo, or use --context."
+            "[yellow]No input provided.[/yellow] Pipe in a diff, pass --repo, or use --context."
         )
         console.print("Run [bold]greybeard analyze --help[/bold] for usage.")
         sys.exit(1)
@@ -152,8 +166,9 @@ def analyze(mode, pack, repo, context, model, audience, output) -> None:
 
 
 @cli.command("self-check")
-@click.option("--context", "-c", required=True,
-              help="The decision or proposal you want to self-check.")
+@click.option(
+    "--context", "-c", required=True, help="The decision or proposal you want to self-check."
+)
 @click.option("--pack", "-p", default=None, help="Content pack name or path.")
 @click.option("--model", default=None, help="Override LLM model.")
 @click.option("--output", "-o", default=None, help="Save review to a markdown file.")
@@ -195,11 +210,17 @@ def self_check(context, pack, model, output) -> None:
 
 
 @cli.command()
-@click.option("--audience", "-a", type=click.Choice(AUDIENCES), required=True,
-              help="Who you're communicating with.")
+@click.option(
+    "--audience",
+    "-a",
+    type=click.Choice(AUDIENCES),
+    required=True,
+    help="Who you're communicating with.",
+)
 @click.option("--context", "-c", default="", help="The concern or decision to communicate.")
-@click.option("--pack", "-p", default="mentor-mode", show_default=True,
-              help="Content pack name or path.")
+@click.option(
+    "--pack", "-p", default="mentor-mode", show_default=True, help="Content pack name or path."
+)
 @click.option("--model", default=None, help="Override LLM model.")
 @click.option("--output", "-o", default=None, help="Save to a markdown file.")
 def coach(audience, context, pack, model, output) -> None:
@@ -379,7 +400,7 @@ def config_set(key: str, value: str) -> None:
 
     \b
     Keys:
-      llm.backend      openai | anthropic | ollama | lmstudio | github-copilot
+      llm.backend      openai | anthropic | ollama | lmstudio
       llm.model        e.g. gpt-4o, claude-3-5-sonnet-20241022, llama3.2
       llm.base_url     e.g. http://localhost:11434/v1
       llm.api_key_env  e.g. OPENAI_API_KEY
@@ -407,8 +428,9 @@ def config_set(key: str, value: str) -> None:
             sys.exit(1)
         cfg.default_mode = value
     else:
-        console.print(f"[red]Unknown key:[/red] {key}. "
-                      "Run [bold]greybeard config set --help[/bold]")
+        console.print(
+            f"[red]Unknown key:[/red] {key}. Run [bold]greybeard config set --help[/bold]"
+        )
         sys.exit(1)
 
     cfg.save()
@@ -428,8 +450,7 @@ def init() -> None:
     """
     console.print(
         Panel(
-            "[bold]Welcome to greybeard.[/bold]\n\n"
-            "Let's configure your LLM backend.",
+            "[bold]Welcome to greybeard.[/bold]\n\nLet's configure your LLM backend.",
             title="[bold purple]🧙 greybeard init[/bold purple]",
             border_style="purple",
         )
@@ -443,7 +464,6 @@ def init() -> None:
         "anthropic": "Anthropic API (claude-3-5-sonnet, etc.) — needs ANTHROPIC_API_KEY",
         "ollama": "Ollama (local, free) — run `ollama serve` first",
         "lmstudio": "LM Studio (local, free) — run LM Studio server first",
-        "github-copilot": "GitHub Copilot API — needs GITHUB_TOKEN",
     }
     for i, (name, desc) in enumerate(backend_info.items(), 1):
         marker = "[green]●[/green]" if name == cfg.llm.backend else " "
@@ -451,7 +471,7 @@ def init() -> None:
 
     console.print()
     backend_choice = click.prompt(
-        "Choose backend (1-5)",
+        "Choose backend (1-4)",
         default=str(list(backend_info.keys()).index(cfg.llm.backend) + 1),
     )
     try:
@@ -463,20 +483,23 @@ def init() -> None:
     cfg.llm.backend = backend
 
     from .config import DEFAULT_API_KEY_ENVS, DEFAULT_MODELS
+
     default_model = DEFAULT_MODELS.get(backend, "")
     model = click.prompt("Model", default=cfg.llm.model or default_model)
     cfg.llm.model = model if model != default_model else ""
 
     if backend in ("ollama", "lmstudio"):
         from .config import DEFAULT_BASE_URLS
+
         default_url = DEFAULT_BASE_URLS.get(backend, "")
         base_url = click.prompt("Base URL", default=cfg.llm.base_url or default_url)
         cfg.llm.base_url = base_url if base_url != default_url else ""
     else:
         env_var = DEFAULT_API_KEY_ENVS.get(backend, "")
         if env_var:
-            console.print(f"\n[dim]Make sure {env_var} is set in your "
-                          "environment or .env file.[/dim]")
+            console.print(
+                f"\n[dim]Make sure {env_var} is set in your environment or .env file.[/dim]"
+            )
 
     default_pack = click.prompt(
         "\nDefault content pack",
@@ -522,4 +545,5 @@ def mcp() -> None:
       Windows: %APPDATA%\\Claude\\claude_desktop_config.json
     """
     from .mcp_server import serve
+
     serve()

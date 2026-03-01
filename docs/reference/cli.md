@@ -184,7 +184,7 @@ Usage: greybeard config set [OPTIONS] KEY VALUE
 
 Arguments:
   KEY    Config key. One of:
-           llm.backend      openai | anthropic | ollama | lmstudio | github-copilot
+           llm.backend      openai | anthropic | ollama | lmstudio
            llm.model        e.g. gpt-4o, claude-3-5-sonnet-20241022, llama3.2
            llm.base_url     e.g. http://localhost:11434/v1
            llm.api_key_env  e.g. OPENAI_API_KEY

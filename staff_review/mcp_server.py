@@ -283,9 +283,7 @@ def _tool_list_packs() -> str:
         for p in installed:
             lines.append(f"- **{p['name']}** (from {p['source']}): {p['description']}")
 
-    lines.append(
-        "\nInstall more packs with: `greybeard pack install github:owner/repo`"
-    )
+    lines.append("\nInstall more packs with: `greybeard pack install github:owner/repo`")
     return "\n".join(lines)
 
 

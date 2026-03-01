@@ -19,33 +19,69 @@ cd greybeard
 
 # With uv (recommended)
 uv pip install -e ".[dev]"
+source .venv/bin/activate      # if uv created a venv
+
+# Or use uv run for commands without activating
+uv run pytest                  # run tests
+uv run ruff check .            # run linter
 
 # Or with pip
 pip install -e ".[dev]"
+
+# Or use the Makefile (easiest)
+make install-dev               # install with dev dependencies
+make help                      # see all available commands
 ```
 
-## Running tests
+## Common Development Tasks
+
+The project includes a Makefile for common tasks:
 
 ```bash
-pytest
+# Setup
+make install-dev       # Install with dev dependencies
+make install-all       # Install with all dependencies
 
-# With coverage
-pytest --cov=staff_review --cov-report=term-missing
+# Testing
+make test              # Run tests
+make test-cov          # Run tests with coverage
+make test-verbose      # Run tests with verbose output
+
+# Linting & Formatting
+make lint              # Check code with ruff
+make lint-fix          # Auto-fix linting issues
+make format            # Format code
+make format-check      # Check formatting without changes
+make check             # Run all checks (lint + format + test)
+
+# Other
+make clean             # Remove build artifacts
+make docs              # Serve docs locally
+make help              # Show all available commands
 ```
 
-## Linting
+### Manual Commands
+
+If you prefer not to use Make:
 
 ```bash
-ruff check .
+# Running tests
+uv run pytest
+uv run pytest --cov=staff_review --cov-report=term-missing
 
-# Auto-fix
-ruff check . --fix
+# Linting
+uv run ruff check .
+uv run ruff check . --fix
+
+# Formatting
+uv run ruff format .
+uv run ruff format --check .
 ```
 
 ## Running docs locally
 
 ```bash
-pip install -e ".[docs]"
+uv pip install -e ".[docs]"
 mkdocs serve
 ```
 

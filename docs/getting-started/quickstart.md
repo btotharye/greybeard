@@ -8,11 +8,11 @@ Run the interactive setup wizard:
 greybeard init
 ```
 
-This walks you through choosing a backend (OpenAI, Claude, Ollama, LM Studio, or GitHub Copilot) and saves your preferences to `~/.greybeard/config.yaml`.
+This walks you through choosing a backend (OpenAI, Claude, Ollama, or LM Studio) and saves your preferences to `~/.greybeard/config.yaml`.
 
 !!! tip "Local LLMs"
-    If you want to run completely free and offline, choose `ollama` or `lmstudio`.
-    See [LLM Backends](../guides/backends.md) for setup instructions.
+If you want to run completely free and offline, choose `ollama` or `lmstudio`.
+See [LLM Backends](../guides/backends.md) for setup instructions.
 
 ## 2. Review a git diff
 

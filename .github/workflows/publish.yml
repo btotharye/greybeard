@@ -19,13 +19,16 @@ jobs:
           version: "latest"
 
       - name: Set up Python
-        run: uv python install 3.11
+        run: uv python install 3.12
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Install build dependencies
         run: uv pip install build
 
       - name: Build package
-        run: uv run --python 3.11 python -m build
+        run: uv run --python 3.12 python -m build
 
       - name: Store the distribution packages
         uses: actions/upload-artifact@v4

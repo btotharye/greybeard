@@ -360,4 +360,8 @@ BUILTIN_PACK_NAMES = [
     "mentor-mode",
     "solutions-architect",
     "idp-readiness",
+    "security-reviewer",
+    "startup-pragmatist",
+    "incident-postmortem",
+    "data-migrations",
 ]

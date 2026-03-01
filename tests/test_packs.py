@@ -40,6 +40,39 @@ class TestLoadBuiltinPacks:
         assert pack.name == "solutions-architect"
         assert len(pack.heuristics) > 0
 
+    def test_loads_security_reviewer(self):
+        pack = load_pack("security-reviewer")
+        assert pack.name == "security-reviewer"
+        assert len(pack.heuristics) > 0
+        assert len(pack.focus_areas) > 0
+        # Should be security-focused
+        combined = " ".join(pack.heuristics + pack.focus_areas).lower()
+        assert any(kw in combined for kw in ["auth", "injection", "token", "secret", "rate limit"])
+
+    def test_loads_startup_pragmatist(self):
+        pack = load_pack("startup-pragmatist")
+        assert pack.name == "startup-pragmatist"
+        assert len(pack.heuristics) > 0
+        # Should challenge over-engineering
+        combined = " ".join(pack.heuristics + pack.focus_areas).lower()
+        assert any(kw in combined for kw in ["complexity", "scale", "simple", "ship", "abstract"])
+
+    def test_loads_incident_postmortem(self):
+        pack = load_pack("incident-postmortem")
+        assert pack.name == "incident-postmortem"
+        assert len(pack.heuristics) > 0
+        # Should be blameless and root-cause focused
+        combined = " ".join(pack.heuristics + pack.focus_areas).lower()
+        assert any(kw in combined for kw in ["blame", "root cause", "action item", "blameless"])
+
+    def test_loads_data_migrations(self):
+        pack = load_pack("data-migrations")
+        assert pack.name == "data-migrations"
+        assert len(pack.heuristics) > 0
+        # Should be focused on lock safety and rollback
+        combined = " ".join(pack.heuristics + pack.focus_areas).lower()
+        assert any(kw in combined for kw in ["lock", "rollback", "migration", "backfill"])
+
     def test_loads_idp_readiness(self):
         pack = load_pack("idp-readiness")
         assert pack.name == "idp-readiness"

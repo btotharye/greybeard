@@ -22,7 +22,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Install build dependencies
-        run: uv pip install --system build
+        run: uv pip install build
 
       - name: Build package
         run: uv run --python 3.11 python -m build

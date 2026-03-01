@@ -5,8 +5,8 @@ Feed this to: cat examples/inputs/migration-example.py | greybeard analyze --pac
 # Alembic migration: add subscription_tier to users table
 # Generated: 2024-03-01
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "0047_add_subscription_tier"
 down_revision = "0046_add_reptile_photos"
@@ -25,8 +25,10 @@ def upgrade():
     # Add foreign key to new subscription_limits table
     op.create_foreign_key(
         "fk_users_subscription_tier",
-        "users", "subscription_limits",
-        ["subscription_tier"], ["tier_name"]
+        "users",
+        "subscription_limits",
+        ["subscription_tier"],
+        ["tier_name"],
     )
 
 

@@ -1,11 +1,15 @@
 # Installation
 
+greybeard is available on [PyPI](https://pypi.org/project/greybeard/) and can be installed with any Python package manager.
+
 ## Requirements
 
 - Python 3.11 or higher
 - An LLM backend (see [LLM Backends](../guides/backends.md))
 
-## Install with uv (recommended)
+## Install from PyPI
+
+### Using uv (recommended)
 
 [uv](https://github.com/astral-sh/uv) is a fast Python package manager.
 
@@ -13,59 +17,59 @@
 uv pip install greybeard
 ```
 
-### Install from source
+### Using pip
 
 ```bash
-git clone https://github.com/btotharye/greybeard.git
-cd greybeard
-uv pip install -e .
-
-# If uv creates a virtual environment, you can either:
-# 1. Activate it
-source .venv/bin/activate      # Linux/macOS
-# .venv\Scripts\activate       # Windows
-
-# 2. Or use uv run without activation
-uv run greybeard --version
-uv run greybeard init
+pip install greybeard
 ```
 
 ### Optional extras
 
-```bash
-# Anthropic/Claude backend support
-uv pip install "greybeard[anthropic]"
+Install additional backends:
 
-# Everything
-uv pip install "greybeard[all]"
+```bash
+# With uv
+uv pip install "greybeard[anthropic]"  # Claude/Anthropic support
+uv pip install "greybeard[all]"        # Everything
+
+# With pip
+pip install "greybeard[anthropic]"
+pip install "greybeard[all]"
 ```
 
-## Install with pip
+## Development Installation
 
-If you don't have uv installed:
+If you want to contribute or modify greybeard:
 
 ```bash
-pip install greybeard
-
-# or from source:
 git clone https://github.com/btotharye/greybeard.git
 cd greybeard
-pip install -e .
+
+# Using uv (recommended)
+uv pip install -e ".[dev]"
+
+# Using pip
+pip install -e ".[dev]"
+
+# Or use the Makefile
+make install-dev
 ```
+
+For detailed contribution guidelines, testing, and development workflows, see the [Contributing Guide](../../CONTRIBUTING.md).
 
 ## Verify installation
 
+After installing, verify greybeard is available:
+
 ```bash
-# If you activated the virtual environment:
 greybeard --version
 greybeard packs
-
-# Or if using uv run:
-uv run greybeard --version
-uv run greybeard packs
 ```
 
-## Next step
+!!! note "Virtual environments"
+If you installed into a virtual environment (created by uv or manually), make sure to activate it first, or use `uv run greybeard` instead.
+
+## Next steps
 
 Run the setup wizard to configure your LLM backend:
 
@@ -73,4 +77,4 @@ Run the setup wizard to configure your LLM backend:
 greybeard init
 ```
 
-Or jump straight to the [Quick Start](quickstart.md).
+Or jump straight to the [Quick Start](quickstart.md) guide.

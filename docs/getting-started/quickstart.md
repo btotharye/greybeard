@@ -1,5 +1,12 @@
 # Quick Start
 
+!!! tip "Already installed?"
+If you haven't installed greybeard yet, see the [Installation Guide](installation.md).
+
+    ```bash
+    uv pip install greybeard  # or: pip install greybeard
+    ```
+
 ## 1. Configure your LLM
 
 Run the interactive setup wizard:

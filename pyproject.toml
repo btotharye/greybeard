@@ -46,6 +46,7 @@ Homepage = "https://github.com/btotharye/greybeard"
 Documentation = "https://greybeard.readthedocs.io/en/latest/"
 "Source Code" = "https://github.com/btotharye/greybeard"
 "Issue Tracker" = "https://github.com/btotharye/greybeard/issues"
+Changelog = "https://github.com/btotharye/greybeard/blob/main/CHANGELOG.md"
 
 [project.scripts]
 greybeard = "staff_review.cli:cli"

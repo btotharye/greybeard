@@ -61,10 +61,30 @@ but there are operational concerns worth addressing before shipping.
 
 ---
 
+## Installation
+
+greybeard is available on [PyPI](https://pypi.org/project/greybeard/):
+
+```bash
+# Using uv (fast)
+uv pip install greybeard
+
+# Using pip
+pip install greybeard
+```
+
+Then configure your LLM backend:
+
+```bash
+greybeard init
+```
+
+---
+
 ## Next steps
 
-- [Installation](getting-started/installation.md)
-- [Quick Start](getting-started/quickstart.md)
+- [Installation Guide](getting-started/installation.md) — detailed setup, optional extras
+- [Quick Start](getting-started/quickstart.md) — examples and common workflows
 - [LLM Backends](guides/backends.md) — OpenAI, Claude, Ollama, LM Studio
 - [Content Packs](guides/packs.md) — install community packs or write your own
 - [MCP Integration](guides/mcp.md) — use greybeard inside Claude Desktop, Cursor, Zed

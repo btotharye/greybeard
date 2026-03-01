@@ -53,19 +53,20 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quickstart.md
-    - Configuration: getting-started/configuration.md
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Configuration: getting-started/configuration.md
   - Guides:
-    - LLM Backends: guides/backends.md
-    - Content Packs: guides/packs.md
-    - MCP Integration: guides/mcp.md
-    - Saving Output: guides/output.md
+      - LLM Backends: guides/backends.md
+      - Content Packs: guides/packs.md
+      - MCP Integration: guides/mcp.md
+      - Saving Output: guides/output.md
   - Reference:
-    - CLI Reference: reference/cli.md
-    - Pack Schema: reference/pack-schema.md
-    - Config Schema: reference/config-schema.md
+      - CLI Reference: reference/cli.md
+      - Pack Schema: reference/pack-schema.md
+      - Config Schema: reference/config-schema.md
   - Contributing: contributing.md
+  - Changelog: CHANGELOG.md
 
 extra:
   social:

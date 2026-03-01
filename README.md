@@ -50,36 +50,14 @@ This is a **thinking partner**. It models how Staff and Principal engineers reas
 
 ## Quick Start
 
-### Install with uv (recommended)
+### Install from PyPI
 
 ```bash
-# From PyPI
+# Using uv (recommended - faster)
 uv pip install greybeard
 
-# Or for development
-git clone https://github.com/btotharye/greybeard.git
-cd greybeard
-
-# Option 1: Use Makefile (easiest)
-make install-dev               # install with dev dependencies
-make test                      # run tests
-make help                      # see all commands
-
-# Option 2: Use uv run (no venv activation needed)
-uv pip install -e .
-uv run greybeard init          # configure your LLM backend
-uv run greybeard packs         # see what's available
-
-# Option 3: Install and activate venv
-uv pip install -e .
-source .venv/bin/activate      # or wherever uv created the venv
-greybeard init
-greybeard packs
-
-# Option 4: Sync dependencies with uv (creates/updates venv)
-uv sync
-source .venv/bin/activate
-greybeard init
+# Or using pip
+pip install greybeard
 ```
 
 **With optional extras:**
@@ -87,17 +65,46 @@ greybeard init
 ```bash
 uv pip install "greybeard[anthropic]"     # Add Claude/Anthropic support
 uv pip install "greybeard[all]"           # Everything
+
+# Or with pip
+pip install "greybeard[anthropic]"
+pip install "greybeard[all]"
 ```
 
-### Or with pip
+**Then configure:**
 
 ```bash
-pip install greybeard
-# or from source: pip install -e .
-
-greybeard init          # configure your LLM backend
-greybeard packs         # see what's available
+greybeard init          # interactive setup wizard
+greybeard packs         # see available content packs
 ```
+
+### Development installation
+
+For contributing or local development:
+
+### Development installation
+
+For contributing or local development:
+
+```bash
+git clone https://github.com/btotharye/greybeard.git
+cd greybeard
+
+# Option 1: Use Makefile (easiest)
+make install-dev
+make test
+make help                      # see all available commands
+
+# Option 2: Use uv directly
+uv pip install -e ".[dev]"
+uv run pytest
+
+# Option 3: Traditional pip
+pip install -e ".[dev]"
+pytest
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development setup.
 
 ---
 

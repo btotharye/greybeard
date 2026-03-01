@@ -134,3 +134,145 @@ class TestRunReviewMocked:
 
         call_args = mock_run.call_args
         assert call_args[0][1] == "gpt-4o-mini"  # model is second positional arg
+
+
+class TestErrorHandling:
+    """Test error paths in analyzer."""
+
+    def test_openai_missing_api_key(self, monkeypatch):
+        """Test that missing API key for OpenAI provides helpful error."""
+        import pytest
+
+        from staff_review.analyzer import _run_openai_compat
+        from staff_review.config import LLMConfig
+
+        # Clear any env vars
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+        llm = LLMConfig(backend="openai")  # No api_key_env set, uses default
+
+        with pytest.raises(SystemExit):
+            _run_openai_compat(llm, "gpt-4o", "system", "user", stream=False)
+
+    def test_anthropic_missing_api_key(self, monkeypatch):
+        """Test that missing API key for Anthropic provides helpful error."""
+        import pytest
+
+        from staff_review.analyzer import _run_anthropic
+        from staff_review.config import LLMConfig
+
+        # Clear any env vars
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+        llm = LLMConfig(backend="anthropic")  # No api_key_env set, uses default
+
+        with pytest.raises(SystemExit):
+            _run_anthropic(llm, "claude-3-5-sonnet", "system", "user", stream=False)
+
+
+class TestStreamingFunctionality:
+    """Test streaming paths for both OpenAI and Anthropic."""
+
+    def test_openai_streaming(self, capsys):
+        """Test OpenAI streaming path."""
+        from unittest.mock import MagicMock
+
+        from staff_review.analyzer import _stream_openai
+
+        # Mock client and stream response
+        mock_client = MagicMock()
+        mock_chunk1 = MagicMock()
+        mock_chunk1.choices = [MagicMock()]
+        mock_chunk1.choices[0].delta.content = "Hello"
+
+        mock_chunk2 = MagicMock()
+        mock_chunk2.choices = [MagicMock()]
+        mock_chunk2.choices[0].delta.content = " world"
+
+        mock_stream = MagicMock()
+        mock_stream.__enter__ = MagicMock(return_value=[mock_chunk1, mock_chunk2])
+        mock_stream.__exit__ = MagicMock(return_value=False)
+
+        mock_client.chat.completions.create.return_value = mock_stream
+
+        result = _stream_openai(mock_client, "gpt-4o", [])
+
+        assert result == "Hello world"
+        captured = capsys.readouterr()
+        assert "Hello world" in captured.out
+
+    def test_anthropic_streaming(self, capsys, monkeypatch):
+        """Test Anthropic streaming path."""
+        import sys
+        from unittest.mock import MagicMock
+
+        # Create a mock anthropic module
+        mock_anthropic_module = MagicMock()
+        sys.modules["anthropic"] = mock_anthropic_module
+
+        try:
+            from staff_review.analyzer import _run_anthropic
+            from staff_review.config import LLMConfig
+
+            # Set env var so resolved_api_key() returns a value
+            monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-from-env")
+
+            llm = LLMConfig(backend="anthropic")
+
+            # Mock the Anthropic client
+            mock_client = MagicMock()
+            mock_anthropic_module.Anthropic.return_value = mock_client
+
+            # Mock streaming response
+            mock_stream = MagicMock()
+            mock_stream.__enter__ = MagicMock(return_value=mock_stream)
+            mock_stream.__exit__ = MagicMock(return_value=False)
+            mock_stream.text_stream = ["Hello", " ", "Anthropic"]
+
+            mock_client.messages.stream.return_value = mock_stream
+
+            result = _run_anthropic(llm, "claude-3-5-sonnet", "system", "user", stream=True)
+
+            assert result == "Hello Anthropic"
+            captured = capsys.readouterr()
+            assert "Hello Anthropic" in captured.out
+        finally:
+            # Clean up the mock module
+            if "anthropic" in sys.modules:
+                del sys.modules["anthropic"]
+
+    def test_anthropic_non_streaming(self, monkeypatch):
+        """Test Anthropic non-streaming path."""
+        import sys
+        from unittest.mock import MagicMock
+
+        # Create a mock anthropic module
+        mock_anthropic_module = MagicMock()
+        sys.modules["anthropic"] = mock_anthropic_module
+
+        try:
+            from staff_review.analyzer import _run_anthropic
+            from staff_review.config import LLMConfig
+
+            # Set env var so resolved_api_key() returns a value
+            monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-from-env")
+
+            llm = LLMConfig(backend="anthropic")
+
+            # Mock the Anthropic client
+            mock_client = MagicMock()
+            mock_anthropic_module.Anthropic.return_value = mock_client
+
+            # Mock non-streaming response
+            mock_response = MagicMock()
+            mock_response.content = [MagicMock()]
+            mock_response.content[0].text = "Non-streamed response"
+            mock_client.messages.create.return_value = mock_response
+
+            result = _run_anthropic(llm, "claude-3-5-sonnet", "system", "user", stream=False)
+
+            assert result == "Non-streamed response"
+        finally:
+            # Clean up the mock module
+            if "anthropic" in sys.modules:
+                del sys.modules["anthropic"]

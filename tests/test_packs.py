@@ -171,3 +171,84 @@ class TestContentPackPromptFragment:
         pack = load_pack("staff-core")
         fragment = pack.to_system_prompt_fragment()
         assert pack.tone[:10] in fragment
+
+
+class TestGitHubPackInstallation:
+    """Test GitHub pack installation logic."""
+
+    def test_install_from_github_single_file(self, monkeypatch):
+        """Test installing a single pack file from GitHub."""
+        from unittest.mock import MagicMock, patch
+
+        from staff_review.packs import _install_github_source
+
+        mock_pack = MagicMock()
+        mock_pack.name = "test-pack"
+
+        with patch("staff_review.packs._load_github_pack", return_value=mock_pack):
+            result = _install_github_source("owner/repo/path/pack.yaml")
+            assert len(result) == 1
+            assert result[0] == mock_pack
+
+    def test_install_from_github_directory(self, monkeypatch):
+        """Test installing multiple packs from GitHub directory."""
+        from unittest.mock import MagicMock, patch
+
+        from staff_review.packs import _install_github_source
+
+        # Mock GitHub API response
+        mock_contents = [
+            {"name": "pack1.yaml", "download_url": "https://raw.../pack1.yaml"},
+            {"name": "pack2.yaml", "download_url": "https://raw.../pack2.yaml"},
+            {"name": "README.md", "download_url": "https://raw.../README.md"},  # Should skip
+        ]
+
+        mock_pack1 = MagicMock()
+        mock_pack1.name = "pack1"
+        mock_pack2 = MagicMock()
+        mock_pack2.name = "pack2"
+
+        with patch("staff_review.packs._fetch_json", return_value=mock_contents):
+            with patch("staff_review.packs._load_url_pack", side_effect=[mock_pack1, mock_pack2]):
+                result = _install_github_source("owner/repo")
+                assert len(result) == 2
+                assert result[0].name == "pack1"
+                assert result[1].name == "pack2"
+
+    def test_install_from_github_invalid_spec(self):
+        """Test that invalid GitHub spec raises error."""
+        import pytest
+
+        from staff_review.packs import _install_github_source
+
+        with pytest.raises(ValueError, match="Invalid GitHub source"):
+            _install_github_source("invalid")
+
+    def test_install_from_github_api_error(self, monkeypatch):
+        """Test handling of GitHub API errors."""
+        from unittest.mock import patch
+
+        import pytest
+
+        from staff_review.packs import _install_github_source
+
+        with patch("staff_review.packs._fetch_json", side_effect=Exception("API error")):
+            with pytest.raises(FileNotFoundError, match="Could not list"):
+                _install_github_source("owner/repo")
+
+    def test_install_from_github_no_yaml_files(self, monkeypatch):
+        """Test error when no yaml files found in directory."""
+        from unittest.mock import patch
+
+        import pytest
+
+        from staff_review.packs import _install_github_source
+
+        # Mock GitHub API response with no YAML files
+        mock_contents = [
+            {"name": "README.md", "download_url": "https://raw.../README.md"},
+        ]
+
+        with patch("staff_review.packs._fetch_json", return_value=mock_contents):
+            with pytest.raises(FileNotFoundError, match="No .yaml files found"):
+                _install_github_source("owner/repo")

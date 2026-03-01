@@ -55,7 +55,7 @@ pip install -e ".[dev]"
 make install-dev
 ```
 
-For detailed contribution guidelines, testing, and development workflows, see the [Contributing Guide](../../CONTRIBUTING.md).
+For detailed contribution guidelines, testing, and development workflows, see the [Contributing Guide](../../contributing/).
 
 ## Verify installation
 

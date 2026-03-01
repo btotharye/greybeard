@@ -138,20 +138,9 @@ fi
 
 info "Pushing ${RELEASE_BRANCH} to origin..."
 git push origin "$RELEASE_BRANCH"
-success "Pushed ${RELEASE_BRANCH}
+success "Pushed ${RELEASE_BRANCH} to origin"
 
-info "Pushing to origin..."
-git push origin "$CURRENT_BRANCH"
-git push origin "$TAG"
-success "Pushed to origin"
-
-# Get repository URL for GitHub release
-REPO_URL=$(git config --get remote.origin.url | sed 's/\.git$//' | sed 's/git@github.com:/https:\/\/github.com\//')
-
-echo
-success "Release preparation complete!"
-echo
-info "Next steps:"PR
+# Get repository URL for GitHub PR
 REPO_URL=$(git config --get remote.origin.url | sed 's/\.git$//' | sed 's/git@github.com:/https:\/\/github.com\//')
 PR_URL="${REPO_URL}/compare/main...${RELEASE_BRANCH}?expand=1"
 
@@ -179,4 +168,6 @@ if [ "$(uname)" == "Darwin" ]; then
     read -p "Open GitHub PR page in browser? (Y/n) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        open "$PR_URL
+        open "$PR_URL"
+    fi
+fi

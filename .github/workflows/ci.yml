@@ -30,14 +30,17 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run tests
-        run: uv run pytest --tb=short -q
+        run: uv run pytest
 
-      - name: Upload coverage
+      - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v7
+        uses: codecov/codecov-action@v5
         with:
-          name: coverage
-          path: .coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          flags: unittests
+          name: py${{ matrix.python-version }}
+          fail_ci_if_error: false
 
   lint:
     name: Lint

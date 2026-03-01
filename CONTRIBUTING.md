@@ -45,9 +45,12 @@ See the [full guide](docs/contributing.md) for:
 ```bash
 git clone https://github.com/btotharye/greybeard.git
 cd greybeard
-make install-dev
-make test
+make install-dev           # Install dependencies
+make pre-commit-install    # Install git hooks (recommended)
+make test                  # Run tests
 ```
+
+See the [full development guide](docs/contributing.md) for details on pre-commit hooks, coverage reports, type checking, and more.
 
 ## Questions?
 

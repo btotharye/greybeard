@@ -1,4 +1,4 @@
-.PHONY: help install install-dev install-all test test-cov test-verbose lint lint-fix format format-check check clean build docs docs-build release run init packs config
+.PHONY: help install install-dev install-all test test-cov test-verbose lint lint-fix format format-check check clean build docs docs-build release run init packs config pre-commit-install pre-commit-run type-check
 
 # Default target
 .DEFAULT_GOAL := help
@@ -43,6 +43,19 @@ format-check: ## Check code formatting without modifying files
 	uv run ruff format --check .
 
 check: lint format-check test ## Run all checks (lint, format, test)
+
+type-check: ## Run type checking with mypy
+	uv run mypy staff_review
+
+pre-commit-install: ## Install pre-commit hooks
+	uv run pre-commit install
+	uv run pre-commit install --hook-type pre-push
+	@echo ""
+	@echo "✓ Pre-commit hooks installed"
+	@echo "  Hooks will run automatically on commit/push"
+
+pre-commit-run: ## Run pre-commit hooks on all files
+	uv run pre-commit run --all-files
 
 clean: ## Remove build artifacts and cache files
 	rm -rf build/

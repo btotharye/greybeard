@@ -41,10 +41,11 @@ The project includes a Makefile for common tasks:
 # Setup
 make install-dev       # Install with dev dependencies
 make install-all       # Install with all dependencies
+make pre-commit-install # Install pre-commit hooks (recommended)
 
 # Testing
 make test              # Run tests
-make test-cov          # Run tests with coverage
+make test-cov          # Run tests with coverage report
 make test-verbose      # Run tests with verbose output
 
 # Linting & Formatting
@@ -52,12 +53,35 @@ make lint              # Check code with ruff
 make lint-fix          # Auto-fix linting issues
 make format            # Format code
 make format-check      # Check formatting without changes
+make type-check        # Run type checking with mypy
 make check             # Run all checks (lint + format + test)
+
+# Pre-commit
+make pre-commit-run    # Run pre-commit on all files
 
 # Other
 make clean             # Remove build artifacts
 make docs              # Serve docs locally
 make help              # Show all available commands
+```
+
+### Pre-commit Hooks (Recommended)
+
+We use pre-commit hooks to catch issues before committing:
+
+```bash
+# Install hooks (one time)
+make pre-commit-install
+
+# Now hooks run automatically on:
+# - git commit: ruff linting and formatting
+# - git push: pytest tests
+```
+
+You can also run hooks manually:
+
+```bash
+make pre-commit-run    # Run on all files
 ```
 
 ### Manual Commands

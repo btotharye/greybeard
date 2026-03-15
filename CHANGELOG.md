@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-15
+
+### Added
+
+- Dual-format pack loading: support both legacy (`packs/*.yaml`) and new (`packs/folder/*.yaml`) pack structures
+- Individual README.md and example files for all 10 built-in packs
+- Version validation in GitHub Actions publish workflow to ensure git tag matches code version
+- Automated version management: version now read from `greybeard/__init__.py` via hatchling
+
+### Changed
+
+- Migrated all 10 built-in packs to new folder structure: `packs/<pack-name>/<pack-name>.yaml`
+- Renamed Python module from `staff_review` to `greybeard` throughout codebase
+- Centralized version management: single source of truth in `greybeard/__init__.py`
+- Updated release.sh to update version in `greybeard/__init__.py` instead of `pyproject.toml`
+- Updated RELEASING.md documentation with new version management workflow
+
+### Fixed
+
+- Fixed hatchling configuration section name from `[tool.hatchling.version]` to `[tool.hatch.version]`
+
 ## [0.2.0] - 2026-03-01
 
 ### Changed

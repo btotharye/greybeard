@@ -79,6 +79,9 @@ path = "greybeard/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["greybeard"]
+include = [
+    { path = "packs" }
+]
 
 [tool.ruff]
 line-length = 100

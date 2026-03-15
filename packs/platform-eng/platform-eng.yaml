@@ -1,0 +1,228 @@
+# Greybeard Community Pack: Platform Engineering Perspective
+#
+# This pack approaches decisions through the lens of a Platform Engineer:
+# - DX (Developer Experience) vs operational complexity tradeoffs
+# - Abstraction layer design (when to build, when to buy, when to leave alone)
+# - Team scaling and knowledge transfer burden
+# - Tool maturity vs custom solutions
+# - Self-service enablement vs gated controls
+# - Platform observability and adoption metrics
+
+name: "Platform Engineering"
+description: "Review decisions through the lens of a Platform Engineer: DX, abstraction layers, tool maturity, team scaling, and the human cost of complexity."
+version: "1.0.0"
+author: "Brian Hopkins (@btotharye)"
+repository: "https://github.com/btotharye/greybeard"
+
+tone: "pragmatic, systems-thinking, user-centric"
+audience: "platform engineers, infrastructure leads, SRE teams"
+
+# Core principles this pack evaluates
+principles:
+  - "Great platforms make the easy path the right path"
+  - "Abstractions have a cost: who pays it and when?"
+  - "Self-service scales; gating doesn't"
+  - "Your paved road should be walked on, not abandoned"
+  - "Tool complexity should match team maturity"
+  - "Measure adoption and developer happiness, not just uptime"
+
+# The greybeard lenses adapted for platform engineering
+lenses:
+  abstraction_layers:
+    name: "Abstraction Design"
+    questions:
+      - "What problem are you actually solving? For whom?"
+      - "Is this abstraction hiding complexity or just delaying it?"
+      - "Who maintains this abstraction in 6-12 months?"
+      - "What's the escape hatch? Can teams opt out?"
+      - "Will this abstraction still make sense when the underlying tech changes?"
+    red_flags:
+      - "Building an abstraction before 3+ teams need it (premature platforming)"
+      - "Abstraction that can't be debugged by users"
+      - "No clear ownership or SLA for the abstraction"
+      - "Teams forced to use your abstraction over simpler alternatives"
+
+  developer_experience:
+    name: "Developer Experience Impact"
+    questions:
+      - "What's the learning curve for a new engineer?"
+      - "Can a developer solve problems alone, or do they always need the platform team?"
+      - "What happens when they hit the edge case your docs don't cover?"
+      - "Is the happy path obvious, or buried in configuration?"
+    red_flags:
+      - "Documentation lives only in team wikis, not in the tool itself"
+      - "Common workflows require 3+ steps (should be 1)"
+      - "Error messages don't guide users toward solutions"
+      - "No self-service debugging tools"
+
+  tool_selection:
+    name: "Tool Maturity vs Complexity"
+    questions:
+      - "Is this tool stable and well-maintained? (check: commits/year, bug response time)"
+      - "Does your team have expertise with this tool?"
+      - "What's the learning curve vs the problem it solves?"
+      - "Could you drop this tool tomorrow and migrate? How long would it take?"
+      - "Are you solving a problem, or just trying a shiny tool?"
+    red_flags:
+      - "Adopting beta/1.0 software for critical paths"
+      - "Zero team expertise with a critical dependency"
+      - "Tool selected because it's trendy, not because it solves the problem"
+      - "Vendor lock-in with no clear exit strategy"
+
+  team_scaling:
+    name: "Team Scaling & Knowledge Transfer"
+    questions:
+      - "Can a single person understand and maintain this?"
+      - "What happens when the expert leaves?"
+      - "Is the knowledge encoded in the system, or in people's heads?"
+      - "How will you onboard the 10th platform engineer to this?"
+    red_flags:
+      - "Only one person can deploy/fix this"
+      - "Knowledge lives in Slack threads, not docs"
+      - "No runbooks for common failures"
+      - "Team growth blocked by single expert"
+
+  self_service_vs_gating:
+    name: "Self-Service vs Gated Controls"
+    questions:
+      - "Who needs approval to do X? Can we eliminate this?"
+      - "What breaks if we make this self-service?"
+      - "Can we gate with guardrails instead of gatekeepers?"
+      - "Are we preventing problems, or preventing learning?"
+    red_flags:
+      - "Approval process takes longer than the actual change"
+      - "Gating based on 'we're not ready to trust them' (training issue, not control issue)"
+      - "Teams slow down to use platform features instead of bypassing them"
+
+  adoption_metrics:
+    name: "Adoption & Platform Health"
+    questions:
+      - "How do you measure if this platform feature is actually used?"
+      - "What happens if adoption is low? How will you know?"
+      - "Are teams voluntarily using this, or forced to?"
+      - "What's the feedback loop between users and platform team?"
+    red_flags:
+      - "No metrics on adoption"
+      - "Assumed adoption without checking"
+      - "Feedback loop is one-way (platform → teams)"
+
+# Review framework: the questions the greybeard asks
+framework:
+  primary_concerns:
+    - "Is this making the right thing easy or easy things hard?"
+    - "Who pays the cost of this decision (building, learning, maintaining)?"
+    - "Does this scale to 2x team size? 10x?"
+    - "If this fails at 2am, what's the manual recovery?"
+
+  decision_gates:
+    before_shipping:
+      - "Can a new engineer use this without asking for help?"
+      - "Is there a clear escape hatch if this doesn't work?"
+      - "Do we have metrics to measure if this is working?"
+      - "Who's accountable for this in 6 months?"
+
+# Evaluation output structure
+output_structure:
+  sections:
+    - name: "Summary"
+      prompt: "One paragraph: what's the decision, and is it sound from a platform eng perspective?"
+
+    - name: "Abstraction Assessment"
+      prompt: "Is this the right level of abstraction? Will it scale? What's the maintenance cost?"
+
+    - name: "DX Impact"
+      prompt: "How does this change the developer experience? Is it easier or harder? Better documented or worse?"
+
+    - name: "Team Scaling Risks"
+      prompt: "Can this be learned, debugged, and maintained as the team grows?"
+
+    - name: "Tool Selection (if applicable)"
+      prompt: "If new tools are involved: are they the right maturity level for the problem?"
+
+    - name: "Self-Service Opportunities"
+      prompt: "What could be self-service instead of gated? How would you gate with guardrails?"
+
+    - name: "Key Risks"
+      prompt: "What could go wrong? When? How long to recover manually?"
+
+    - name: "Adoption Concerns"
+      prompt: "How will you know if this works? What metrics matter? How do teams give feedback?"
+
+    - name: "Questions to Answer Before Proceeding"
+      prompt: "List 3-5 critical questions the decision-maker hasn't answered yet."
+
+# Example red flags specific to platform engineering
+red_flags:
+  - "Building a platform feature without talking to end users"
+  - "Assuming 'better tool' equals 'better platform'"
+  - "Gating behind approval process instead of education"
+  - "No escape hatch (teams trapped in your platform)"
+  - "Knowledge concentration (only 1 person understands it)"
+  - "Documentation is in a wiki, not in the system"
+  - "Adoption is mandated, not voluntary"
+  - "No metrics on platform adoption or success"
+
+# Green flags (good patterns to look for)
+green_flags:
+  - "Solving a problem the team asked for (not guessing)"
+  - "Multiple teams already doing this independently (a sign of real need)"
+  - "Self-service by default; gating only where it prevents real harm"
+  - "Clear escape hatch (don't force adoption)"
+  - "Decision documented with tradeoffs and maintenance plan"
+  - "Metrics planned from the start"
+  - "Training/docs ready before rollout"
+
+# Sample prompts for different scenarios
+scenarios:
+  new_abstraction:
+    context: "We're building a new abstraction layer (e.g., Kubernetes Operator, internal service catalog, deployment pipeline)"
+    focus: ["abstraction_layers", "team_scaling", "adoption_metrics"]
+
+  tool_selection:
+    context: "We're evaluating a new tool (e.g., new CI/CD, IaC solution, observability platform)"
+    focus: ["tool_selection", "team_scaling", "developer_experience"]
+
+  self_service_feature:
+    context: "We're deciding whether to build a self-service feature or gate it behind a review process"
+    focus:
+      ["self_service_vs_gating", "adoption_metrics", "developer_experience"]
+
+  architectural_decision:
+    context: "We're designing a new system or refactoring an existing one"
+    focus: ["abstraction_layers", "tool_selection", "team_scaling"]
+
+# Customization: how to adapt this pack for your team
+customization_hints:
+  domain_focus: "You can modify for specific domains: Kubernetes ops, IaC, CI/CD, databases, etc."
+  team_stage: "Adjust rigor based on team maturity: startups are more lenient on debt, scaleups need systems"
+  company_culture: "Add company-specific values (e.g., 'cost optimization is critical' or 'developer velocity is paramount')"
+
+# Metadata
+tags:
+  - "platform-engineering"
+  - "infrastructure"
+  - "devops"
+  - "developer-experience"
+  - "architecture"
+  - "team-scaling"
+
+# Community contribution guidelines
+contribution_guide: |
+  This pack is open source and welcomes contributions!
+
+  To suggest improvements:
+  1. Open an issue on GitHub with your scenario
+  2. Include the decision being reviewed
+  3. Share what the pack got right or missed
+
+  To propose new lenses:
+  1. Start an issue titled "New lens: [name]"
+  2. Describe the questions/concerns it would cover
+  3. Share a real-world example
+
+# Version history
+changelog:
+  "1.0.0":
+    - "Initial release"
+    - "Core lenses: abstraction, DX, tool selection, team scaling, self-service, adoption"
+    - "Sample scenarios for common platform eng decisions"

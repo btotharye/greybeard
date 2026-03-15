@@ -193,15 +193,39 @@ Content packs define the perspective, tone, and heuristics used during review. T
 
 ### Built-in Packs
 
-| Pack                  | Perspective           | Focus                                        |
-| --------------------- | --------------------- | -------------------------------------------- |
-| `staff-core`          | Staff Engineer        | Ops, ownership, long-term cost               |
-| `oncall-future-you`   | On-call engineer, 3am | Failure modes, pager noise, recovery         |
-| `mentor-mode`         | Experienced mentor    | Teaching, reasoning, growth                  |
-| `solutions-architect` | Solutions Architect   | Entity modeling, boundaries, fit-for-purpose |
-| `idp-readiness`       | Platform Engineering  | IDP maturity, automation vs process          |
+| Pack                  | Perspective           | Focus                                             |
+| --------------------- | --------------------- | ------------------------------------------------- |
+| `staff-core`          | Staff Engineer        | Ops, ownership, long-term cost                    |
+| `oncall-future-you`   | On-call engineer, 3am | Failure modes, pager noise, recovery              |
+| `mentor-mode`         | Experienced mentor    | Teaching, reasoning, growth                       |
+| `solutions-architect` | Solutions Architect   | Entity modeling, boundaries, fit-for-purpose      |
+| `idp-readiness`       | Platform Engineering  | IDP maturity, automation vs process               |
+| `platform-eng`        | Platform Engineer     | DX, abstractions, tool maturity, team scaling     |
+| `security-reviewer`   | AppSec Engineer       | Auth, injection, secrets, overprivileged access   |
+| `startup-pragmatist`  | Pragmatic Engineer    | Complexity vs stage, reversibility, scope         |
+| `incident-postmortem` | SRE / On-call         | Blameless analysis, root cause, action items      |
+| `data-migrations`     | Migration Expert      | Lock safety, zero-downtime, rollback, performance |
 
-### Community Packs (from GitHub)
+### Testing Packs
+
+Each built-in pack includes an example markdown file you can test against:
+
+```bash
+# Test a pack with its example
+cat packs/staff-core/STAFF-CORE-EXAMPLE.md | greybeard analyze --pack staff-core
+cat packs/security-reviewer/SECURITY-REVIEWER-EXAMPLE.md | greybeard analyze --pack security-reviewer
+cat packs/mentor-mode/MENTOR-MODE-EXAMPLE.md | greybeard analyze --pack mentor-mode --mode mentor
+
+# See what's available
+ls packs/*/README.md      # Get quick start for each pack
+ls packs/*-EXAMPLE.md     # See all example files
+```
+
+Each pack folder contains:
+
+- `<pack-name>.yaml` — The pack definition
+- `README.md` — Quick start and focus areas
+- `<PACK>-EXAMPLE.md` — A real-world scenario to test with
 
 ```bash
 # Install all packs from a GitHub repo's packs/ directory
@@ -341,7 +365,13 @@ We welcome contributions! 🎉
 
 **Quick Start:**
 
-- **Content Packs**: Add a `.yaml` file to `packs/` - the easiest and highest-value contribution
+- **Content Packs**: Create a folder in `packs/<pack-name>/` with:
+  - `<pack-name>.yaml` — The pack definition
+  - `README.md` — Quick start and focus areas
+  - `<PACK>-EXAMPLE.md` — A real-world scenario for testing
+
+  Example: See `packs/staff-core/` for the structure.
+
 - **Bug Reports**: [Open an issue](https://github.com/btotharye/greybeard/issues/new?template=bug_report.yml)
 - **Feature Requests**: [Suggest a feature](https://github.com/btotharye/greybeard/issues/new?template=feature_request.yml)
 - **Code**: See the [Contributing Guide](CONTRIBUTING.md) for setup instructions

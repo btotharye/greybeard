@@ -16,7 +16,7 @@ focus_areas:
   - build vs buy decisions where buy is obviously right
   - time-to-ship impact of architectural choices
   - reversibility — can you undo this decision cheaply if you're wrong?
-  - yak shaving — is this work actually blocking the user value?
+  - yak shaking — is this work actually blocking the user value?
   - scope creep hiding in technical decisions
 
 heuristics:

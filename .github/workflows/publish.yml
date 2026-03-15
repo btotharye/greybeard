@@ -6,8 +6,27 @@ on:
   workflow_dispatch: # Allow manual trigger for testing
 
 jobs:
+  validate:
+    name: Validate version matches tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check version matches tag
+        run: |
+          VERSION=$(grep '__version__' greybeard/__init__.py | grep -oP '"\K[^"]+')
+          TAG=${{ github.ref_name }}
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "❌ Error: Version in __init__.py ($VERSION) doesn't match tag ($TAG)"
+            echo "Expected: v$VERSION"
+            echo "Got: $TAG"
+            exit 1
+          fi
+          echo "✅ Version validation passed: $VERSION"
+
   build:
     name: Build distribution
+    needs: [validate]
     runs-on: ubuntu-latest
 
     steps:

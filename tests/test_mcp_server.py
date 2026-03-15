@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from staff_review.config import GreybeardConfig
-from staff_review.mcp_server import _handle
+from greybeard.config import GreybeardConfig
+from greybeard.mcp_server import _handle
 
 
 def _cfg() -> GreybeardConfig:
@@ -73,7 +73,7 @@ class TestMCPToolCall:
                 },
             },
         }
-        with patch("staff_review.mcp_server.run_review") as mock_run:
+        with patch("greybeard.mcp_server.run_review") as mock_run:
             mock_run.return_value = "## Summary\n\nMocked."
             resp = _handle(req, _cfg())
 
@@ -90,7 +90,7 @@ class TestMCPToolCall:
                 "arguments": {"context": "Adding a DB table per tenant"},
             },
         }
-        with patch("staff_review.mcp_server.run_review") as mock_run:
+        with patch("greybeard.mcp_server.run_review") as mock_run:
             mock_run.return_value = "## Summary\n\nSelf-check result."
             _handle(req, _cfg())
 
@@ -111,7 +111,7 @@ class TestMCPToolCall:
                 },
             },
         }
-        with patch("staff_review.mcp_server.run_review") as mock_run:
+        with patch("greybeard.mcp_server.run_review") as mock_run:
             mock_run.return_value = "## Suggested Language\n\nPhrase it this way..."
             _handle(req, _cfg())
 

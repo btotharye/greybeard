@@ -36,6 +36,12 @@ After this one-time setup, all future releases are automatic via GitHub Actions.
 
 ## Release Workflow
 
+### Version Management
+
+Version is stored in a single location: [`greybeard/__init__.py`](greybeard/__init__.py)
+
+The version is automatically read from there by `pyproject.toml` at build time, so **you only need to update `greybeard/__init__.py`**.
+
 ### Quick Start (Using Helper Script)
 
 The easiest way to create a release:
@@ -47,7 +53,7 @@ The easiest way to create a release:
 This script will:
 
 1. ✅ Create a release branch (`release-0.2.0`)
-2. ✅ Update `pyproject.toml` with the new version
+2. ✅ Update `greybeard/__init__.py` with the new version
 3. ✅ Create/initialize `CHANGELOG.md` (if it doesn't exist)
 4. ✅ Commit the version bump
 5. ✅ Push the release branch
@@ -62,7 +68,9 @@ git tag -a v0.2.0 -m "Release v0.2.0"
 git push origin v0.2.0
 ```
 
-Then create the GitHub Release, and the workflow will automatically publish to PyPI!
+⚠️ **Important**: The git tag must match the version. If `greybeard/__init__.py` has `__version__ = "0.2.0"`, the tag must be `v0.2.0`.
+
+Then create the GitHub Release, and the workflow will automatically validate and publish to PyPI!
 
 ---
 
@@ -80,12 +88,13 @@ git checkout -b release-0.2.0
 
 ### 2. Update Version
 
-Edit [`pyproject.toml`](pyproject.toml#L7):
+Edit [`greybeard/__init__.py`](greybeard/__init__.py):
 
-```toml
-[project]
-version = "0.2.0"  # Update this
+```python
+__version__ = "0.2.0"  # Update this
 ```
+
+Note: `pyproject.toml` automatically reads the version from here, so no manual update is needed there.
 
 ### 3. Update Changelog (if present)
 
@@ -110,7 +119,7 @@ If you're maintaining a CHANGELOG.md, add release notes:
 ### 4. Commit and Push Branch
 
 ```bash
-git add pyproject.toml CHANGELOG.md  # if you have one
+git add greybeard/__init__.py CHANGELOG.md  # if you have one
 git commit -m "chore: bump version to 0.2.0"
 git push origin release-0.2.0
 ```
@@ -129,9 +138,11 @@ After the PR is merged:
 ```bash
 git checkout main
 git pull origin main
-git tag v0.2.0
+git tag -a v0.2.0 -m "Release v0.2.0"
 git push origin v0.2.0
 ```
+
+⚠️ **Important**: The tag version must match `greybeard/__init__.py`. If `__version__ = "0.2.0"`, the tag must be `v0.2.0`.
 
 ### 7. Create a GitHub Release
 
@@ -141,13 +152,16 @@ git push origin v0.2.0
 4. **Description**: Summarize changes from CHANGELOG or write release notes
 5. Click **Publish release**
 
-### 6. Automatic Publishing
+### 7. Automatic Publishing with Validation
 
-The GitHub Action will automatically:
+When you create the GitHub Release, the publishing workflow starts:
 
-- ✅ Build the distribution files (`sdist` and `wheel`)
-- ✅ Publish to PyPI using trusted publishing
-- ✅ Show the new version at https://pypi.org/project/greybeard/
+1. **Validation**: Checks that `greybeard/__init__.py` version matches the git tag (e.g., both are "0.2.0")
+2. **Build**: Creates distribution files (`sdist` and `wheel`) using hatchling
+3. **Publish**: Publishes to PyPI using trusted publishing
+4. **Done**: New version appears at https://pypi.org/project/greybeard/
+
+If the version mismatch validation fails, the workflow stops and alerts you to fix the discrepancy.
 
 Monitor the workflow at: https://github.com/btotharye/greybeard/actions/workflows/publish.yml
 
@@ -220,12 +234,14 @@ Use manual workflow dispatch and modify the workflow to skip the `publish-to-pyp
 
 ```bash
 ./release.sh 0.2.0
-# Create and merge PR, then:
+# Script updates greybeard/__init__.py, commits, and opens PR
+# After PR is merged:
 git checkout main
 git pull origin main
 git tag -a v0.2.0 -m "Release v0.2.0"
 git push origin v0.2.0
 # Create GitHub release when browser opens
+# GitHub Actions validates version match, builds, and publishes
 ```
 
 **Manual approach:**
@@ -236,23 +252,25 @@ git checkout main
 git pull origin main
 git checkout -b release-0.2.0
 
-# 2. Update version in pyproject.toml
+# 2. Update version in greybeard/__init__.py
+#    Change __version__ = "X.Y.Z" to the new version
 
 # 3. Commit changes
-git add pyproject.toml
+git add greybeard/__init__.py
 git commit -m "chore: bump version to 0.2.0"
 git push origin release-0.2.0
 
 # 4. Create and merge PR
 
-# 5. After PR merge, tag and push
+# 5. After PR merge, tag and push (tag must match version!)
 git checkout main
 git pull origin main
-git tag v0.2.0
+git tag -a v0.2.0 -m "Release v0.2.0"
 git push origin v0.2.0
 
 # 6. Create GitHub Release at github.com/yourrepo/releases/new
-# 7. GitHub Actions publishes to PyPI automatically
+#    Select the v0.2.0 tag you just pushed
+# 7. GitHub Actions validates, builds, and publishes to PyPI
 ```
 
 ---

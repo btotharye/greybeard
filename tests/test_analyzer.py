@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from staff_review.analyzer import _build_user_message, _collect_repo_context
-from staff_review.config import GreybeardConfig
-from staff_review.models import ContentPack, ReviewRequest
+from greybeard.analyzer import _build_user_message, _collect_repo_context
+from greybeard.config import GreybeardConfig
+from greybeard.models import ContentPack, ReviewRequest
 
 
 def _make_pack() -> ContentPack:
@@ -93,13 +93,13 @@ class TestRunReviewMocked:
     """Tests for run_review that mock out the LLM call."""
 
     def test_run_review_calls_openai_compat(self):
-        from staff_review.analyzer import run_review
+        from greybeard.analyzer import run_review
 
         pack = _make_pack()
         req = _make_request(pack=pack, input_text="some diff", context_notes="some context")
         cfg = GreybeardConfig()  # defaults to openai
 
-        with patch("staff_review.analyzer._run_openai_compat") as mock_run:
+        with patch("greybeard.analyzer._run_openai_compat") as mock_run:
             mock_run.return_value = "## Summary\n\nMocked review."
             result = run_review(req, config=cfg, stream=False)
 
@@ -107,14 +107,14 @@ class TestRunReviewMocked:
         assert result == "## Summary\n\nMocked review."
 
     def test_run_review_uses_anthropic_for_anthropic_backend(self):
-        from staff_review.analyzer import run_review
+        from greybeard.analyzer import run_review
 
         pack = _make_pack()
         req = _make_request(pack=pack, input_text="some diff")
         cfg = GreybeardConfig()
         cfg.llm.backend = "anthropic"
 
-        with patch("staff_review.analyzer._run_anthropic") as mock_run:
+        with patch("greybeard.analyzer._run_anthropic") as mock_run:
             mock_run.return_value = "## Summary\n\nAnthropic review."
             result = run_review(req, config=cfg, stream=False)
 
@@ -122,13 +122,13 @@ class TestRunReviewMocked:
         assert result == "## Summary\n\nAnthropic review."
 
     def test_model_override_passed_through(self):
-        from staff_review.analyzer import run_review
+        from greybeard.analyzer import run_review
 
         pack = _make_pack()
         req = _make_request(pack=pack, input_text="diff")
         cfg = GreybeardConfig()
 
-        with patch("staff_review.analyzer._run_openai_compat") as mock_run:
+        with patch("greybeard.analyzer._run_openai_compat") as mock_run:
             mock_run.return_value = "result"
             run_review(req, config=cfg, model_override="gpt-4o-mini", stream=False)
 
@@ -143,8 +143,8 @@ class TestErrorHandling:
         """Test that missing API key for OpenAI provides helpful error."""
         import pytest
 
-        from staff_review.analyzer import _run_openai_compat
-        from staff_review.config import LLMConfig
+        from greybeard.analyzer import _run_openai_compat
+        from greybeard.config import LLMConfig
 
         # Clear any env vars
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
@@ -158,8 +158,8 @@ class TestErrorHandling:
         """Test that missing API key for Anthropic provides helpful error."""
         import pytest
 
-        from staff_review.analyzer import _run_anthropic
-        from staff_review.config import LLMConfig
+        from greybeard.analyzer import _run_anthropic
+        from greybeard.config import LLMConfig
 
         # Clear any env vars
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
@@ -177,7 +177,7 @@ class TestStreamingFunctionality:
         """Test OpenAI streaming path."""
         from unittest.mock import MagicMock
 
-        from staff_review.analyzer import _stream_openai
+        from greybeard.analyzer import _stream_openai
 
         # Mock client and stream response
         mock_client = MagicMock()
@@ -211,8 +211,8 @@ class TestStreamingFunctionality:
         sys.modules["anthropic"] = mock_anthropic_module
 
         try:
-            from staff_review.analyzer import _run_anthropic
-            from staff_review.config import LLMConfig
+            from greybeard.analyzer import _run_anthropic
+            from greybeard.config import LLMConfig
 
             # Set env var so resolved_api_key() returns a value
             monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-from-env")
@@ -251,8 +251,8 @@ class TestStreamingFunctionality:
         sys.modules["anthropic"] = mock_anthropic_module
 
         try:
-            from staff_review.analyzer import _run_anthropic
-            from staff_review.config import LLMConfig
+            from greybeard.analyzer import _run_anthropic
+            from greybeard.config import LLMConfig
 
             # Set env var so resolved_api_key() returns a value
             monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-from-env")

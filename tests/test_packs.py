@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from staff_review.models import ContentPack
-from staff_review.packs import (
+from greybeard.models import ContentPack
+from greybeard.packs import (
     BUILTIN_PACK_NAMES,
     _source_slug,
     list_builtin_packs,
@@ -144,7 +144,7 @@ class TestListBuiltinPacks:
 
 class TestListInstalledPacks:
     def test_returns_empty_when_no_cache(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("staff_review.packs.PACK_CACHE_DIR", tmp_path / "empty-packs")
+        monkeypatch.setattr("greybeard.packs.PACK_CACHE_DIR", tmp_path / "empty-packs")
         result = list_installed_packs()
         assert result == []
 
@@ -163,7 +163,7 @@ class TestListInstalledPacks:
                 }
             )
         )
-        monkeypatch.setattr("staff_review.packs.PACK_CACHE_DIR", cache)
+        monkeypatch.setattr("greybeard.packs.PACK_CACHE_DIR", cache)
 
         result = list_installed_packs()
         assert len(result) == 1
@@ -213,12 +213,12 @@ class TestGitHubPackInstallation:
         """Test installing a single pack file from GitHub."""
         from unittest.mock import MagicMock, patch
 
-        from staff_review.packs import _install_github_source
+        from greybeard.packs import _install_github_source
 
         mock_pack = MagicMock()
         mock_pack.name = "test-pack"
 
-        with patch("staff_review.packs._load_github_pack", return_value=mock_pack):
+        with patch("greybeard.packs._load_github_pack", return_value=mock_pack):
             result = _install_github_source("owner/repo/path/pack.yaml")
             assert len(result) == 1
             assert result[0] == mock_pack
@@ -227,7 +227,7 @@ class TestGitHubPackInstallation:
         """Test installing multiple packs from GitHub directory."""
         from unittest.mock import MagicMock, patch
 
-        from staff_review.packs import _install_github_source
+        from greybeard.packs import _install_github_source
 
         # Mock GitHub API response
         mock_contents = [
@@ -241,8 +241,8 @@ class TestGitHubPackInstallation:
         mock_pack2 = MagicMock()
         mock_pack2.name = "pack2"
 
-        with patch("staff_review.packs._fetch_json", return_value=mock_contents):
-            with patch("staff_review.packs._load_url_pack", side_effect=[mock_pack1, mock_pack2]):
+        with patch("greybeard.packs._fetch_json", return_value=mock_contents):
+            with patch("greybeard.packs._load_url_pack", side_effect=[mock_pack1, mock_pack2]):
                 result = _install_github_source("owner/repo")
                 assert len(result) == 2
                 assert result[0].name == "pack1"
@@ -252,7 +252,7 @@ class TestGitHubPackInstallation:
         """Test that invalid GitHub spec raises error."""
         import pytest
 
-        from staff_review.packs import _install_github_source
+        from greybeard.packs import _install_github_source
 
         with pytest.raises(ValueError, match="Invalid GitHub source"):
             _install_github_source("invalid")
@@ -263,9 +263,9 @@ class TestGitHubPackInstallation:
 
         import pytest
 
-        from staff_review.packs import _install_github_source
+        from greybeard.packs import _install_github_source
 
-        with patch("staff_review.packs._fetch_json", side_effect=Exception("API error")):
+        with patch("greybeard.packs._fetch_json", side_effect=Exception("API error")):
             with pytest.raises(FileNotFoundError, match="Could not list"):
                 _install_github_source("owner/repo")
 
@@ -275,13 +275,13 @@ class TestGitHubPackInstallation:
 
         import pytest
 
-        from staff_review.packs import _install_github_source
+        from greybeard.packs import _install_github_source
 
         # Mock GitHub API response with no YAML files
         mock_contents = [
             {"name": "README.md", "download_url": "https://raw.../README.md"},
         ]
 
-        with patch("staff_review.packs._fetch_json", return_value=mock_contents):
+        with patch("greybeard.packs._fetch_json", return_value=mock_contents):
             with pytest.raises(FileNotFoundError, match="No .yaml files found"):
                 _install_github_source("owner/repo")

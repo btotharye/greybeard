@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from staff_review.modes import build_system_prompt
-from staff_review.packs import load_pack
+from greybeard.modes import build_system_prompt
+from greybeard.packs import load_pack
 
 
 @pytest.fixture

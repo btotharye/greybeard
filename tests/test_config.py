@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import yaml
 
-from staff_review.config import (
+from greybeard.config import (
     DEFAULT_MODELS,
     GreybeardConfig,
     LLMConfig,
@@ -57,14 +57,14 @@ class TestGreybeardConfig:
 
     def test_load_returns_defaults_when_no_file(self, tmp_path, monkeypatch):
         # Patch CONFIG_FILE to a non-existent path
-        monkeypatch.setattr("staff_review.config.CONFIG_FILE", tmp_path / "nonexistent.yaml")
+        monkeypatch.setattr("greybeard.config.CONFIG_FILE", tmp_path / "nonexistent.yaml")
         cfg = GreybeardConfig.load()
         assert cfg.default_pack == "staff-core"
         assert cfg.llm.backend == "openai"
 
     def test_save_and_load_roundtrip(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("staff_review.config.CONFIG_DIR", tmp_path)
-        monkeypatch.setattr("staff_review.config.CONFIG_FILE", tmp_path / "config.yaml")
+        monkeypatch.setattr("greybeard.config.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("greybeard.config.CONFIG_FILE", tmp_path / "config.yaml")
 
         cfg = GreybeardConfig()
         cfg.default_pack = "oncall-future-you"
@@ -78,9 +78,9 @@ class TestGreybeardConfig:
         assert loaded.llm.model == "claude-3-5-sonnet-20241022"
 
     def test_save_strips_empty_llm_fields(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("staff_review.config.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("greybeard.config.CONFIG_DIR", tmp_path)
         config_file = tmp_path / "config.yaml"
-        monkeypatch.setattr("staff_review.config.CONFIG_FILE", config_file)
+        monkeypatch.setattr("greybeard.config.CONFIG_FILE", config_file)
 
         cfg = GreybeardConfig()
         cfg.llm.backend = "openai"
@@ -105,7 +105,7 @@ class TestGreybeardConfig:
                 }
             )
         )
-        monkeypatch.setattr("staff_review.config.CONFIG_FILE", config_file)
+        monkeypatch.setattr("greybeard.config.CONFIG_FILE", config_file)
 
         cfg = GreybeardConfig.load()
         assert cfg.default_pack == "mentor-mode"

@@ -37,7 +37,7 @@ from .models import ReviewRequest
 from .packs import list_builtin_packs, list_installed_packs, load_pack
 
 # MCP protocol version
-MCP_VERSION = "2024-11-05"
+MCP_VERSION = "2025-11-25"
 
 
 def serve() -> None:
@@ -57,7 +57,8 @@ def serve() -> None:
         except Exception as e:
             response = _error_response(None, -32603, f"Internal error: {e}")
 
-        print(json.dumps(response), flush=True)
+        if response is not None:
+            print(json.dumps(response), flush=True)
 
 
 def _handle(req: dict, config: GreybeardConfig) -> dict:

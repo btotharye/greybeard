@@ -69,21 +69,21 @@ echo
 info "Preparing release ${TAG}"
 echo
 
-# Update version in pyproject.toml
-info "Updating version in pyproject.toml..."
+# Update version in greybeard/__init__.py (single source of truth)
+info "Updating version in greybeard/__init__.py..."
 if [ "$(uname)" == "Darwin" ]; then
     # macOS
-    sed -i '' "s/^version = \".*\"/version = \"${VERSION}\"/" pyproject.toml
+    sed -i '' "s/__version__ = \".*\"/__version__ = \"${VERSION}\"/" greybeard/__init__.py
 else
     # Linux
-    sed -i "s/^version = \".*\"/version = \"${VERSION}\"/" pyproject.toml
+    sed -i "s/__version__ = \".*\"/__version__ = \"${VERSION}\"/" greybeard/__init__.py
 fi
 
 # Verify the change
-if grep -q "version = \"${VERSION}\"" pyproject.toml; then
-    success "Updated pyproject.toml to version ${VERSION}"
+if grep -q "__version__ = \"${VERSION}\"" greybeard/__init__.py; then
+    success "Updated greybeard/__init__.py to version ${VERSION}"
 else
-    error "Failed to update version in pyproject.toml"
+    error "Failed to update version in greybeard/__init__.py"
 fi
 
 # Create CHANGELOG.md if it doesn't exist
@@ -111,7 +111,7 @@ fi
 # Show changes to review
 echo
 info "Changes to be committed:"
-git diff pyproject.toml
+git diff greybeard/__init__.py
 echo
 
 # Commit changes
@@ -122,7 +122,7 @@ if [[ $REPLY =~ ^[Nn]$ ]]; then
 fi
 
 info "Committing version bump..."
-git add pyproject.toml CHANGELOG.md 2>/dev/null || git add pyproject.toml
+git add greybeard/__init__.py CHANGELOG.md 2>/dev/null || git add greybeard/__init__.py
 git commit -m "chore: bump version to ${VERSION}"
 success "Committed version ${VERSION}"
 

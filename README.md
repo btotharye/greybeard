@@ -272,35 +272,79 @@ greybeard runs as a local [MCP](https://modelcontextprotocol.io) server, exposin
 
 ### Claude Desktop
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+1. Install greybeard (if you haven't already):
+
+```bash
+pip install greybeard
+# or: uv pip install greybeard
+```
+
+2. Find your greybeard command path:
+
+```bash
+which greybeard
+```
+
+Save this output — you'll need it in the next step.
+
+3. Edit your Claude Desktop config:
+   - **macOS:** `~/Library/Application\ Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Linux:** `~/.config/Claude/claude_desktop_config.json`
+
+Add the greybeard server with the full path from step 2:
 
 ```json
 {
   "mcpServers": {
     "greybeard": {
-      "command": "greybeard",
+      "command": "/Users/you/.pyenv/shims/greybeard",
       "args": ["mcp"]
     }
   }
 }
 ```
 
-Then restart Claude Desktop. You'll see greybeard tools available in the tool picker.
+Replace the path with your actual path from `which greybeard`.
+
+4. Save and restart Claude Desktop.
+
+### Using greybeard in Claude
+
+Once connected, just ask Claude naturally to use greybeard's tools:
+
+- _"Review this architecture decision"_ → Claude calls `review_decision`
+- _"Self-check my proposal before I send it"_ → Claude calls `self_check`
+- _"Help me phrase this feedback for leadership"_ → Claude calls `coach_communication`
+- _"What packs are available?"_ → Claude calls `list_packs`
+
+**Example workflows:**
+
+```
+You: I drafted a design doc for moving to a new database.
+Can you review it with the oncall-future-you pack?
+
+Claude: I'll review this from an on-call perspective.
+[calls review_decision with pack=oncall-future-you]
+[returns risks, failure modes, and recovery scenarios]
+```
+
+```
+You: I'm concerned about our caching strategy. Can greybeard
+help me phrase this feedback for our VP?
+
+Claude: I'll help you draft constructive language.
+[calls coach_communication with audience=leadership]
+[returns suggested phrasing]
+```
+
+See [MCP Integration Guide](docs/guides/mcp.md) for detailed workflows, tips, and complete tool reference.
 
 ### Cursor / Zed / Other MCP Clients
 
-Any client that supports the MCP stdio transport works. Point it at `greybeard mcp`.
+Any client that supports the MCP stdio transport works. Point it at `greybeard mcp` (or use the full path from `which greybeard`).
 
-### Available MCP Tools
-
-| Tool                  | Description                                    |
-| --------------------- | ---------------------------------------------- |
-| `review_decision`     | Staff-level review of a decision or document   |
-| `self_check`          | Review your own proposal before sharing        |
-| `coach_communication` | Get suggested language for a specific audience |
-| `list_packs`          | List available content packs                   |
-
----
+See [MCP Integration Guide](docs/guides/mcp.md) for client-specific setup.
 
 ## Primary Review Lenses
 

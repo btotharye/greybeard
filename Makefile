@@ -25,7 +25,7 @@ test: ## Run tests (installs dev deps if needed)
 	@uv run pytest 2>/dev/null || (echo "Installing dev dependencies..." && uv pip install -e ".[dev]" && uv run pytest)
 
 test-cov: ## Run tests with coverage report
-	uv run pytest --cov=staff_review --cov-report=term-missing --cov-report=html
+	uv run pytest --cov=greybeard --cov-report=term-missing --cov-report=html
 
 test-verbose: ## Run tests with verbose output
 	uv run pytest -v
@@ -45,7 +45,7 @@ format-check: ## Check code formatting without modifying files
 check: lint format-check test ## Run all checks (lint, format, test)
 
 type-check: ## Run type checking with mypy
-	uv run mypy staff_review
+	uv run mypy greybeard
 
 pre-commit-install: ## Install pre-commit hooks
 	uv run pre-commit install

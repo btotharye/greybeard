@@ -91,7 +91,7 @@ If you prefer not to use Make:
 ```bash
 # Running tests
 uv run pytest
-uv run pytest --cov=staff_review --cov-report=term-missing
+uv run pytest --cov=greybeard --cov-report=term-missing
 
 # Linting
 uv run ruff check .
@@ -176,7 +176,7 @@ docs/update-mcp-guide
 
 ```
 greybeard/
-├── staff_review/
+├── greybeard/
 │   ├── cli.py          # Click CLI entry point
 │   ├── analyzer.py     # Review engine + LLM dispatch
 │   ├── modes.py        # Mode-specific system prompts

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from staff_review.models import ContentPack, ReviewRequest
+from greybeard.models import ContentPack, ReviewRequest
 
 
 class TestContentPack:

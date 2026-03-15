@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "greybeard"
-version = "0.2.0"
+dynamic = ["version"]
 description = "CLI-first Staff Review & Decision Assistant"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -49,7 +49,7 @@ Documentation = "https://greybeard.readthedocs.io/en/latest/"
 Changelog = "https://github.com/btotharye/greybeard/blob/main/CHANGELOG.md"
 
 [project.scripts]
-greybeard = "staff_review.cli:cli"
+greybeard = "greybeard.cli:cli"
 
 [project.optional-dependencies]
 dev = [
@@ -74,8 +74,11 @@ all = [
     "pymdown-extensions>=10.0",
 ]
 
+[tool.hatchling.version]
+path = "greybeard/__init__.py"
+
 [tool.hatch.build.targets.wheel]
-packages = ["staff_review"]
+packages = ["greybeard"]
 
 [tool.ruff]
 line-length = 100
@@ -86,10 +89,10 @@ select = ["E", "F", "I", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--tb=short --cov=staff_review --cov-report=term-missing --cov-report=xml --cov-report=html"
+addopts = "--tb=short --cov=greybeard --cov-report=term-missing --cov-report=xml --cov-report=html"
 
 [tool.coverage.run]
-source = ["staff_review"]
+source = ["greybeard"]
 omit = [
     "*/__pycache__/*",
     "*/tests/*",

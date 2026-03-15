@@ -335,7 +335,7 @@ def _parse_yaml_content(content: str, stem: str = "unknown") -> ContentPack:
 
 def _builtin_packs_dir() -> Path:
     here = Path(__file__).parent
-    candidate = here.parent / "packs"
+    candidate = here / "packs"
     if candidate.is_dir():
         return candidate
     return candidate

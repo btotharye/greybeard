@@ -68,10 +68,18 @@ def load_pack(name_or_path: str) -> ContentPack:
     if cached:
         return _load_from_file(cached)
 
-    # Built-in packs
+    # Built-in packs: try both old format (name.yaml) and new format (name/name.yaml)
     builtin = _builtin_packs_dir()
+
+    # Old format: packs/name.yaml
     for ext in (".yaml", ".yml"):
         candidate = builtin / f"{name_or_path}{ext}"
+        if candidate.is_file():
+            return _load_from_file(candidate)
+
+    # New format: packs/name/name.yaml
+    for ext in (".yaml", ".yml"):
+        candidate = builtin / name_or_path / f"{name_or_path}{ext}"
         if candidate.is_file():
             return _load_from_file(candidate)
 
@@ -84,12 +92,27 @@ def load_pack(name_or_path: str) -> ContentPack:
 
 
 def list_builtin_packs() -> list[str]:
-    """Return names of all available built-in packs."""
+    """Return names of all available built-in packs.
+
+    Supports both old and new pack structures:
+    - Old: packs/pack-name.yaml
+    - New: packs/pack-folder/pack-name.yaml
+    """
     d = _builtin_packs_dir()
-    found = []
+    found = set()
+
+    # Old format: packs/*.yaml
     for ext in (".yaml", ".yml"):
-        found.extend(p.stem for p in sorted(d.glob(f"*{ext}")))
-    return found or BUILTIN_PACK_NAMES
+        found.update(p.stem for p in sorted(d.glob(f"*{ext}")))
+
+    # New format: packs/folder/*.yaml
+    for subfolder in sorted(d.iterdir()):
+        if not subfolder.is_dir():
+            continue
+        for ext in (".yaml", ".yml"):
+            found.update(p.stem for p in sorted(subfolder.glob(f"*{ext}")))
+
+    return sorted(list(found)) or BUILTIN_PACK_NAMES
 
 
 def list_installed_packs() -> list[dict]:

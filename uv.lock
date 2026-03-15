@@ -332,7 +332,6 @@ wheels = [
 
 [[package]]
 name = "greybeard"
-version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -386,7 +385,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
 ]
-provides-extras = ["dev", "anthropic", "docs", "all"]
+provides-extras = ["all", "anthropic", "dev", "docs"]
 
 [[package]]
 name = "h11"

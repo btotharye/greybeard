@@ -46,7 +46,8 @@ Speed vs safety. Shipping now saves a sprint, but risk of 3am incident is real.
 
 ## Suggested Communication Language
 
-Consider framing this as: "We have a path forward, but want to share the risk profile before proceeding."
+Consider framing this as: ("We have a path forward, but want to share the "
+    "risk profile before proceeding.")
 
 ---
 *Assumed: production traffic is non-trivial.*
@@ -354,7 +355,12 @@ class TestJiraOutput:
 
     def test_code_block_converted(self):
         md = "```python\nprint('hi')\n```"
-        meta = ReviewMetadata(mode="review", pack_name="staff-core", backend="openai", model="gpt-4o")
+        meta = ReviewMetadata(
+            mode="review",
+            pack_name="staff-core",
+            backend="openai",
+            model="gpt-4o",
+        )
         result = _to_jira(md, meta)
         assert "{code:python}" in result
         assert "{code}" in result
@@ -415,16 +421,18 @@ class TestResolveOutputPath:
 class TestCliFormatFlag:
     def test_analyze_format_choices(self):
         """Verify --format is accepted by analyze command."""
+        from unittest.mock import MagicMock, patch
+
         from click.testing import CliRunner
-        from unittest.mock import patch, MagicMock
 
         from greybeard.cli import cli
 
         runner = CliRunner()
-        with patch("greybeard.cli.GreybeardConfig") as mock_cfg_cls, \
-             patch("greybeard.cli.run_review") as mock_review, \
-             patch("greybeard.cli._read_stdin_if_available") as mock_stdin:
-
+        with (
+            patch("greybeard.cli.GreybeardConfig") as mock_cfg_cls,
+            patch("greybeard.cli.run_review") as mock_review,
+            patch("greybeard.cli._read_stdin_if_available") as mock_stdin,
+        ):
             cfg = MagicMock()
             cfg.llm.backend = "openai"
             cfg.llm.resolved_model.return_value = "gpt-4o"
@@ -441,6 +449,7 @@ class TestCliFormatFlag:
     def test_analyze_invalid_format_rejected(self):
         """Verify an invalid format value is rejected by Click."""
         from click.testing import CliRunner
+
         from greybeard.cli import cli
 
         runner = CliRunner()
@@ -450,16 +459,18 @@ class TestCliFormatFlag:
 
     def test_json_format_not_streaming(self):
         """Non-markdown formats should pass stream=False to run_review."""
+        from unittest.mock import MagicMock, patch
+
         from click.testing import CliRunner
-        from unittest.mock import patch, MagicMock, call
 
         from greybeard.cli import cli
 
         runner = CliRunner()
-        with patch("greybeard.cli.GreybeardConfig") as mock_cfg_cls, \
-             patch("greybeard.cli.run_review") as mock_review, \
-             patch("greybeard.cli._read_stdin_if_available") as mock_stdin:
-
+        with (
+            patch("greybeard.cli.GreybeardConfig") as mock_cfg_cls,
+            patch("greybeard.cli.run_review") as mock_review,
+            patch("greybeard.cli._read_stdin_if_available") as mock_stdin,
+        ):
             cfg = MagicMock()
             cfg.llm.backend = "openai"
             cfg.llm.resolved_model.return_value = "gpt-4o"

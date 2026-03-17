@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 OutputFormat = Literal["markdown", "json", "html", "jira"]
@@ -39,7 +39,7 @@ class ReviewMetadata:
     backend: str
     model: str
     generated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        default_factory=lambda: datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     )
 
 
@@ -398,11 +398,9 @@ def _to_jira(markdown: str, meta: ReviewMetadata) -> str:
     output: list[str] = []
 
     # Header banner
-    output.append(f"h1. 🧙 greybeard review")
-    output.append(f"||Mode||Pack||Model||Generated||")
-    output.append(
-        f"|{meta.mode}|{meta.pack_name}|{meta.model}|{meta.generated_at}|"
-    )
+    output.append("h1. 🧙 greybeard review")
+    output.append("||Mode||Pack||Model||Generated||")
+    output.append(f"|{meta.mode}|{meta.pack_name}|{meta.model}|{meta.generated_at}|")
     output.append("")
 
     in_code = False

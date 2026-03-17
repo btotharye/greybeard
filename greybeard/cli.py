@@ -16,6 +16,7 @@ from .config import (
     KNOWN_BACKENDS,
     GreybeardConfig,
 )
+from .formatters import FORMAT_EXTENSIONS, SUPPORTED_FORMATS, ReviewMetadata, convert
 from .models import ReviewRequest
 from .packs import (
     install_pack_source,
@@ -58,6 +59,40 @@ def _save_output(text: str, path: str) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(text)
     console.print(f"\n[dim]Review saved to {path}[/dim]")
+
+
+def _resolve_output_path(output: str | None, fmt: str) -> str | None:
+    """If an output path is given without an extension, append the format extension."""
+    if output is None:
+        return None
+    import pathlib
+
+    p = pathlib.Path(output)
+    if not p.suffix:
+        return str(p.with_suffix(FORMAT_EXTENSIONS.get(fmt, ".txt")))
+    return output
+
+
+def _apply_format_and_save(
+    result: str,
+    fmt: str,
+    output: str | None,
+    meta: ReviewMetadata,
+) -> None:
+    """Convert the markdown result to the target format and optionally save it."""
+    if fmt == "markdown":
+        if output:
+            _save_output(result, output)
+        return
+
+    converted = convert(result, fmt, meta)  # type: ignore[arg-type]
+
+    if output:
+        _save_output(converted, output)
+    else:
+        # Print converted output to stdout (non-markdown formats don't stream)
+        console.print()
+        print(converted)
 
 
 # ---------------------------------------------------------------------------
@@ -114,8 +149,17 @@ def cli() -> None:
     default=None,
     help="Audience (for coach mode).",
 )
-@click.option("--output", "-o", default=None, help="Save review to a markdown file.")
-def analyze(mode, pack, repo, context, model, audience, output) -> None:
+@click.option("--output", "-o", default=None, help="Save review to a file.")
+@click.option(
+    "--format",
+    "-f",
+    "fmt",
+    type=click.Choice(SUPPORTED_FORMATS),
+    default="markdown",
+    show_default=True,
+    help="Output format.",
+)
+def analyze(mode, pack, repo, context, model, audience, output, fmt) -> None:
     """Analyze a decision, diff, or document.
 
     \b
@@ -123,6 +167,9 @@ def analyze(mode, pack, repo, context, model, audience, output) -> None:
       git diff main | greybeard analyze
       git diff main | greybeard analyze --mode mentor --pack oncall-future-you
       cat design-doc.md | greybeard analyze --output review.md
+      cat design-doc.md | greybeard analyze --format json --output review.json
+      cat design-doc.md | greybeard analyze --format html --output review.html
+      cat design-doc.md | greybeard analyze --format jira
       greybeard analyze --repo . --context "mid-sprint auth migration"
     """
     cfg = GreybeardConfig.load()
@@ -144,7 +191,8 @@ def analyze(mode, pack, repo, context, model, audience, output) -> None:
         console.print("Run [bold]greybeard analyze --help[/bold] for usage.")
         sys.exit(1)
 
-    _print_header(mode, content_pack.name, cfg.llm.backend, model or cfg.llm.resolved_model())
+    resolved_model = model or cfg.llm.resolved_model()
+    _print_header(mode, content_pack.name, cfg.llm.backend, resolved_model)
 
     request = ReviewRequest(
         mode=mode,  # type: ignore[arg-type]
@@ -155,9 +203,18 @@ def analyze(mode, pack, repo, context, model, audience, output) -> None:
         audience=audience,  # type: ignore[arg-type]
     )
 
-    result = run_review(request, config=cfg, model_override=model, stream=True)
-    if output:
-        _save_output(result, output)
+    # Non-markdown formats don't benefit from streaming (we need the full text to convert)
+    should_stream = fmt == "markdown"
+    result = run_review(request, config=cfg, model_override=model, stream=should_stream)
+
+    meta = ReviewMetadata(
+        mode=mode,
+        pack_name=content_pack.name,
+        backend=cfg.llm.backend,
+        model=resolved_model,
+    )
+    output = _resolve_output_path(output, fmt)
+    _apply_format_and_save(result, fmt, output, meta)
 
 
 # ---------------------------------------------------------------------------
@@ -171,13 +228,23 @@ def analyze(mode, pack, repo, context, model, audience, output) -> None:
 )
 @click.option("--pack", "-p", default=None, help="Content pack name or path.")
 @click.option("--model", default=None, help="Override LLM model.")
-@click.option("--output", "-o", default=None, help="Save review to a markdown file.")
-def self_check(context, pack, model, output) -> None:
+@click.option("--output", "-o", default=None, help="Save review to a file.")
+@click.option(
+    "--format",
+    "-f",
+    "fmt",
+    type=click.Choice(SUPPORTED_FORMATS),
+    default="markdown",
+    show_default=True,
+    help="Output format.",
+)
+def self_check(context, pack, model, output, fmt) -> None:
     """Review your own decision before sharing it.
 
     \b
-    Example:
+    Examples:
       greybeard self-check --context "We're adding a DB table per tenant"
+      greybeard self-check --context "migration plan" --format json --output check.json
     """
     cfg = GreybeardConfig.load()
     pack_name = pack or cfg.default_pack
@@ -189,8 +256,8 @@ def self_check(context, pack, model, output) -> None:
         sys.exit(1)
 
     input_text = _read_stdin_if_available()
-    resolved = model or cfg.llm.resolved_model()
-    _print_header("self-check", content_pack.name, cfg.llm.backend, resolved)
+    resolved_model = model or cfg.llm.resolved_model()
+    _print_header("self-check", content_pack.name, cfg.llm.backend, resolved_model)
 
     request = ReviewRequest(
         mode="self-check",
@@ -199,9 +266,17 @@ def self_check(context, pack, model, output) -> None:
         context_notes=context,
     )
 
-    result = run_review(request, config=cfg, model_override=model, stream=True)
-    if output:
-        _save_output(result, output)
+    should_stream = fmt == "markdown"
+    result = run_review(request, config=cfg, model_override=model, stream=should_stream)
+
+    meta = ReviewMetadata(
+        mode="self-check",
+        pack_name=content_pack.name,
+        backend=cfg.llm.backend,
+        model=resolved_model,
+    )
+    output = _resolve_output_path(output, fmt)
+    _apply_format_and_save(result, fmt, output, meta)
 
 
 # ---------------------------------------------------------------------------
@@ -222,14 +297,24 @@ def self_check(context, pack, model, output) -> None:
     "--pack", "-p", default="mentor-mode", show_default=True, help="Content pack name or path."
 )
 @click.option("--model", default=None, help="Override LLM model.")
-@click.option("--output", "-o", default=None, help="Save to a markdown file.")
-def coach(audience, context, pack, model, output) -> None:
+@click.option("--output", "-o", default=None, help="Save to a file.")
+@click.option(
+    "--format",
+    "-f",
+    "fmt",
+    type=click.Choice(SUPPORTED_FORMATS),
+    default="markdown",
+    show_default=True,
+    help="Output format.",
+)
+def coach(audience, context, pack, model, output, fmt) -> None:
     """Get help communicating a concern or decision constructively.
 
     \b
     Examples:
       greybeard coach --audience team --context "I think we're shipping too fast"
       cat concern.md | greybeard coach --audience leadership
+      greybeard coach --audience peers --context "concerns" --format jira
     """
     cfg = GreybeardConfig.load()
     try:
@@ -244,7 +329,8 @@ def coach(audience, context, pack, model, output) -> None:
         console.print("[yellow]No context provided.[/yellow] Use --context or pipe in text.")
         sys.exit(1)
 
-    _print_header("coach", content_pack.name, cfg.llm.backend, model or cfg.llm.resolved_model())
+    resolved_model = model or cfg.llm.resolved_model()
+    _print_header("coach", content_pack.name, cfg.llm.backend, resolved_model)
 
     request = ReviewRequest(
         mode="coach",
@@ -254,9 +340,17 @@ def coach(audience, context, pack, model, output) -> None:
         audience=audience,  # type: ignore[arg-type]
     )
 
-    result = run_review(request, config=cfg, model_override=model, stream=True)
-    if output:
-        _save_output(result, output)
+    should_stream = fmt == "markdown"
+    result = run_review(request, config=cfg, model_override=model, stream=should_stream)
+
+    meta = ReviewMetadata(
+        mode="coach",
+        pack_name=content_pack.name,
+        backend=cfg.llm.backend,
+        model=resolved_model,
+    )
+    output = _resolve_output_path(output, fmt)
+    _apply_format_and_save(result, fmt, output, meta)
 
 
 # ---------------------------------------------------------------------------

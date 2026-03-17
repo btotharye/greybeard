@@ -250,18 +250,19 @@ def _md_to_html_body(markdown: str) -> str:
 
     Handles: headings, bold, italic, inline code, fenced code blocks,
     bullet/numbered lists, blockquotes, horizontal rules, paragraphs.
+    Also handles nested lists via indentation.
     """
     lines = markdown.splitlines()
     output: list[str] = []
     i = 0
-    in_list: str | None = None  # "ul" or "ol"
+    list_stack: list[tuple[str, int]] = []  # [(type, indent_level), ...]
     in_blockquote = False
 
-    def close_list() -> None:
-        nonlocal in_list
-        if in_list:
-            output.append(f"</{in_list}>")
-            in_list = None
+    def close_lists(up_to_indent: int = -1) -> None:
+        """Close lists back to a certain indentation level."""
+        while list_stack and (up_to_indent < 0 or list_stack[-1][1] >= up_to_indent):
+            list_type, _ = list_stack.pop()
+            output.append(f"</{list_type}>")
 
     def close_blockquote() -> None:
         nonlocal in_blockquote
@@ -285,12 +286,16 @@ def _md_to_html_body(markdown: str) -> str:
         text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', text)
         return text
 
+    def get_indent_level(line: str) -> int:
+        """Get the indentation level (in spaces) of a line."""
+        return len(line) - len(line.lstrip())
+
     while i < len(lines):
         line = lines[i]
 
         # Fenced code block
         if line.startswith("```"):
-            close_list()
+            close_lists()
             close_blockquote()
             lang = line[3:].strip()
             code_lines: list[str] = []
@@ -306,7 +311,7 @@ def _md_to_html_body(markdown: str) -> str:
 
         # Horizontal rule
         if re.match(r"^-{3,}$|^\*{3,}$|^_{3,}$", line.strip()):
-            close_list()
+            close_lists()
             close_blockquote()
             output.append("<hr />")
             i += 1
@@ -315,7 +320,7 @@ def _md_to_html_body(markdown: str) -> str:
         # Headings
         heading_match = re.match(r"^(#{1,6})\s+(.*)", line)
         if heading_match:
-            close_list()
+            close_lists()
             close_blockquote()
             level = len(heading_match.group(1))
             text = inline(heading_match.group(2))
@@ -324,53 +329,73 @@ def _md_to_html_body(markdown: str) -> str:
             continue
 
         # Blockquote
-        if line.startswith("> "):
-            close_list()
+        if line.strip().startswith("> "):
+            close_lists()
             if not in_blockquote:
                 output.append("<blockquote>")
                 in_blockquote = True
-            output.append(f"<p>{inline(line[2:])}</p>")
+            output.append(f"<p>{inline(line.strip()[2:])}</p>")
             i += 1
             continue
         else:
             close_blockquote()
 
-        # Unordered list
-        ul_match = re.match(r"^[-*+]\s+(.*)", line)
+        # Unordered list (including indented)
+        ul_match = re.match(r"^\s*([-*+])\s+(.*)", line)
         if ul_match:
-            if in_list != "ul":
-                close_list()
+            indent = get_indent_level(line)
+            # Close lists at deeper indentation levels
+            close_lists(indent)
+            # Check if we need to open a new list
+            if not list_stack or list_stack[-1][0] != "ul" or list_stack[-1][1] < indent:
                 output.append("<ul>")
-                in_list = "ul"
-            output.append(f"<li>{inline(ul_match.group(1))}</li>")
+                list_stack.append(("ul", indent))
+            output.append(f"<li>{inline(ul_match.group(2))}</li>")
             i += 1
             continue
 
-        # Ordered list
-        ol_match = re.match(r"^\d+\.\s+(.*)", line)
+        # Ordered list (including indented)
+        ol_match = re.match(r"^\s*\d+\.\s+(.*)", line)
         if ol_match:
-            if in_list != "ol":
-                close_list()
+            indent = get_indent_level(line)
+            # Close lists at deeper indentation levels
+            close_lists(indent)
+            # Check if we need to open a new list
+            if not list_stack or list_stack[-1][0] != "ol" or list_stack[-1][1] < indent:
                 output.append("<ol>")
-                in_list = "ol"
+                list_stack.append(("ol", indent))
             output.append(f"<li>{inline(ol_match.group(1))}</li>")
             i += 1
             continue
 
-        # Blank line — close open blocks
+        # Blank line — only close lists if we're truly leaving the list context
+        # (i.e., we have content coming that's not a list item)
         if not line.strip():
-            close_list()
+            # Look ahead to see if the next non-blank line is a list item
+            next_line_idx = i + 1
+            while next_line_idx < len(lines) and not lines[next_line_idx].strip():
+                next_line_idx += 1
+
+            # If next line is a list item at same or less indentation, keep lists open
+            next_line = lines[next_line_idx] if next_line_idx < len(lines) else ""
+            current_indent = list_stack[-1][1] if list_stack else -1
+            is_next_list = bool(re.match(r"^\s*([-*+]|\d+\.)\s+", next_line))
+            next_indent = get_indent_level(next_line) if is_next_list else -1
+
+            if not is_next_list or next_indent <= current_indent:
+                close_lists()
+
             close_blockquote()
             output.append("")
             i += 1
             continue
 
         # Regular paragraph line
-        close_list()
+        close_lists()
         output.append(f"<p>{inline(line)}</p>")
         i += 1
 
-    close_list()
+    close_lists()
     close_blockquote()
     return "\n".join(output)
 

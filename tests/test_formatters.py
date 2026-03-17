@@ -321,6 +321,50 @@ class TestMdToHtmlBody:
         result = _md_to_html_body("[click here](https://example.com)")
         assert '<a href="https://example.com">click here</a>' in result
 
+    def test_nested_unordered_list(self):
+        """Test that indented bullet points render as nested lists."""
+        md = "- Item 1\n  - Sub-item 1a\n  - Sub-item 1b\n- Item 2"
+        result = _md_to_html_body(md)
+        # Should have nested <ul> elements
+        assert "<ul>" in result and "</ul>" in result
+        assert "<li>Item 1</li>" in result
+        assert "<li>Sub-item 1a</li>" in result
+        assert "<li>Sub-item 1b</li>" in result
+        assert "<li>Item 2</li>" in result
+        # Verify proper nesting (nested lists should appear)
+        assert "<ul>\n<li>Sub-item 1a</li>" in result
+
+    def test_nested_ordered_list(self):
+        """Test that indented numbered items render as nested lists."""
+        md = "1. First\n   1. Sub-first\n   2. Sub-second\n2. Second"
+        result = _md_to_html_body(md)
+        # Should have nested <ol> elements
+        assert "<ol>" in result and "</ol>" in result
+        assert "<li>First</li>" in result
+        assert "<li>Sub-first</li>" in result
+        assert "<li>Sub-second</li>" in result
+        assert "<li>Second</li>" in result
+        # Verify proper nesting
+        assert "<ol>\n<li>Sub-first</li>" in result
+
+    def test_mixed_nested_lists(self):
+        """Test bullet point with indented sub-points (real-world use case)."""
+        md = (
+            "- **Operational Impact**:\n"
+            "  - First concern\n"
+            "  - Second concern\n"
+            "- **Ownership**:\n"
+            "  - Who owns this?"
+        )
+        result = _md_to_html_body(md)
+        # Check that nested structure is present
+        assert "<strong>Operational Impact</strong>" in result
+        assert "<strong>Ownership</strong>" in result
+        # Verify nesting
+        assert "<li>First concern</li>" in result
+        assert "<li>Second concern</li>" in result
+        assert "<li>Who owns this?" in result or "<li>Who owns this</li>" in result
+
 
 # ---------------------------------------------------------------------------
 # Jira output

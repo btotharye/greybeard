@@ -10,7 +10,25 @@ Thanks for your interest in contributing! 🎉
 
 ## Ways to Contribute
 
-### 1. Content Packs (Easiest!)
+### 1. Custom Agents (New!)
+
+Build specialized decision-making agents using the framework:
+
+```python
+from greybeard.common import BaseAgent
+
+class MyCustomAgent(BaseAgent):
+    def __init__(self):
+        super().__init__(name="my-agent", description="...")
+    
+    def run(self, user_input: str) -> dict:
+        # Use research, interview, documentation capabilities
+        return {"result": "..."}
+```
+
+See [docs/guides/creating_agents.md](docs/guides/creating_agents.md) and [examples/custom_agent_template.py](examples/custom_agent_template.py) for detailed guides.
+
+### 2. Content Packs (Easiest!)
 
 Content packs are the highest-value contribution. Create a new perspective:
 
@@ -23,15 +41,15 @@ git diff HEAD~1 | greybeard analyze --pack packs/my-new-pack.yaml
 
 See [Pack Schema](docs/reference/pack-schema.md) for details.
 
-### 2. Bug Reports
+### 4. Bug Reports
 
 Found a bug? [Open an issue](https://github.com/btotharye/greybeard/issues/new?template=bug_report.yml)
 
-### 3. Feature Requests
+### 5. Feature Requests
 
 Have an idea? [Suggest a feature](https://github.com/btotharye/greybeard/issues/new?template=feature_request.yml)
 
-### 4. Code Contributions
+### 6. Code Contributions
 
 See the [full guide](docs/contributing.md) for:
 

@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 import click
-import yaml
+import yaml  # type: ignore[import-untyped]
 from rich.console import Console
 from rich.panel import Panel
 from rich.rule import Rule

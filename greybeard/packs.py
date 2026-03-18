@@ -18,7 +18,7 @@ import urllib.request
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from .models import ContentPack
 
@@ -99,7 +99,7 @@ def list_builtin_packs() -> list[str]:
     - New: packs/pack-folder/pack-name.yaml
     """
     d = _builtin_packs_dir()
-    found = set()
+    found: set[str] = set()
 
     # Old format: packs/*.yaml
     for ext in (".yaml", ".yml"):
@@ -367,13 +367,14 @@ def _source_slug(source: str) -> str:
     return slug
 
 
-def _fetch_json(url: str) -> list | dict:
+def _fetch_json(url: str) -> list[dict[str, str]] | dict[str, str]:
     """Fetch a URL and parse as JSON."""
     import json
 
     req = urllib.request.Request(url, headers={"User-Agent": "greybeard-cli/0.1"})
     with urllib.request.urlopen(req, timeout=10) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+        data = json.loads(resp.read().decode("utf-8"))
+        return data if isinstance(data, (list, dict)) else {}
 
 
 # Kept for backwards compat

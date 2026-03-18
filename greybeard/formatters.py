@@ -78,8 +78,8 @@ _SECTION_PATTERNS = [
 
 def _parse_sections(markdown: str) -> dict[str, str]:
     """Extract named sections from the Markdown response."""
-    # Build split points: (start_index, section_name)
-    markers: list[tuple[int, str]] = []
+    # Build split points: (start_index, section_name, end_index)
+    markers: list[tuple[int, str, int]] = []
     for name, pattern in _SECTION_PATTERNS:
         for m in re.finditer(pattern, markdown, re.IGNORECASE):
             markers.append((m.start(), name, m.end()))

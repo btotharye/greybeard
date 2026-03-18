@@ -10,16 +10,13 @@ Scaffolds the full pack folder structure:
 from __future__ import annotations
 
 import re
-import textwrap
 from pathlib import Path
-from typing import Optional
 
 import click
 import yaml
 from rich.console import Console
 from rich.panel import Panel
 from rich.rule import Rule
-from rich.text import Text
 
 console = Console()
 
@@ -40,7 +37,7 @@ def _slugify(text: str) -> str:
     return text.strip("-")
 
 
-def _validate_pack_name(name: str) -> Optional[str]:
+def _validate_pack_name(name: str) -> str | None:
     """Return an error string if the name is invalid, else None."""
     if not name:
         return "Pack name cannot be empty."
@@ -120,7 +117,6 @@ def _build_example_md(
     heuristics: list[str],
 ) -> str:
     """Generate a placeholder EXAMPLE.md for the pack."""
-    upper = pack_name.upper().replace("-", "-")
     focus_list = "\n".join(f"- **{fa.split('(')[0].strip()}**" for fa in focus_areas[:4])
     heuristic_sample = "\n".join(f"- {h}" for h in heuristics[:3])
 
@@ -170,7 +166,8 @@ def _build_example_md(
 
 ---
 
-*This example demonstrates how the {pack_title} pack surfaces domain-specific risks and drives better decisions.*
+*This example demonstrates how the {pack_title} pack surfaces domain-specific
+risks and drives better decisions.*
 """
 
 
@@ -208,7 +205,8 @@ cat design-doc.md | greybeard analyze --pack {pack_name} --mode mentor
 
 ## When to Use This Pack
 
-Use this pack when reviewing *(describe the kinds of decisions and documents this pack is best for)*.
+Use this pack when reviewing *(describe the kinds of decisions and documents
+this pack is best for)*.
 
 ## Customizing
 
@@ -219,7 +217,8 @@ Edit `{pack_name}.yaml` to:
 
 ---
 
-*Created with `greybeard pack new`. See [greybeard docs](https://greybeard.readthedocs.io) for more.*
+*Created with `greybeard pack new`. See [greybeard docs](https://greybeard.readthedocs.io)
+for more.*
 """
 
 
@@ -228,7 +227,7 @@ Edit `{pack_name}.yaml` to:
 # ---------------------------------------------------------------------------
 
 
-def run_pack_wizard(output_dir: Optional[str] = None) -> Path:
+def run_pack_wizard(output_dir: str | None = None) -> Path:
     """Run the interactive pack creation wizard.
 
     Returns the Path to the created pack directory.
@@ -321,7 +320,8 @@ def run_pack_wizard(output_dir: Optional[str] = None) -> Path:
     # ------------------------------------------------------------------
     console.print(Rule("[bold]Step 4 of 4[/bold] — Communication Style", style="purple"))
     console.print(
-        "\n[dim]How should findings be framed? What tone and structure should the output follow?[/dim]"
+        "\n[dim]How should findings be framed? What tone and structure should "
+        "the output follow?[/dim]"
     )
 
     communication_style = click.prompt(

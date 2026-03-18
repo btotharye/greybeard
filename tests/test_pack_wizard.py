@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 import yaml
 from click.testing import CliRunner
 
 from greybeard.cli import cli
-from greybeard.pack_wizard import _build_example_md, _build_readme, _build_yaml, _slugify, _validate_pack_name
-
+from greybeard.pack_wizard import (
+    _build_example_md,
+    _build_readme,
+    _build_yaml,
+    _slugify,
+    _validate_pack_name,
+)
 
 # ---------------------------------------------------------------------------
 # Unit tests: helper functions
@@ -47,7 +48,6 @@ class TestValidatePackName:
 
     def test_invalid_chars(self):
         # After slugifying, special chars are stripped; validate gets the raw slug
-        result = _validate_pack_name("my pack!")
         # "my pack!" slugifies to "my-pack" which is valid — but validate takes the
         # already-slugified value in practice
         assert _validate_pack_name("my-pack") is None
@@ -266,7 +266,7 @@ class TestPackNewCommand:
             "n",  # decline to generate
         ]
         runner = CliRunner()
-        result = runner.invoke(
+        runner.invoke(
             cli,
             ["pack", "new", "--output-dir", str(tmp_path)],
             input="\n".join(lines) + "\n",

@@ -710,7 +710,7 @@ def trends(days: int, pack: str | None, use_llm: bool, model: str | None) -> Non
         filters = f" ({', '.join(filter_desc)})" if filter_desc else ""
         console.print(f"[yellow]No decision history found{filters}.[/yellow]")
         console.print(
-            f"Use [bold]greybeard analyze --save-decision <name>[/bold] "
+            "Use [bold]greybeard analyze --save-decision <name>[/bold] "
             "to start tracking decisions."
         )
         return

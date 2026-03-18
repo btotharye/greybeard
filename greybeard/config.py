@@ -10,7 +10,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 CONFIG_DIR = Path.home() / ".greybeard"
 CONFIG_FILE = CONFIG_DIR / "config.yaml"

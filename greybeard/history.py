@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -111,7 +111,7 @@ def _ensure_dir() -> None:
 
 
 def _now_utc() -> str:
-    return datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ── Risk / question extraction ────────────────────────────────────────────────
@@ -239,9 +239,9 @@ def load_history(days: int = 30, pack: str | None = None) -> list[dict[str, Any]
         return []
 
     cutoff = (
-        datetime.now(tz=timezone.utc) - timedelta(days=days)
+        datetime.now(tz=UTC) - timedelta(days=days)
         if days > 0
-        else datetime.min.replace(tzinfo=timezone.utc)
+        else datetime.min.replace(tzinfo=UTC)
     )
 
     entries: list[dict[str, Any]] = []

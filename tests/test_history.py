@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
 
-from staff_review.cli import cli
-from staff_review.history import (
+from greybeard.cli import cli
+from greybeard.history import (
     PATTERN_THRESHOLD,
     _clean_phrase,
     _extract_key_questions,
@@ -30,10 +29,10 @@ def tmp_history(tmp_path, monkeypatch):
     history_dir = tmp_path / ".greybeard"
     history_dir.mkdir(parents=True, exist_ok=True)
     history_file = history_dir / "history.jsonl"
-    monkeypatch.setattr("staff_review.history.HISTORY_DIR", history_dir)
-    monkeypatch.setattr("staff_review.history.HISTORY_FILE", history_file)
+    monkeypatch.setattr("greybeard.history.HISTORY_DIR", history_dir)
+    monkeypatch.setattr("greybeard.history.HISTORY_FILE", history_file)
     # Also patch the cli module's imports (they imported directly)
-    monkeypatch.setattr("staff_review.cli.HISTORY_FILE", history_file)
+    monkeypatch.setattr("greybeard.cli.HISTORY_FILE", history_file)
     return history_file
 
 
@@ -46,7 +45,7 @@ def _make_entry(
     key_questions: list[str] | None = None,
 ) -> dict:
     """Build a synthetic history entry."""
-    ts = datetime.now(tz=timezone.utc) - timedelta(days=days_ago)
+    ts = datetime.now(tz=UTC) - timedelta(days=days_ago)
     return {
         "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "decision_name": decision_name,
@@ -375,7 +374,7 @@ def runner():
 
 @pytest.fixture
 def mock_config():
-    with patch("staff_review.cli.GreybeardConfig") as mock:
+    with patch("greybeard.cli.GreybeardConfig") as mock:
         config = MagicMock()
         config.llm.backend = "openai"
         config.llm.model = "gpt-4o"
@@ -387,9 +386,9 @@ def mock_config():
 
 
 class TestAnalyzeWithSaveDecision:
-    @patch("staff_review.cli.run_review")
-    @patch("staff_review.cli._read_stdin_if_available")
-    @patch("staff_review.cli.save_decision")
+    @patch("greybeard.cli.run_review")
+    @patch("greybeard.cli._read_stdin_if_available")
+    @patch("greybeard.cli.save_decision")
     def test_save_decision_called_when_flag_set(
         self, mock_save, mock_stdin, mock_review, runner, mock_config, tmp_history
     ):
@@ -403,35 +402,35 @@ class TestAnalyzeWithSaveDecision:
         call_args = mock_save.call_args
         assert call_args[0][0] == "auth-migration"
 
-    @patch("staff_review.cli.run_review")
-    @patch("staff_review.cli._read_stdin_if_available")
+    @patch("greybeard.cli.run_review")
+    @patch("greybeard.cli._read_stdin_if_available")
     def test_save_decision_not_called_without_flag(
         self, mock_stdin, mock_review, runner, mock_config
     ):
         mock_stdin.return_value = "some diff content"
         mock_review.return_value = "Review output"
 
-        with patch("staff_review.cli.save_decision") as mock_save:
+        with patch("greybeard.cli.save_decision") as mock_save:
             result = runner.invoke(cli, ["analyze"])
             assert result.exit_code == 0
             mock_save.assert_not_called()
 
-    @patch("staff_review.cli.run_review")
-    @patch("staff_review.cli._read_stdin_if_available")
+    @patch("greybeard.cli.run_review")
+    @patch("greybeard.cli._read_stdin_if_available")
     def test_save_decision_prints_confirmation(
         self, mock_stdin, mock_review, runner, mock_config, tmp_history
     ):
         mock_stdin.return_value = "some diff content"
         mock_review.return_value = "Review output"
 
-        with patch("staff_review.cli.save_decision", return_value=tmp_history):
+        with patch("greybeard.cli.save_decision", return_value=tmp_history):
             result = runner.invoke(cli, ["analyze", "--save-decision", "my-dec"])
             assert "history" in result.output.lower()
 
 
 class TestTrendsCommand:
     def test_trends_no_history(self, runner, tmp_history):
-        with patch("staff_review.cli.load_history", return_value=[]):
+        with patch("greybeard.cli.load_history", return_value=[]):
             result = runner.invoke(cli, ["trends"])
             assert result.exit_code == 0
             assert "No decision history" in result.output
@@ -442,19 +441,19 @@ class TestTrendsCommand:
             _make_entry("dec-2", key_risks=["knowledge concentration"]),
             _make_entry("dec-3", key_risks=["knowledge concentration", "missing tests"]),
         ]
-        with patch("staff_review.cli.load_history", return_value=history):
+        with patch("greybeard.cli.load_history", return_value=history):
             result = runner.invoke(cli, ["trends"])
             assert result.exit_code == 0
             assert "knowledge concentration" in result.output
             assert "recurring" in result.output.lower()
 
     def test_trends_last_flag(self, runner, tmp_history):
-        with patch("staff_review.cli.load_history", return_value=[]) as mock_load:
+        with patch("greybeard.cli.load_history", return_value=[]) as mock_load:
             runner.invoke(cli, ["trends", "--last", "7"])
             mock_load.assert_called_once_with(days=7, pack=None)
 
     def test_trends_pack_filter(self, runner, tmp_history):
-        with patch("staff_review.cli.load_history", return_value=[]) as mock_load:
+        with patch("greybeard.cli.load_history", return_value=[]) as mock_load:
             runner.invoke(cli, ["trends", "--pack", "staff-core"])
             mock_load.assert_called_once_with(days=30, pack="staff-core")
 
@@ -462,7 +461,7 @@ class TestTrendsCommand:
         history = [
             _make_entry(key_risks=["knowledge concentration"]) for _ in range(PATTERN_THRESHOLD)
         ]
-        with patch("staff_review.cli.load_history", return_value=history):
+        with patch("greybeard.cli.load_history", return_value=history):
             result = runner.invoke(cli, ["trends"])
             assert result.exit_code == 0
             # Should flag the recurring risk
@@ -476,14 +475,14 @@ class TestTrendsCommand:
 
 class TestHistoryCommand:
     def test_history_no_entries(self, runner, tmp_history):
-        with patch("staff_review.cli.load_history", return_value=[]):
+        with patch("greybeard.cli.load_history", return_value=[]):
             result = runner.invoke(cli, ["history"])
             assert result.exit_code == 0
             assert "No history" in result.output
 
     def test_history_shows_entries(self, runner, tmp_history):
         history = [_make_entry("auth-migration")]
-        with patch("staff_review.cli.load_history", return_value=history):
+        with patch("greybeard.cli.load_history", return_value=history):
             result = runner.invoke(cli, ["history"])
             assert result.exit_code == 0
             assert "auth-migration" in result.output

@@ -89,7 +89,7 @@ def _run_openai_compat(
         kwargs["base_url"] = base_url
 
     client = OpenAI(**kwargs)
-    messages = [
+    messages: list[dict[str, str]] = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_message},
     ]
@@ -97,8 +97,12 @@ def _run_openai_compat(
     if stream:
         return _stream_openai(client, model, messages)
     else:
-        resp = client.chat.completions.create(model=model, messages=messages, stream=False)
-        return resp.choices[0].message.content or ""
+        resp = client.chat.completions.create(
+            model=model,
+            messages=messages,  # type: ignore[arg-type]
+            stream=False,
+        )
+        return resp.choices[0].message.content or ""  # type: ignore[union-attr]
 
 
 def _run_anthropic(
@@ -148,18 +152,18 @@ def _run_anthropic(
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
-        return resp.content[0].text
+        return str(resp.content[0].text)
 
 
-def _stream_openai(client, model: str, messages: list) -> str:
+def _stream_openai(client: object, model: str, messages: list[dict[str, str]]) -> str:
     """Stream an OpenAI-compatible response."""
     full_text = ""
     console.print()  # Add spacing before output
-    with client.chat.completions.create(model=model, messages=messages, stream=True) as s:
-        for chunk in s:
-            delta = chunk.choices[0].delta.content or ""
-            print(delta, end="", flush=True)
-            full_text += delta
+    stream = client.chat.completions.create(model=model, messages=messages, stream=True)  # type: ignore[union-attr,arg-type,attr-defined]
+    for chunk in stream:  # type: ignore[misc]
+        delta = chunk.choices[0].delta.content or ""
+        print(delta, end="", flush=True)
+        full_text += delta
     console.print("\n")  # Clean newline at end
     return full_text
 

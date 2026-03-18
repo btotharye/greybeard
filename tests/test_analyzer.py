@@ -190,8 +190,7 @@ class TestStreamingFunctionality:
         mock_chunk2.choices[0].delta.content = " world"
 
         mock_stream = MagicMock()
-        mock_stream.__enter__ = MagicMock(return_value=[mock_chunk1, mock_chunk2])
-        mock_stream.__exit__ = MagicMock(return_value=False)
+        mock_stream.__iter__ = MagicMock(return_value=iter([mock_chunk1, mock_chunk2]))
 
         mock_client.chat.completions.create.return_value = mock_stream
 

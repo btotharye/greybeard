@@ -17,6 +17,13 @@ from .config import (
     GreybeardConfig,
 )
 from .formatters import FORMAT_EXTENSIONS, SUPPORTED_FORMATS, ReviewMetadata, convert
+from .history import (
+    HISTORY_FILE,
+    PATTERN_THRESHOLD,
+    analyze_trends,
+    load_history,
+    save_decision,
+)
 from .models import ReviewRequest
 from .packs import (
     install_pack_source,
@@ -159,7 +166,14 @@ def cli() -> None:
     show_default=True,
     help="Output format.",
 )
-def analyze(mode, pack, repo, context, model, audience, output, fmt) -> None:
+@click.option(
+    "--save-decision",
+    "save_decision_name",
+    default=None,
+    metavar="NAME",
+    help="Save this review to decision history (e.g. 'auth-migration-q1').",
+)
+def analyze(mode, pack, repo, context, model, audience, output, fmt, save_decision_name) -> None:
     """Analyze a decision, diff, or document.
 
     \b
@@ -171,6 +185,7 @@ def analyze(mode, pack, repo, context, model, audience, output, fmt) -> None:
       cat design-doc.md | greybeard analyze --format html --output review.html
       cat design-doc.md | greybeard analyze --format jira
       greybeard analyze --repo . --context "mid-sprint auth migration"
+      git diff main | greybeard analyze --save-decision "auth-migration-q1"
     """
     cfg = GreybeardConfig.load()
     mode = mode or cfg.default_mode
@@ -215,6 +230,10 @@ def analyze(mode, pack, repo, context, model, audience, output, fmt) -> None:
     )
     output = _resolve_output_path(output, fmt)
     _apply_format_and_save(result, fmt, output, meta)
+
+    if save_decision_name:
+        path = save_decision(save_decision_name, result, content_pack.name, mode)
+        console.print(f"\n[dim]Decision saved to history: {path}[/dim]")
 
 
 # ---------------------------------------------------------------------------
@@ -645,6 +664,230 @@ def init() -> None:
         f"  Pack:    [bold]{cfg.default_pack}[/bold]\n\n"
         "Run [bold]greybeard analyze --help[/bold] to get started."
     )
+
+
+# ---------------------------------------------------------------------------
+# trends
+# ---------------------------------------------------------------------------
+
+
+@cli.command()
+@click.option(
+    "--last",
+    "days",
+    default=30,
+    show_default=True,
+    metavar="DAYS",
+    help="Analyse decisions from the last N days (0 = all time).",
+)
+@click.option("--pack", "-p", default=None, help="Filter by pack name.")
+@click.option(
+    "--llm",
+    "use_llm",
+    is_flag=True,
+    default=False,
+    help="Use the configured LLM to synthesize a narrative summary.",
+)
+@click.option("--model", default=None, help="Override LLM model (requires --llm).")
+def trends(days: int, pack: str | None, use_llm: bool, model: str | None) -> None:
+    """Show decision trends and recurring risk patterns.
+
+    \b
+    Examples:
+      greybeard trends
+      greybeard trends --last 7
+      greybeard trends --pack staff-core
+      greybeard trends --llm
+    """
+    history = load_history(days=days, pack=pack)
+
+    if not history:
+        filter_desc = []
+        if days:
+            filter_desc.append(f"last {days} days")
+        if pack:
+            filter_desc.append(f"pack={pack}")
+        filters = f" ({', '.join(filter_desc)})" if filter_desc else ""
+        console.print(f"[yellow]No decision history found{filters}.[/yellow]")
+        console.print(
+            f"Use [bold]greybeard analyze --save-decision <name>[/bold] "
+            "to start tracking decisions."
+        )
+        return
+
+    result = analyze_trends(history)
+
+    # ── Header ───────────────────────────────────────────────────────────────
+    header_parts = [f"[bold]Decisions analysed:[/bold] {result['total_decisions']}"]
+    dr = result["date_range"]
+    if dr["from"] and dr["to"]:
+        header_parts.append(f"[bold]Period:[/bold] {dr['from'][:10]} → {dr['to'][:10]}")
+    if days:
+        header_parts.append(f"[bold]Window:[/bold] last {days} days")
+    if pack:
+        header_parts.append(f"[bold]Pack filter:[/bold] {pack}")
+
+    console.print(
+        Panel(
+            "  ".join(header_parts),
+            title="[bold purple]🧙 greybeard trends[/bold purple]",
+            border_style="purple",
+        )
+    )
+
+    # ── Risk frequency table ──────────────────────────────────────────────────
+    risk_freq = result["risk_frequency"]
+    if risk_freq:
+        table = Table(
+            title="Risk Frequency",
+            show_header=True,
+            header_style="bold",
+            title_style="bold purple",
+        )
+        table.add_column("Risk", style="white")
+        table.add_column("Count", justify="right", style="cyan")
+        table.add_column("", style="")  # flag column
+
+        for risk, count in risk_freq[:20]:
+            flag = "[bold red]⚠ recurring[/bold red]" if count >= PATTERN_THRESHOLD else ""
+            table.add_row(risk, str(count), flag)
+
+        console.print(table)
+    else:
+        console.print("[dim]No risks extracted yet — run more analyses.[/dim]")
+
+    # ── Pack usage ────────────────────────────────────────────────────────────
+    if result["most_used_packs"]:
+        pack_table = Table(show_header=True, header_style="bold", title="Pack Usage")
+        pack_table.add_column("Pack")
+        pack_table.add_column("Uses", justify="right", style="cyan")
+        for p, count in result["most_used_packs"]:
+            pack_table.add_row(p, str(count))
+        console.print(pack_table)
+
+    # ── Flagged patterns + suggestions ───────────────────────────────────────
+    flagged = result["flagged_risks"]
+    if flagged:
+        console.print(
+            f"\n[bold red]⚠  {len(flagged)} recurring risk(s) detected "
+            f"(threshold: {PATTERN_THRESHOLD}+ times):[/bold red]\n"
+        )
+        for risk in flagged:
+            advice = result["suggestions"].get(risk, "")
+            count = next(c for r, c in risk_freq if r == risk)
+            console.print(f"  [bold yellow]• {risk}[/bold yellow] [dim]({count}×)[/dim]")
+            if advice:
+                console.print(f"    [dim]→ {advice}[/dim]")
+        console.print()
+
+    # ── Optional LLM narrative ────────────────────────────────────────────────
+    if use_llm and flagged:
+        cfg = GreybeardConfig.load()
+        _synthesize_with_llm(result, history, cfg, model)
+    elif use_llm and not flagged:
+        console.print(
+            "[dim]No recurring patterns yet — LLM synthesis skipped. "
+            "Accumulate more decisions first.[/dim]"
+        )
+
+
+def _synthesize_with_llm(
+    trends_result: dict,
+    history: list[dict],
+    cfg: GreybeardConfig,
+    model_override: str | None = None,
+) -> None:
+    """Ask the configured LLM to synthesize a narrative from the trends data."""
+    flagged = trends_result["flagged_risks"]
+    risk_lines = "\n".join(
+        f"- {r} ({c}×)" for r, c in trends_result["risk_frequency"] if r in flagged
+    )
+    decision_names = ", ".join(e.get("decision_name", "?") for e in history[:10])
+
+    prompt = (
+        f"You are a staff-engineer advisor reviewing a team's decision history.\n\n"
+        f"Over the last {trends_result['total_decisions']} decisions "
+        f"({decision_names}{', ...' if len(history) > 10 else ''}), "
+        f"the following risks recurred most often:\n\n{risk_lines}\n\n"
+        "Write a concise (3-5 sentences) synthesis that:\n"
+        "1. Names the dominant patterns and why they matter\n"
+        "2. Offers one concrete systemic fix\n"
+        "3. Ends with an encouraging note about the team's self-awareness\n\n"
+        "Do NOT use bullet points. Write in plain prose."
+    )
+
+    console.print(
+        Panel(
+            "[bold]LLM Pattern Synthesis[/bold]",
+            border_style="purple",
+        )
+    )
+
+    from .analyzer import _run_anthropic, _run_openai_compat
+
+    llm = cfg.llm
+    resolved_model = model_override or llm.resolved_model()
+    system = "You are a concise, insightful staff-engineer coach."
+
+    if llm.backend == "anthropic":
+        _run_anthropic(llm, resolved_model, system, prompt, stream=True)
+    else:
+        _run_openai_compat(llm, resolved_model, system, prompt, stream=True)
+
+    console.print()
+
+
+# ---------------------------------------------------------------------------
+# history (view raw log)
+# ---------------------------------------------------------------------------
+
+
+@cli.command("history")
+@click.option("--last", "days", default=30, show_default=True, metavar="DAYS",
+              help="Show entries from last N days (0 = all).")
+@click.option("--pack", "-p", default=None, help="Filter by pack name.")
+@click.option("--limit", "-n", default=20, show_default=True,
+              help="Maximum number of entries to show.")
+def history_cmd(days: int, pack: str | None, limit: int) -> None:
+    """Show raw decision history log.
+
+    \b
+    Examples:
+      greybeard history
+      greybeard history --last 7 --limit 5
+    """
+    entries = load_history(days=days, pack=pack)[:limit]
+
+    if not entries:
+        console.print("[yellow]No history entries found.[/yellow]")
+        console.print(
+            "Use [bold]greybeard analyze --save-decision <name>[/bold] "
+            "to start logging."
+        )
+        return
+
+    table = Table(
+        title=f"Decision History (last {days}d)" if days else "Decision History (all time)",
+        show_header=True,
+        header_style="bold",
+        title_style="bold purple",
+    )
+    table.add_column("Date", style="dim", no_wrap=True)
+    table.add_column("Decision Name", style="bold white")
+    table.add_column("Pack", style="cyan")
+    table.add_column("Mode", style="green")
+    table.add_column("Key Risks", style="yellow")
+
+    for entry in entries:
+        ts = entry.get("timestamp", "")[:10]
+        name = entry.get("decision_name", "—")
+        p = entry.get("pack", "—")
+        m = entry.get("mode", "—")
+        risks = ", ".join(entry.get("key_risks", [])[:3]) or "—"
+        table.add_row(ts, name, p, m, risks)
+
+    console.print(table)
+    console.print(f"\n[dim]History file: {HISTORY_FILE}[/dim]")
 
 
 # ---------------------------------------------------------------------------

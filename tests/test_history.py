@@ -294,24 +294,19 @@ class TestAnalyzeTrends:
     def test_flags_risks_at_threshold(self):
         # Exactly at threshold
         history = [
-            _make_entry(key_risks=["knowledge concentration"])
-            for _ in range(PATTERN_THRESHOLD)
+            _make_entry(key_risks=["knowledge concentration"]) for _ in range(PATTERN_THRESHOLD)
         ]
         result = analyze_trends(history)
         assert "knowledge concentration" in result["flagged_risks"]
 
     def test_does_not_flag_below_threshold(self):
-        history = [
-            _make_entry(key_risks=["rare risk"])
-            for _ in range(PATTERN_THRESHOLD - 1)
-        ]
+        history = [_make_entry(key_risks=["rare risk"]) for _ in range(PATTERN_THRESHOLD - 1)]
         result = analyze_trends(history)
         assert "rare risk" not in result["flagged_risks"]
 
     def test_suggestions_for_flagged_risks(self):
         history = [
-            _make_entry(key_risks=["knowledge concentration"])
-            for _ in range(PATTERN_THRESHOLD)
+            _make_entry(key_risks=["knowledge concentration"]) for _ in range(PATTERN_THRESHOLD)
         ]
         result = analyze_trends(history)
         assert "knowledge concentration" in result["suggestions"]
@@ -319,8 +314,7 @@ class TestAnalyzeTrends:
 
     def test_generic_suggestion_for_unknown_risk(self):
         history = [
-            _make_entry(key_risks=["totally unique risk xyz"])
-            for _ in range(PATTERN_THRESHOLD)
+            _make_entry(key_risks=["totally unique risk xyz"]) for _ in range(PATTERN_THRESHOLD)
         ]
         result = analyze_trends(history)
         assert "totally unique risk xyz" in result["suggestions"]

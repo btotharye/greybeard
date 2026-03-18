@@ -346,6 +346,40 @@ def pack_remove(source_slug: str) -> None:
         sys.exit(1)
 
 
+@pack.command("new")
+@click.option(
+    "--output-dir",
+    "-o",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Directory to create the pack folder in (default: current directory).",
+)
+def pack_new(output_dir: str | None) -> None:
+    """Interactively scaffold a new content pack.
+
+    \b
+    Runs a step-by-step wizard that collects:
+      - Pack name, description, and reviewer persona
+      - Focus areas and key heuristics
+      - Example questions and communication style
+
+    \b
+    Generates a complete pack folder:
+      <pack-name>/
+        <pack-name>.yaml          — pack definition
+        <PACK-NAME>-EXAMPLE.md    — example scenario
+        README.md                 — quick-start guide
+
+    \b
+    Examples:
+      greybeard pack new
+      greybeard pack new --output-dir ~/.greybeard/my-packs
+    """
+    from .pack_wizard import run_pack_wizard
+
+    run_pack_wizard(output_dir=output_dir)
+
+
 @pack.command("list")
 def pack_list() -> None:
     """List all installed (remote) packs."""

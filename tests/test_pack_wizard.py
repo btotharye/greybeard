@@ -163,24 +163,24 @@ class TestPackNewCommand:
     def _make_input(self, extra_lines: list[str] | None = None) -> str:
         """Build a newline-joined input string for the wizard."""
         lines = [
-            "test-wizard-pack",      # pack name
+            "test-wizard-pack",  # pack name
             "A test pack for wizards.",  # description
             "A senior wizard with 10+ years of spell review experience.",  # perspective
             "direct and constructive",  # tone
             # Focus areas (min 2, blank to stop)
             "spell correctness",
             "blast radius",
-            "",                      # end focus areas
+            "",  # end focus areas
             # Heuristics (min 2, blank to stop)
             "What happens if the spell backfires?",
             "Who cleans up the explosion?",
-            "",                      # end heuristics
+            "",  # end heuristics
             # Example questions (min 2, blank to stop)
             "Has the counterspell been tested?",
             "What's the mana cost in production?",
-            "",                      # end example questions
+            "",  # end example questions
             "Be specific about spell failure modes.",  # communication style
-            "y",                     # confirm generate
+            "y",  # confirm generate
         ]
         if extra_lines:
             lines.extend(extra_lines)

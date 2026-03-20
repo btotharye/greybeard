@@ -189,3 +189,50 @@ class TestResearchCapability:
         assert len(research.cached_research) == 2
         assert "python" in research.cached_research
         assert "golang" in research.cached_research
+
+    def test_research_topic_cached_none_value(self):
+        """Test handling of None cached values in research_topic."""
+        research = ResearchCapability()
+        
+        # Manually set a None value in cache
+        research.cached_research["test_topic"] = None
+        
+        # research_topic should handle None cache gracefully
+        result = research.research_topic("test_topic")
+        
+        assert result == ""  # Should return empty string for None
+
+    def test_gather_file_context_exception_handling(self, tmp_path):
+        """Test exception handling in gather_file_context."""
+        research = ResearchCapability()
+        
+        # Create a file that will cause read error
+        test_file = tmp_path / "readable.txt"
+        test_file.write_text("content")
+        
+        # First verify it works
+        result = research.gather_file_context(str(test_file))
+        assert result == "content"
+        
+        # Test with path that's a directory
+        result = research.gather_file_context(str(tmp_path))
+        assert result == f"File not found: {str(tmp_path)}"
+
+    def test_analyze_structure_counts_handling(self, tmp_path):
+        """Test that analyze_structure properly handles file and dir counts."""
+        research = ResearchCapability()
+        
+        # Create files and directories
+        (tmp_path / "file1.txt").touch()
+        (tmp_path / "file2.txt").touch()
+        (tmp_path / "subdir1").mkdir()
+        (tmp_path / "subdir2").mkdir()
+        
+        result = research.analyze_structure(str(tmp_path))
+        
+        assert isinstance(result["file_count"], int)
+        assert isinstance(result["dir_count"], int)
+        assert result["file_count"] == 2
+        assert result["dir_count"] == 2
+        assert isinstance(result["files"], list)
+        assert isinstance(result["directories"], list)

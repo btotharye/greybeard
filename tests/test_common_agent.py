@@ -204,6 +204,44 @@ class TestBaseAgent:
         assert data["context"]["topic"] == "test"
 
 
+    def test_multi_turn_conversation_max_turns(self):
+        """Test multi-turn conversation stops at max turns."""
+        agent = ConcreteAgent(
+            name="test",
+            description="test",
+        )
+        
+        agent.llm.call = Mock(return_value="Response")
+        
+        # Mock input() to return empty on second call (simulating user exit)
+        from unittest.mock import patch
+        with patch("builtins.input", side_effect=["", ""]):
+            result = agent.multi_turn_conversation(
+                initial_question="Start?",
+                max_turns=2,
+            )
+        
+        assert result == "Response"
+
+    def test_multi_turn_conversation_no_completion_fn(self):
+        """Test multi-turn conversation without completion function."""
+        agent = ConcreteAgent(
+            name="test",
+            description="test",
+        )
+        
+        agent.llm.call = Mock(return_value="Final response")
+        
+        from unittest.mock import patch
+        with patch("builtins.input", return_value=""):
+            result = agent.multi_turn_conversation(
+                initial_question="Question?",
+                max_turns=1,
+            )
+        
+        assert result == "Final response"
+
+
 class TestAgentInheritance:
     """Test agent inheritance patterns."""
     

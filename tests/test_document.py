@@ -244,3 +244,50 @@ class TestDocumentationGenerator:
         
         assert filepath.exists()
         assert filepath.parent == tmp_path / "deep" / "nested" / "path"
+
+    def test_format_yaml_output_string_type_check(self):
+        """Test that _format_yaml handles yaml.dump output correctly."""
+        doc_gen = DocumentationGenerator()
+        
+        # Test yaml formatting with metadata
+        content = "YAML content"
+        metadata = {"key": "value"}
+        
+        result = doc_gen._format_yaml(content=content, metadata=metadata)
+        
+        # Result should be a string
+        assert isinstance(result, str)
+        assert "content:" in result
+        assert "timestamp:" in result
+        
+    def test_save_yaml_creates_parent_directories(self, tmp_path):
+        """Test save_yaml creates parent directories."""
+        doc_gen = DocumentationGenerator()
+        
+        filepath = tmp_path / "nested" / "yaml" / "file.yaml"
+        doc_gen.save_yaml({"data": "test"}, str(filepath))
+        
+        assert filepath.exists()
+
+    def test_format_markdown_no_metadata_returns_content(self):
+        """Test _format_markdown returns content when no metadata."""
+        doc_gen = DocumentationGenerator()
+        
+        content = "Just content"
+        result = doc_gen._format_markdown(content, metadata=None)
+        
+        assert content in result
+        # Should not have yaml frontmatter without metadata
+        assert "---" not in result or result.count("---") == 0
+
+    def test_format_json_content_and_timestamp(self):
+        """Test _format_json includes content and timestamp."""
+        doc_gen = DocumentationGenerator()
+        
+        content = "JSON test"
+        result = doc_gen._format_json(content, metadata=None)
+        
+        parsed = json.loads(result)
+        assert parsed["content"] == content
+        assert "timestamp" in parsed
+        assert "metadata" not in parsed

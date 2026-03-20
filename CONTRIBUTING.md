@@ -10,9 +10,28 @@ Thanks for your interest in contributing! 🎉
 
 ## Ways to Contribute
 
-### 1. Custom Agents (New!)
+### 1. Content Packs (Easiest, Highest Value!)
 
-Build specialized decision-making agents using the framework:
+Create a new perspective for your team or community:
+
+```bash
+cd packs/
+cp staff-core.yaml my-new-pack.yaml
+# Edit your pack definition
+git diff HEAD~1 | greybeard analyze --pack packs/my-new-pack.yaml
+```
+
+**Pack Ideas:**
+- Security engineer reviewing auth/injection/secrets
+- Data engineer reviewing migrations/schemas
+- Mobile engineer reviewing client/server contracts
+- SRE reviewing SLOs/error budgets/toil
+
+See [Pack Schema](docs/reference/pack-schema.md) and [Packs Guide](docs/guides/packs.md) for details.
+
+### 2. Custom Agents (Advanced)
+
+Build specialized decision-making tools using the framework:
 
 ```python
 from greybeard.common import BaseAgent
@@ -22,32 +41,31 @@ class MyCustomAgent(BaseAgent):
         super().__init__(name="my-agent", description="...")
     
     def run(self, user_input: str) -> dict:
-        # Use research, interview, documentation capabilities
-        return {"result": "..."}
+        context = self.research.gather_file_context("file.txt")
+        response = self.llm.call(...)
+        return {"result": response}
 ```
 
-See [docs/guides/creating_agents.md](docs/guides/creating_agents.md) and [examples/custom_agent_template.py](examples/custom_agent_template.py) for detailed guides.
+See [Creating Agents Guide](docs/guides/creating_agents.md) and [template](examples/custom_agent_template.py).
 
-### 2. Content Packs (Easiest!)
+### 3. Interactive Mode Improvements
 
-Content packs are the highest-value contribution. Create a new perspective:
+Enhance the stateful conversation REPL:
 
-```bash
-cd packs/
-cp staff-core.yaml my-new-pack.yaml
-# Edit your pack
-git diff HEAD~1 | greybeard analyze --pack packs/my-new-pack.yaml
-```
+- New interactive commands or workflows
+- Better context management for long sessions
+- Improved streaming UX
+- Bug fixes
 
-See [Pack Schema](docs/reference/pack-schema.md) for details.
+See [Contributing to Interactive Mode](#contributing-to-interactive-mode) in [docs/contributing.md](docs/contributing.md).
 
 ### 4. Bug Reports
 
-Found a bug? [Open an issue](https://github.com/btotharye/greybeard/issues/new?template=bug_report.yml)
+Found a bug? [Open an issue](https://github.com/btotharye/greybeard/issues/new?template=bug_report.yml) with steps to reproduce.
 
 ### 5. Feature Requests
 
-Have an idea? [Suggest a feature](https://github.com/btotharye/greybeard/issues/new?template=feature_request.yml)
+Have an idea? [Suggest a feature](https://github.com/btotharye/greybeard/issues/new?template=feature_request.yml).
 
 ### 6. Code Contributions
 
@@ -55,7 +73,8 @@ See the [full guide](docs/contributing.md) for:
 
 - Development setup
 - Running tests
-- Code style
+- Code style and formatting
+- Interactive mode development
 - Commit guidelines
 
 ## Quick Dev Setup

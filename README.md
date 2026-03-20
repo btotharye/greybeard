@@ -42,22 +42,56 @@ This is a **thinking partner**. It models how Staff and Principal engineers reas
 
 ---
 
-## What It Does
+## Features
 
-- **Sanity-checks** architecture decisions and design docs
-- **Surfaces** operational risks, ownership gaps, and maintenance burden
-- **Coaches** you on how to communicate decisions to peers, teams, and leadership
-- **Teaches** Staff-level reasoning through mentorship mode
-- **Reviews** your own thinking before you share it with others
-- **Integrates** into Claude Desktop, Cursor, Zed and any MCP-compatible tool
+### Core Reviews
 
-📚 **[Full Documentation](https://greybeard.readthedocs.io/en/latest/)** — Installation, configuration, guides, and reference
+- **Architecture Decisions** — Sanity-check design docs and proposals
+- **Code Diffs** — Review changes through a Staff-engineer lens
+- **Tradeoff Analysis** — Surface operational risks, ownership gaps, maintenance burden
+- **Mentorship** — Learn how experienced engineers think through problems
+- **Communication Coaching** — Phrase feedback for specific audiences
+
+### Modes
+
+| Mode | Purpose |
+|------|---------|
+| **review** | Fast, direct Staff-level assessment (default) |
+| **mentor** | Explain reasoning and thought process behind concerns |
+| **coach** | Help phrase constructive feedback for a specific audience |
+| **self-check** | Review your own thinking before sharing with others |
+
+### Interactive Mode
+
+After running an analysis, ask follow-up questions, refine with additional context, and explore alternatives—all in a single conversation.
+
+```bash
+git diff main | greybeard analyze --interactive
+
+> What happens if this fails in production?
+> refine We're doing a 6-month rollout
+> explore What if we used event sourcing instead?
+```
+
+See the [Interactive Mode Guide](docs/guides/interactive-mode.md) for workflows, tips, and examples.
+
+### Content Packs
+
+10+ built-in perspectives (staff engineer, on-call, security, platform engineering, startup pragmatist, etc.). Write custom YAML packs for your team's values.
+
+### IDE & Tool Integration
+
+Runs as an MCP server compatible with Claude Desktop, Cursor, Zed, and any MCP-compatible tool. Bring greybeard into your IDE.
+
+### Multi-Backend LLM Support
+
+Works with OpenAI, Anthropic, Ollama, or LM Studio. Configure once, use anywhere.
 
 ---
 
 ## Quick Start
 
-### Install from PyPI
+### 1. Install
 
 ```bash
 # Using uv (recommended - faster)
@@ -72,414 +106,447 @@ pip install greybeard
 ```bash
 uv pip install "greybeard[anthropic]"     # Add Claude/Anthropic support
 uv pip install "greybeard[all]"           # Everything
-
-# Or with pip
-pip install "greybeard[anthropic]"
-pip install "greybeard[all]"
 ```
 
-**Then configure:**
+### 2. Configure
 
 ```bash
-greybeard init          # interactive setup wizard
-greybeard packs         # see available content packs
+greybeard init          # Interactive setup wizard
+greybeard config show   # See what's configured
 ```
 
-### Development installation
+This creates `~/.greybeard/config.yaml` with your LLM backend choice.
 
-For contributing or local development:
-
-### Development installation
-
-For contributing or local development:
+### 3. Run Your First Review
 
 ```bash
-git clone https://github.com/btotharye/greybeard.git
-cd greybeard
-
-# Option 1: Use Makefile (easiest)
-make install-dev
-make test
-make help                      # see all available commands
-
-# Option 2: Use uv directly
-uv pip install -e ".[dev]"
-uv run pytest
-
-# Option 3: Traditional pip
-pip install -e ".[dev]"
-pytest
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development setup.
-
----
-
-## LLM Backends
-
-greybeard works with whatever LLM you prefer — cloud or local. Configure once with `greybeard init` or `greybeard config set`.
-
-| Backend     | How           | What you need                                                        |
-| ----------- | ------------- | -------------------------------------------------------------------- |
-| `openai`    | OpenAI API    | `OPENAI_API_KEY`                                                     |
-| `anthropic` | Anthropic API | `ANTHROPIC_API_KEY` + `greybeard[anthropic]` extra (see Quick Start) |
-| `ollama`    | Local (free)  | [Ollama](https://ollama.ai) running: `ollama serve`                  |
-| `lmstudio`  | Local (free)  | [LM Studio](https://lmstudio.ai) server running                      |
-
-```bash
-# Configure interactively
-greybeard init
-
-# Or set directly
-greybeard config set llm.backend ollama
-greybeard config set llm.model llama3.2
-
-greybeard config set llm.backend openai
-greybeard config set llm.model gpt-4o-mini
-
-greybeard config show
-```
-
-Config lives at `~/.greybeard/config.yaml`.
-
-See [LLM Backends Guide](https://greybeard.readthedocs.io/en/latest/guides/backends/) for detailed setup instructions.
-
----
-
-## Modes
-
-| Mode         | Description                                               |
-| ------------ | --------------------------------------------------------- |
-| `review`     | Concise Staff-level review of a decision or diff          |
-| `mentor`     | Explain the reasoning and thought process behind concerns |
-| `coach`      | Help phrase constructive feedback for a specific audience |
-| `self-check` | Review your own decision before sharing it                |
-
----
-
-## Usage
-
-```bash
-# Review a git diff (default mode + default pack from config)
+# Review a code diff
 git diff main | greybeard analyze
 
 # Review with a specific mode and pack
 git diff main | greybeard analyze --mode mentor --pack oncall-future-you
 
-# Review a design doc and save the output
-cat design-doc.md | greybeard analyze --output review-2024-03-01.md
+# Run a self-check on a design decision
+greybeard self-check --context "We're migrating auth mid-sprint"
 
-# Self-check a decision before sharing
-greybeard self-check --context "We're migrating auth to a new provider mid-sprint"
-
-# Get help communicating a concern
+# Get coaching on how to phrase feedback
 greybeard coach --audience leadership --context "I think we're moving too fast"
-
-# Review with repo context (README, git log, structure)
-greybeard analyze --repo . --context "mid-sprint auth migration"
-
-# List available packs
-greybeard packs
-
-# Start MCP server (for Claude Desktop, Cursor, Zed, etc.)
-greybeard mcp
 ```
+
+### 4. Try Interactive Mode
+
+```bash
+# Start an interactive REPL after initial analysis
+cat design-doc.md | greybeard analyze --interactive
+
+# Then ask follow-up questions, refine with context, explore alternatives
+> What's the biggest operational risk?
+> refine We have strong on-call practices with Datadog everywhere
+> explore What if we kept the monolith for auth?
+```
+
+📚 **Full Documentation** — [docs](docs/) and [readthedocs](https://greybeard.readthedocs.io)
+
+---
+
+## Usage Examples
+
+### Review a Git Diff
+
+The simplest way to get feedback:
+
+```bash
+# Use default mode (review) and default pack from config
+git diff main | greybeard analyze
+
+# Or specify both
+git diff main | greybeard analyze --mode mentor --pack staff-core
+
+# Save output to a file
+git diff main | greybeard analyze --output review.md
+```
+
+### Interactive Iteration
+
+Ask follow-up questions and refine your thinking:
+
+```bash
+cat my-design.md | greybeard analyze --interactive --pack oncall-future-you
+
+Running initial analysis...
+
+[Initial analysis output]
+
+Interactive Review Session. Type 'help' for commands or 'quit' to exit.
+
+> What about failure recovery?
+[greybeard responds with recovery implications]
+
+> refine We're rolling out gradually over 6 months
+[greybeard adjusts analysis based on timeline]
+
+> explore What if we used event sourcing?
+[greybeard compares to original approach]
+
+> quit
+```
+
+### Self-Check Before Sharing
+
+Review your own decision privately before presenting:
+
+```bash
+greybeard self-check --context "We're caching heavily with Redis"
+
+# Returns thoughtful review of your assumptions and risks
+```
+
+### Coach Mode for Leadership Conversations
+
+Get help phrasing a concern constructively:
+
+```bash
+greybeard coach --audience leadership --interactive \
+  --context "I'm worried we're shipping without enough integration testing"
+
+# Initial response frames the concern clearly
+# Then ask follow-ups to refine your message
+> What if we added a kill switch?
+> How do I explain this to non-technical stakeholders?
+```
+
+### Include Repo Context
+
+For better analysis, give greybeard your project structure:
+
+```bash
+git diff main | greybeard analyze --repo . --context "microservices migration"
+
+# Greybeard has access to README, git history, structure
+# Responses are more grounded in your actual setup
+```
+
+### Review with a Custom Pack
+
+Create a `.yaml` file for your team's values and review with it:
+
+```bash
+cat design-doc.md | greybeard analyze --pack ./my-team-pack.yaml
+```
+
+See [Custom Packs](#custom-packs) below and [Pack Schema](docs/reference/pack-schema.md) for format.
 
 ---
 
 ## Content Packs
 
-Content packs define the perspective, tone, and heuristics used during review. They're plain YAML — human-editable, version-controllable, shareable.
+Content packs define the perspective, tone, and heuristics used during review. They're plain YAML—human-editable, version-controllable, shareable.
 
 ### Built-in Packs
 
-| Pack                  | Perspective           | Focus                                             |
-| --------------------- | --------------------- | ------------------------------------------------- |
-| `staff-core`          | Staff Engineer        | Ops, ownership, long-term cost                    |
-| `oncall-future-you`   | On-call engineer, 3am | Failure modes, pager noise, recovery              |
-| `mentor-mode`         | Experienced mentor    | Teaching, reasoning, growth                       |
-| `solutions-architect` | Solutions Architect   | Entity modeling, boundaries, fit-for-purpose      |
-| `idp-readiness`       | Platform Engineering  | IDP maturity, automation vs process               |
-| `platform-eng`        | Platform Engineer     | DX, abstractions, tool maturity, team scaling     |
-| `security-reviewer`   | AppSec Engineer       | Auth, injection, secrets, overprivileged access   |
-| `startup-pragmatist`  | Pragmatic Engineer    | Complexity vs stage, reversibility, scope         |
-| `incident-postmortem` | SRE / On-call         | Blameless analysis, root cause, action items      |
-| `data-migrations`     | Migration Expert      | Lock safety, zero-downtime, rollback, performance |
+| Pack | Perspective | Focus |
+|------|-------------|-------|
+| `staff-core` | Staff Engineer | Ops, ownership, long-term cost |
+| `oncall-future-you` | On-call engineer, 3am | Failure modes, pager noise, recovery |
+| `mentor-mode` | Experienced mentor | Teaching, reasoning, growth |
+| `solutions-architect` | Solutions Architect | Entity modeling, boundaries, fit-for-purpose |
+| `platform-eng` | Platform Engineer | DX, abstractions, tool maturity, scaling |
+| `security-reviewer` | AppSec Engineer | Auth, injection, secrets, overprivileged access |
+| `startup-pragmatist` | Pragmatic Engineer | Complexity vs stage, reversibility, scope |
+| `incident-postmortem` | SRE / On-call | Blameless analysis, root cause, action items |
+| `idp-readiness` | Platform Engineering | IDP maturity, automation vs process |
+| `data-migrations` | Migration Expert | Lock safety, zero-downtime, rollback, performance |
 
 ### Testing Packs
 
-Each built-in pack includes an example markdown file you can test against:
+Each built-in pack includes an example file to test with:
 
 ```bash
-# Test a pack with its example
+# Test a pack against its example
 cat packs/staff-core/STAFF-CORE-EXAMPLE.md | greybeard analyze --pack staff-core
-cat packs/security-reviewer/SECURITY-REVIEWER-EXAMPLE.md | greybeard analyze --pack security-reviewer
+
+# Try different modes
 cat packs/mentor-mode/MENTOR-MODE-EXAMPLE.md | greybeard analyze --pack mentor-mode --mode mentor
 
-# See what's available
-ls packs/*/README.md      # Get quick start for each pack
-ls packs/*-EXAMPLE.md     # See all example files
+# See all examples
+ls packs/*-EXAMPLE.md
 ```
 
-Each pack folder contains:
+### Custom Packs
 
-- `<pack-name>.yaml` — The pack definition
-- `README.md` — Quick start and focus areas
-- `<PACK>-EXAMPLE.md` — A real-world scenario to test with
+Create a `.yaml` file with your own perspective:
+
+```yaml
+name: my-team-pack
+perspective: "Platform engineer at a Series B startup"
+tone: "pragmatic, balancing shipping speed with sustainability"
+focus_areas:
+  - "team capacity vs scope"
+  - "infrastructure complexity"
+  - "operational readiness"
+heuristics:
+  - "ask: can we do this in 2 weeks?"
+  - "what's the blast radius if this breaks?"
+  - "does the team have context?"
+communication_style: "clear, direct, assume good intent"
+description: "Reviews for our team's operating philosophy"
+```
+
+Then use it:
 
 ```bash
-# Install all packs from a GitHub repo's packs/ directory
-greybeard pack install github:someone/their-greybeard-packs
+cat design-doc.md | greybeard analyze --pack ./my-team-pack.yaml
+```
 
-# Install a single pack file
+### Install External Packs
+
+Share and install packs from GitHub repos:
+
+```bash
+# Install all packs from a public repo
+greybeard pack install github:someone/their-packs
+
+# Install a single pack
 greybeard pack install github:owner/repo/packs/my-pack.yaml
 
-# Install from a raw URL
-greybeard pack install https://example.com/my-pack.yaml
-
-# See what's installed
+# List installed packs
 greybeard pack list
 
 # Remove a source
 greybeard pack remove owner__repo
 ```
 
-Installed packs are cached at `~/.greybeard/packs/` and available by name just like built-ins.
-
-### Custom Packs
-
-Create a `.yaml` file and pass it directly:
-
-```bash
-cat design-doc.md | greybeard analyze --pack my-team.yaml
-```
-
-See [`examples/custom-pack.md`](examples/custom-pack.md) for the pack schema.
+Installed packs are cached in `~/.greybeard/packs/` and work exactly like built-ins.
 
 ### Publishing a Pack
 
-Create a public GitHub repo with a `packs/` directory containing `.yaml` files. Anyone can install it with:
+Create a public GitHub repo with a `packs/` folder containing `.yaml` files. Anyone can install it:
 
 ```bash
 greybeard pack install github:your-handle/your-pack-repo
 ```
 
+See [Packs Guide](docs/guides/packs.md) for detailed pack creation and best practices.
+
 ---
 
-## MCP Integration
+## LLM Backends
 
-greybeard runs as a local [MCP](https://modelcontextprotocol.io) server, exposing its review tools to any compatible client.
+greybeard works with any LLM backend. Configure once with `greybeard init`:
+
+| Backend | How | What You Need |
+|---------|-----|---------------|
+| `openai` | OpenAI API | `OPENAI_API_KEY` |
+| `anthropic` | Anthropic API | `ANTHROPIC_API_KEY` + `greybeard[anthropic]` extra |
+| `ollama` | Local (free) | [Ollama](https://ollama.ai) running locally |
+| `lmstudio` | Local (free) | [LM Studio](https://lmstudio.ai) server running |
+
+### Configure Your Backend
+
+```bash
+# Interactive setup
+greybeard init
+
+# Or set directly
+greybeard config set llm.backend anthropic
+greybeard config set llm.model claude-3-5-sonnet
+
+greybeard config show   # Verify
+```
+
+Config lives at `~/.greybeard/config.yaml`.
+
+See [Backends Guide](docs/guides/backends.md) for detailed setup for each backend.
+
+---
+
+## IDE & Tool Integration (MCP)
+
+Run greybeard as an MCP server in Claude Desktop, Cursor, Zed, or other MCP-compatible tools.
 
 ### Claude Desktop
 
-1. Install greybeard (if you haven't already):
-
+1. Install greybeard:
 ```bash
-pip install greybeard
-# or: uv pip install greybeard
+uv pip install greybeard
 ```
 
-2. Find your greybeard command path:
-
+2. Get the greybeard path:
 ```bash
 which greybeard
 ```
 
-Save this output — you'll need it in the next step.
-
-3. Edit your Claude Desktop config:
+3. Edit Claude config:
    - **macOS:** `~/Library/Application\ Support/Claude/claude_desktop_config.json`
    - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
    - **Linux:** `~/.config/Claude/claude_desktop_config.json`
 
-Add the greybeard server with the full path from step 2:
-
+Add:
 ```json
 {
   "mcpServers": {
     "greybeard": {
-      "command": "/Users/you/.pyenv/shims/greybeard",
+      "command": "/path/to/greybeard",
       "args": ["mcp"]
     }
   }
 }
 ```
 
-Replace the path with your actual path from `which greybeard`.
-
-4. Save and restart Claude Desktop.
-
-### Using greybeard in Claude
-
-Once connected, just ask Claude naturally to use greybeard's tools:
-
-- _"Review this architecture decision"_ → Claude calls `review_decision`
-- _"Self-check my proposal before I send it"_ → Claude calls `self_check`
-- _"Help me phrase this feedback for leadership"_ → Claude calls `coach_communication`
-- _"What packs are available?"_ → Claude calls `list_packs`
-
-**Example workflows:**
+4. Restart Claude Desktop. Now you can:
 
 ```
-You: I drafted a design doc for moving to a new database.
-Can you review it with the oncall-future-you pack?
+You: I drafted an architecture decision. Can you review it?
 
-Claude: I'll review this from an on-call perspective.
-[calls review_decision with pack=oncall-future-you]
-[returns risks, failure modes, and recovery scenarios]
+Claude: I'll review this with greybeard.
+[calls greybeard review tool]
+[returns analysis with risks, tradeoffs, questions]
 ```
 
-```
-You: I'm concerned about our caching strategy. Can greybeard
-help me phrase this feedback for our VP?
+### Other Tools
 
-Claude: I'll help you draft constructive language.
-[calls coach_communication with audience=leadership]
-[returns suggested phrasing]
-```
+Cursor, Zed, and any MCP-compatible tool work the same way. Point them at `greybeard mcp` (or use the full path from `which greybeard`).
 
-See [MCP Integration Guide](docs/guides/mcp.md) for detailed workflows, tips, and complete tool reference.
-
-### Cursor / Zed / Other MCP Clients
-
-Any client that supports the MCP stdio transport works. Point it at `greybeard mcp` (or use the full path from `which greybeard`).
-
-See [MCP Integration Guide](docs/guides/mcp.md) for client-specific setup.
-
-## Primary Review Lenses
-
-The greybeard always reasons through four lenses:
-
-1. **Operational impact** — failure modes, observability, deploy & rollback safety
-2. **Long-term ownership** — who owns this in 6–12 months, tribal knowledge risk, accountability
-3. **On-call & human cost** — pager noise, manual recovery, 3am failure scenarios
-4. **"Who pays for this later?"** — complexity tax, maintenance burden, coordination overhead
+See [MCP Integration Guide](docs/guides/mcp.md) for detailed setup and workflow examples.
 
 ---
 
-## Building Custom Agents
+## Advanced Topics
 
-Greybeard provides a framework for building specialized decision-making agents on top of the core thinking tools.
+### Building Custom Agents
 
-### Agent Framework
-
-The `greybeard.common` module provides a reusable foundation:
-
-- **BaseAgent**: Abstract base class for all agents
-- **LLMWrapper**: Unified interface to all LLM backends
-- **ResearchCapability**: Context gathering (files, directories, git history)
-- **InterviewCapability**: Multi-turn conversations with users
-- **DocumentationGenerator**: Structured output formatting (Markdown, JSON, YAML)
-
-### Creating Your Own Agent
+Use the greybeard agent framework to build specialized decision-making tools:
 
 ```python
 from greybeard.common import BaseAgent
 
 class MyAgent(BaseAgent):
     def __init__(self):
-        super().__init__(
-            name="my-agent",
-            description="What this agent does"
-        )
+        super().__init__(name="my-agent", description="...")
     
     def run(self, user_input: str) -> dict:
-        # Use capabilities
+        # Use research, interview, documentation capabilities
         context = self.research.gather_file_context("file.txt")
-        response = self.llm.call(
-            system="You are an expert...",
-            messages=[{"role": "user", "content": user_input}]
-        )
-        output = self.documentation.format(response, "markdown")
-        return {"result": output}
+        response = self.llm.call(...)
+        return {"result": response}
 ```
 
-### Planned Specialized Agents
+**Available Capabilities:**
+- `research` — Gather context from files, directories, git history
+- `interview` — Multi-turn conversations with users
+- `llm` — Unified interface to all LLM backends
+- `documentation` — Format output as Markdown, JSON, YAML
 
-- **Architecture Agent** (v1.1): Document architectural decisions (ADRs)
-- **SLO Agent** (v1.2): Analyze systems and recommend service-level objectives
-- **Tech Debt Agent** (v1.3): Scan code and prioritize technical debt
-- **Custom Agents**: Build your own using the framework
+See [Creating Agents Guide](docs/guides/creating_agents.md) and the [template](examples/custom_agent_template.py).
 
-### Learn More
+**Planned Specialized Agents:**
+- **Architecture Agent** (v1.1) — Document architectural decisions (ADRs)
+- **SLO Agent** (v1.2) — Analyze systems and recommend SLOs
+- **Tech Debt Agent** (v1.3) — Scan code and prioritize technical debt
 
-See [docs/guides/creating_agents.md](docs/guides/creating_agents.md) for:
-- Complete walkthrough with examples
-- All available capabilities and methods
-- Multi-turn conversation patterns
-- Testing and publishing guidelines
-
-Or check out [examples/custom_agent_template.py](examples/custom_agent_template.py) for a runnable template.
-
----
-
-## Output Format
+### Output Formatting
 
 All output is structured Markdown:
 
 ```markdown
 ## Summary
-
-...
+Your decision summary...
 
 ## Key Risks
-
-...
+- Risk 1
+- Risk 2
 
 ## Tradeoffs
-
 ...
 
 ## Questions to Answer Before Proceeding
-
 ...
 
 ## Suggested Communication Language
-
 ...
-
----
 
 _Assumptions made: ..._
 ```
 
-Save to a file with `--output review.md`.
+Save with `--output filename.md`. See [Output Guide](docs/guides/output.md).
 
 ---
 
-## Design Decisions
+## Development & Contributing
 
-- **Multi-backend**: OpenAI, Anthropic, Ollama, LM Studio. Configured via `~/.greybeard/config.yaml`. All local backends require no API key.
-- **CLI-first**: No web UI, no server. Designed to be piped into and out of.
-- **Stateless**: No conversation history by default. Add `--context` for prior context.
-- **Pack format**: YAML for human editability. Packs are loaded at runtime and validated loosely.
-- **Remote packs cached locally**: `~/.greybeard/packs/<source>/` — installed once, used like built-ins.
-- **MCP stdio transport**: The simplest, most compatible MCP integration. No HTTP server needed.
-- **Minimal deps**: `click`, `openai`, `pyyaml`, `rich`, `python-dotenv`. Anthropic is optional.
+### Quick Dev Setup
+
+```bash
+git clone https://github.com/btotharye/greybeard.git
+cd greybeard
+
+# Using Makefile (easiest)
+make install-dev
+make test
+make help                      # see all commands
+
+# Or using uv directly
+uv pip install -e ".[dev]"
+uv run pytest
+```
+
+### Ways to Contribute
+
+**Content Packs** (easiest, high value)
+- Create a perspective your team or community needs
+- See [Packs Guide](docs/guides/packs.md)
+
+**Custom Agents**
+- Build specialized tools on top of the framework
+- See [Creating Agents Guide](docs/guides/creating_agents.md)
+
+**Bug Reports & Features**
+- [Report a bug](https://github.com/btotharye/greybeard/issues/new?template=bug_report.yml)
+- [Suggest a feature](https://github.com/btotharye/greybeard/issues/new?template=feature_request.yml)
+
+**Code Contributions**
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, style
+- Follow [Code of Conduct](CODE_OF_CONDUCT.md)
+
+**Community Packs**
+- Build a pack repo and share it
+- Open an issue linking to it—we'll feature it
 
 ---
 
-## Contributing
+## Design Philosophy
 
-We welcome contributions! 🎉
+- **Multi-backend** — OpenAI, Anthropic, Ollama, LM Studio. Choose your tool.
+- **CLI-first** — No web UI. Pipe in, pipe out. Unix philosophy.
+- **Stateless** — No conversation history by default. Add `--context` for prior context, or use `--interactive` for stateful REPL.
+- **Pack format** — YAML for human editability and version control.
+- **MCP stdio** — Simplest, most compatible tool integration.
+- **Minimal dependencies** — `click`, `pyyaml`, `rich`, `python-dotenv`, optional `openai` / `anthropic`.
 
-**Quick Start:**
+---
 
-- **Content Packs**: Create a folder in `packs/<pack-name>/` with:
-  - `<pack-name>.yaml` — The pack definition
-  - `README.md` — Quick start and focus areas
-  - `<PACK>-EXAMPLE.md` — A real-world scenario for testing
+## Documentation
 
-  Example: See `packs/staff-core/` for the structure.
+- **[Getting Started](docs/getting-started/)** — Installation, setup, first steps
+- **[Guides](docs/guides/)** — Interactive mode, packs, agents, backends, MCP, output
+- **[Reference](docs/reference/)** — CLI, config, pack schema
+- **[Contributing](CONTRIBUTING.md)** — How to contribute
+- **[Full Docs](https://greybeard.readthedocs.io)** — Hosted documentation
 
-- **Bug Reports**: [Open an issue](https://github.com/btotharye/greybeard/issues/new?template=bug_report.yml)
-- **Feature Requests**: [Suggest a feature](https://github.com/btotharye/greybeard/issues/new?template=feature_request.yml)
-- **Code**: See the [Contributing Guide](CONTRIBUTING.md) for setup instructions
+---
 
-**Community:**
+## License
 
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Security Policy](SECURITY.md)
-- [Documentation](https://greybeard.readthedocs.io/en/latest/contributing/)
+[MIT License](LICENSE) — Use freely, modify, and distribute.
 
-If you build a public pack repo on GitHub, feel free to open an issue linking to it — we'll add it to a community registry.
+---
+
+## Questions?
+
+- 📚 Check the [docs](https://greybeard.readthedocs.io)
+- 💬 [GitHub Discussions](https://github.com/btotharye/greybeard/discussions)
+- 🐛 [Open an issue](https://github.com/btotharye/greybeard/issues)
+
+---
+
+_"The greybeard isn't here to block you. They're here to make sure you've thought it through."_

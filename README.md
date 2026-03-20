@@ -357,6 +357,62 @@ The greybeard always reasons through four lenses:
 
 ---
 
+## Building Custom Agents
+
+Greybeard provides a framework for building specialized decision-making agents on top of the core thinking tools.
+
+### Agent Framework
+
+The `greybeard.common` module provides a reusable foundation:
+
+- **BaseAgent**: Abstract base class for all agents
+- **LLMWrapper**: Unified interface to all LLM backends
+- **ResearchCapability**: Context gathering (files, directories, git history)
+- **InterviewCapability**: Multi-turn conversations with users
+- **DocumentationGenerator**: Structured output formatting (Markdown, JSON, YAML)
+
+### Creating Your Own Agent
+
+```python
+from greybeard.common import BaseAgent
+
+class MyAgent(BaseAgent):
+    def __init__(self):
+        super().__init__(
+            name="my-agent",
+            description="What this agent does"
+        )
+    
+    def run(self, user_input: str) -> dict:
+        # Use capabilities
+        context = self.research.gather_file_context("file.txt")
+        response = self.llm.call(
+            system="You are an expert...",
+            messages=[{"role": "user", "content": user_input}]
+        )
+        output = self.documentation.format(response, "markdown")
+        return {"result": output}
+```
+
+### Planned Specialized Agents
+
+- **Architecture Agent** (v1.1): Document architectural decisions (ADRs)
+- **SLO Agent** (v1.2): Analyze systems and recommend service-level objectives
+- **Tech Debt Agent** (v1.3): Scan code and prioritize technical debt
+- **Custom Agents**: Build your own using the framework
+
+### Learn More
+
+See [docs/guides/creating_agents.md](docs/guides/creating_agents.md) for:
+- Complete walkthrough with examples
+- All available capabilities and methods
+- Multi-turn conversation patterns
+- Testing and publishing guidelines
+
+Or check out [examples/custom_agent_template.py](examples/custom_agent_template.py) for a runnable template.
+
+---
+
 ## Output Format
 
 All output is structured Markdown:

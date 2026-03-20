@@ -175,6 +175,7 @@ def save_decision(name: str, review_text: str, pack: str, mode: str) -> Path:
 
     Returns:
         Path to the history file.
+
     """
     _ensure_dir()
     entry: dict[str, Any] = {
@@ -200,6 +201,7 @@ def load_history(days: int = 30, pack: str | None = None) -> list[dict[str, Any]
 
     Returns:
         List of entry dicts, newest first.
+
     """
     if not HISTORY_FILE.exists():
         return []

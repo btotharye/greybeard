@@ -110,7 +110,7 @@ def _apply_format_and_save(
 @click.group()
 @click.version_option(package_name="greybeard")
 def cli() -> None:
-    """🧙 greybeard — Staff-level review & decision assistant.
+    r"""🧙 greybeard — Staff-level review & decision assistant.
 
     \b
     Quick start:
@@ -174,7 +174,7 @@ def cli() -> None:
     help="Save this review to decision history (e.g. 'auth-migration-q1').",
 )
 def analyze(mode, pack, repo, context, model, audience, output, fmt, save_decision_name) -> None:
-    """Analyze a decision, diff, or document.
+    r"""Analyze a decision, diff, or document.
 
     \b
     Examples:
@@ -258,7 +258,7 @@ def analyze(mode, pack, repo, context, model, audience, output, fmt, save_decisi
     help="Output format.",
 )
 def self_check(context, pack, model, output, fmt) -> None:
-    """Review your own decision before sharing it.
+    r"""Review your own decision before sharing it.
 
     \b
     Examples:
@@ -327,7 +327,7 @@ def self_check(context, pack, model, output, fmt) -> None:
     help="Output format.",
 )
 def coach(audience, context, pack, model, output, fmt) -> None:
-    """Get help communicating a concern or decision constructively.
+    r"""Get help communicating a concern or decision constructively.
 
     \b
     Examples:
@@ -419,7 +419,7 @@ def pack() -> None:
 @click.argument("source")
 @click.option("--force", is_flag=True, help="Re-download even if already cached.")
 def pack_install(source: str, force: bool) -> None:
-    """Install packs from a remote source.
+    r"""Install packs from a remote source.
 
     \b
     Examples:
@@ -468,7 +468,7 @@ def pack_remove(source_slug: str) -> None:
     help="Directory to create the pack folder in (default: current directory).",
 )
 def pack_new(output_dir: str | None) -> None:
-    """Interactively scaffold a new content pack.
+    r"""Interactively scaffold a new content pack.
 
     \b
     Runs a step-by-step wizard that collects:
@@ -543,7 +543,7 @@ def config_show() -> None:
 @click.argument("key")
 @click.argument("value")
 def config_set(key: str, value: str) -> None:
-    """Set a config value.
+    r"""Set a config value.
 
     \b
     Keys:
@@ -690,7 +690,7 @@ def init() -> None:
 )
 @click.option("--model", default=None, help="Override LLM model (requires --llm).")
 def trends(days: int, pack: str | None, use_llm: bool, model: str | None) -> None:
-    """Show decision trends and recurring risk patterns.
+    r"""Show decision trends and recurring risk patterns.
 
     \b
     Examples:
@@ -774,7 +774,7 @@ def trends(days: int, pack: str | None, use_llm: bool, model: str | None) -> Non
         for risk in flagged:
             advice = result["suggestions"].get(risk, "")
             count = next(c for r, c in risk_freq if r == risk)
-            console.print(f"  [bold yellow]• {risk}[/bold yellow] [dim]({count}×)[/dim]")
+            console.print(f"  [bold yellow]• {risk}[/bold yellow] [dim]({count}x)[/dim]")
             if advice:
                 console.print(f"    [dim]→ {advice}[/dim]")
         console.print()
@@ -799,7 +799,7 @@ def _synthesize_with_llm(
     """Ask the configured LLM to synthesize a narrative from the trends data."""
     flagged = trends_result["flagged_risks"]
     risk_lines = "\n".join(
-        f"- {r} ({c}×)" for r, c in trends_result["risk_frequency"] if r in flagged
+        f"- {r} ({c}x)" for r, c in trends_result["risk_frequency"] if r in flagged
     )
     decision_names = ", ".join(e.get("decision_name", "?") for e in history[:10])
 
@@ -855,7 +855,7 @@ def _synthesize_with_llm(
     "--limit", "-n", default=20, show_default=True, help="Maximum number of entries to show."
 )
 def history_cmd(days: int, pack: str | None, limit: int) -> None:
-    """Show raw decision history log.
+    r"""Show raw decision history log.
 
     \b
     Examples:
@@ -900,7 +900,7 @@ def history_cmd(days: int, pack: str | None, limit: int) -> None:
 
 @cli.command()
 def mcp() -> None:
-    """Start a stdio MCP server for use with Claude Desktop, Cursor, Zed, etc.
+    r"""Start a stdio MCP server for use with Claude Desktop, Cursor, Zed, etc.
 
     \b
     Add to Claude Desktop config:

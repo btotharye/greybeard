@@ -12,50 +12,64 @@ from greybeard.config import (
 
 
 class TestLLMConfig:
+    """Test L L M Config."""
+
     def test_default_values(self):
+        """Test default values."""
         llm = LLMConfig()
         assert llm.backend == "openai"
         assert llm.model == ""
         assert llm.base_url == ""
 
     def test_resolved_model_uses_default_when_empty(self):
+        """Test resolved model uses default when empty."""
         llm = LLMConfig(backend="openai", model="")
         assert llm.resolved_model() == DEFAULT_MODELS["openai"]
 
     def test_resolved_model_uses_explicit_model(self):
+        """Test resolved model uses explicit model."""
         llm = LLMConfig(backend="openai", model="gpt-4o-mini")
         assert llm.resolved_model() == "gpt-4o-mini"
 
     def test_resolved_base_url_for_ollama(self):
+        """Test resolved base url for ollama."""
         llm = LLMConfig(backend="ollama")
         assert "localhost" in llm.resolved_base_url()
 
     def test_resolved_base_url_custom(self):
+        """Test resolved base url custom."""
         llm = LLMConfig(backend="ollama", base_url="http://myhost:11434/v1")
         assert llm.resolved_base_url() == "http://myhost:11434/v1"
 
     def test_resolved_base_url_none_for_openai(self):
+        """Test resolved base url none for openai."""
         llm = LLMConfig(backend="openai")
         assert llm.resolved_base_url() is None
 
     def test_resolved_api_key_reads_env(self, monkeypatch):
+        """Test resolved api key reads env."""
         monkeypatch.setenv("OPENAI_API_KEY", "sk-test-123")
         llm = LLMConfig(backend="openai")
         assert llm.resolved_api_key() == "sk-test-123"
 
     def test_resolved_api_key_no_key_for_ollama(self):
+        """Test resolved api key no key for ollama."""
         llm = LLMConfig(backend="ollama")
         assert llm.resolved_api_key() == "no-key-needed"
 
 
 class TestGreybeardConfig:
+    """Test Greybeard Config."""
+
     def test_default_values(self):
+        """Test default values."""
         cfg = GreybeardConfig()
         assert cfg.default_pack == "staff-core"
         assert cfg.default_mode == "review"
         assert cfg.llm.backend == "openai"
 
     def test_load_returns_defaults_when_no_file(self, tmp_path, monkeypatch):
+        """Test load returns defaults when no file."""
         # Patch CONFIG_FILE to a non-existent path
         monkeypatch.setattr("greybeard.config.CONFIG_FILE", tmp_path / "nonexistent.yaml")
         cfg = GreybeardConfig.load()
@@ -63,6 +77,7 @@ class TestGreybeardConfig:
         assert cfg.llm.backend == "openai"
 
     def test_save_and_load_roundtrip(self, tmp_path, monkeypatch):
+        """Test save and load roundtrip."""
         monkeypatch.setattr("greybeard.config.CONFIG_DIR", tmp_path)
         monkeypatch.setattr("greybeard.config.CONFIG_FILE", tmp_path / "config.yaml")
 
@@ -78,6 +93,7 @@ class TestGreybeardConfig:
         assert loaded.llm.model == "claude-3-5-sonnet-20241022"
 
     def test_save_strips_empty_llm_fields(self, tmp_path, monkeypatch):
+        """Test save strips empty llm fields."""
         monkeypatch.setattr("greybeard.config.CONFIG_DIR", tmp_path)
         config_file = tmp_path / "config.yaml"
         monkeypatch.setattr("greybeard.config.CONFIG_FILE", config_file)
@@ -91,6 +107,7 @@ class TestGreybeardConfig:
         assert "model" not in raw.get("llm", {})
 
     def test_load_from_yaml(self, tmp_path, monkeypatch):
+        """Test load from yaml."""
         config_file = tmp_path / "config.yaml"
         config_file.write_text(
             yaml.dump(
@@ -114,6 +131,7 @@ class TestGreybeardConfig:
         assert "localhost" in cfg.llm.base_url
 
     def test_to_display_dict(self):
+        """Test to display dict."""
         cfg = GreybeardConfig()
         d = cfg.to_display_dict()
         assert "default_pack" in d

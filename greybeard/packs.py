@@ -38,15 +38,18 @@ GITHUB_RAW = "https://raw.githubusercontent.com"
 
 
 def load_pack(name_or_path: str) -> ContentPack:
-    """
-    Load a content pack by:
+    """Load a content pack.
+
+    Supports loading by:
       - Built-in name (e.g. "staff-core")
       - Local file path (e.g. "my-pack.yaml")
       - Cache slug (e.g. "owner__repo__pack-name")
       - github: prefix (loads from GitHub, caches locally)
       - https:// URL (downloads, caches locally)
 
-    Raises FileNotFoundError if the pack cannot be found.
+    Raises:
+        FileNotFoundError: If the pack cannot be found.
+
     """
     name_or_path = name_or_path.strip()
 
@@ -140,9 +143,11 @@ def list_installed_packs() -> list[dict]:
 
 
 def install_pack_source(source: str, force: bool = False) -> list[ContentPack]:
-    """
-    Install all packs from a source into the cache.
-    Returns list of installed ContentPack objects.
+    """Install all packs from a source into the cache.
+
+    Returns:
+        List of installed ContentPack objects.
+
     """
     source = source.strip()
     if source.startswith("github:"):
@@ -182,10 +187,11 @@ def remove_pack_source(source_slug: str) -> int:
 
 
 def _install_github_source(spec: str, force: bool = False) -> list[ContentPack]:
-    """
-    Install from a GitHub source spec:
-      owner/repo           → all .yaml files in packs/ directory
-      owner/repo/path/file.yaml → single file
+    """Install from a GitHub source spec.
+
+    Supports:
+        owner/repo           → all .yaml files in packs/ directory
+        owner/repo/path/file.yaml → single file
     """
     parts = spec.split("/")
     if len(parts) < 2:
@@ -237,9 +243,16 @@ def _install_github_source(spec: str, force: bool = False) -> list[ContentPack]:
 
 
 def _load_github_pack(spec: str, cache: bool = True, force: bool = False) -> ContentPack:
-    """
-    Load a single pack from GitHub.
-      owner/repo/path/to/pack.yaml  → raw content
+    """Load a single pack from GitHub.
+
+    Args:
+        spec: GitHub spec in format owner/repo/path/to/pack.yaml.
+        cache: Whether to cache the pack locally.
+        force: Whether to re-download even if cached.
+
+    Returns:
+        The loaded ContentPack.
+
     """
     parts = spec.split("/")
     if len(parts) < 3:
@@ -342,7 +355,15 @@ def _builtin_packs_dir() -> Path:
 
 
 def _find_in_cache(name: str) -> Path | None:
-    """Search ~/.greybeard/packs/*/<name>.yaml"""
+    """Search ~/.greybeard/packs/*/<name>.yaml.
+
+    Args:
+        name: Pack name to search for.
+
+    Returns:
+        Path to cached pack file, or None if not found.
+
+    """
     if not PACK_CACHE_DIR.exists():
         return None
     for source_dir in PACK_CACHE_DIR.iterdir():

@@ -138,7 +138,7 @@ def _build_example_md(
 
 ### What {pack_title} Would Ask
 
-*(Walk through 2–3 concrete concerns this reviewer would surface.)*
+*(Walk through 2-3 concrete concerns this reviewer would surface.)*
 
 **Focus area example**
 
@@ -344,11 +344,7 @@ def run_pack_wizard(output_dir: str | None = None) -> Path:
     console.print(f"  [bold]Questions:[/bold]   {len(example_questions)} defined")
 
     # Determine output directory
-    if output_dir:
-        base = Path(output_dir)
-    else:
-        # Default: current working directory
-        base = Path.cwd()
+    base = Path(output_dir) if output_dir else Path.cwd()
 
     pack_dir = base / pack_name
     yaml_path = pack_dir / f"{pack_name}.yaml"

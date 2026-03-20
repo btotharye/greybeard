@@ -1,4 +1,5 @@
-"""Example: Data Migration Input
+r"""Example: Data Migration Input.
+
 Feed this to: cat examples/inputs/migration-example.py | greybeard analyze --pack data-migrations
 """
 
@@ -12,7 +13,12 @@ revision = "0047_add_subscription_tier"
 down_revision = "0046_add_reptile_photos"
 
 
-def upgrade():
+def upgrade() -> None:
+    """Add subscription_tier column to users table.
+
+    This migration adds a new subscription_tier column with a foreign key
+    to the subscription_limits table.
+    """
     # Add column as NOT NULL with no default — will lock table during backfill
     op.add_column("users", sa.Column("subscription_tier", sa.String(), nullable=False))
 
@@ -32,5 +38,6 @@ def upgrade():
     )
 
 
-def downgrade():
+def downgrade() -> None:
+    """Remove subscription_tier column from users table."""
     op.drop_column("users", "subscription_tier")

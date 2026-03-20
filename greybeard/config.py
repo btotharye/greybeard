@@ -52,20 +52,24 @@ class LLMConfig:
     api_key_env: str = ""  # empty = use DEFAULT_API_KEY_ENVS[backend]
 
     def resolved_model(self) -> str:
+        """Get the resolved model name, using default if not set."""
         return self.model or DEFAULT_MODELS.get(self.backend, "gpt-4o")
 
     def resolved_base_url(self) -> str | None:
+        """Get the resolved base URL, using default if not set."""
         if self.base_url:
             return self.base_url
         return DEFAULT_BASE_URLS.get(self.backend)
 
     def resolved_api_key(self) -> str | None:
+        """Get the API key from environment, using resolved env var."""
         env_var = self.api_key_env or DEFAULT_API_KEY_ENVS.get(self.backend, "OPENAI_API_KEY")
         if not env_var:
             return "no-key-needed"
         return os.getenv(env_var)
 
     def resolved_api_key_env(self) -> str:
+        """Get the environment variable name for the API key."""
         return self.api_key_env or DEFAULT_API_KEY_ENVS.get(self.backend, "OPENAI_API_KEY")
 
 

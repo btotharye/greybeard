@@ -375,8 +375,8 @@ def run_interactive_repl(
                 console.print("[dim]Conversation history cleared.[/dim]")
                 continue
 
-            if command.lower().startswith("refine "):
-                additional_context = command[7:].strip()
+            if command.lower().startswith("refine"):
+                additional_context = command[6:].strip()
                 if not additional_context:
                     console.print("[yellow]Usage: refine <additional context>[/yellow]")
                     continue
@@ -384,8 +384,8 @@ def run_interactive_repl(
                 session.refine_analysis(additional_context)
                 continue
 
-            if command.lower().startswith("explore "):
-                alternative = command[8:].strip()
+            if command.lower().startswith("explore"):
+                alternative = command[7:].strip()
                 if not alternative:
                     console.print("[yellow]Usage: explore <alternative to explore>[/yellow]")
                     continue

@@ -180,7 +180,9 @@ def cli() -> None:
     is_flag=True,
     help="Start interactive REPL after initial analysis.",
 )
-def analyze(mode, pack, repo, context, model, audience, output, fmt, save_decision_name, interactive) -> None:
+def analyze(
+    mode, pack, repo, context, model, audience, output, fmt, save_decision_name, interactive
+) -> None:
     r"""Analyze a decision, diff, or document.
 
     \b

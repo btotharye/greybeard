@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock
 
 from greybeard.common.agent import BaseAgent
 
@@ -173,9 +172,10 @@ class TestBaseAgent:
             initial_question="Question?",
             expected_completion_fn=is_complete,
         )
-        
+
         assert result == "Response 1"
-        assert len(agent.conversation_history) == 1
+        # Multi-turn conversation records both user and assistant messages
+        assert len(agent.conversation_history) == 2
 
     def test_save_conversation(self, tmp_path):
         """Test saving conversation to file."""

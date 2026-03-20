@@ -5,7 +5,9 @@ Provides conversation loop logic, context building, and question generation.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
+
 from rich.console import Console
 from rich.prompt import Prompt
 
@@ -58,7 +60,7 @@ class InterviewCapability:
         self,
         previous_response: str,
         system_prompt: str,
-        llm_call: Callable[[list[dict[str, str]]], str],
+        llm_call: Callable[..., str],
     ) -> str:
         """Generate and ask an AI-powered followup question.
         

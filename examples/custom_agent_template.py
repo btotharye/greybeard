@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 from datetime import datetime
+
 from greybeard.common import BaseAgent
 
 
@@ -138,6 +139,7 @@ Provide a comprehensive summary and recommendations.
         return {
             "status": "complete",
             "user_input": user_input,
+            "history": history,
             "context": self.context.copy(),
             "analysis": analysis,
             "synthesis": synthesis,
@@ -168,7 +170,6 @@ Provide a comprehensive summary and recommendations.
 # Example: How to use the agent
 def main():
     """Example usage of the custom agent."""
-    import json
     
     print("=" * 60)
     print("🤖 Custom Agent Template Example")

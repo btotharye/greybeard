@@ -13,7 +13,10 @@ def _cfg() -> GreybeardConfig:
 
 
 class TestMCPInitialize:
+    """Test M C P Initialize."""
+
     def test_initialize_returns_server_info(self):
+        """Test initialize returns server info."""
         req = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
         resp = _handle(req, _cfg())
         assert resp["id"] == 1
@@ -21,13 +24,17 @@ class TestMCPInitialize:
         assert resp["result"]["serverInfo"]["name"] == "greybeard"
 
     def test_initialize_includes_capabilities(self):
+        """Test initialize includes capabilities."""
         req = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
         resp = _handle(req, _cfg())
         assert "tools" in resp["result"]["capabilities"]
 
 
 class TestMCPToolsList:
+    """Test M C P Tools List."""
+
     def test_tools_list_returns_tools(self):
+        """Test tools list returns tools."""
         req = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
         resp = _handle(req, _cfg())
         tools = resp["result"]["tools"]
@@ -38,6 +45,7 @@ class TestMCPToolsList:
         assert "list_packs" in names
 
     def test_all_tools_have_input_schema(self):
+        """Test all tools have input schema."""
         req = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
         resp = _handle(req, _cfg())
         for tool in resp["result"]["tools"]:
@@ -46,7 +54,10 @@ class TestMCPToolsList:
 
 
 class TestMCPToolCall:
+    """Test M C P Tool Call."""
+
     def test_list_packs_tool(self):
+        """Test list packs tool."""
         req = {
             "jsonrpc": "2.0",
             "id": 3,
@@ -59,6 +70,7 @@ class TestMCPToolCall:
         assert "staff-core" in content
 
     def test_review_decision_tool_mocked(self):
+        """Test review decision tool mocked."""
         req = {
             "jsonrpc": "2.0",
             "id": 4,
@@ -81,6 +93,7 @@ class TestMCPToolCall:
         assert resp["result"]["content"][0]["text"] == "## Summary\n\nMocked."
 
     def test_self_check_tool_mocked(self):
+        """Test self check tool mocked."""
         req = {
             "jsonrpc": "2.0",
             "id": 5,
@@ -99,6 +112,7 @@ class TestMCPToolCall:
         assert request_arg.mode == "self-check"
 
     def test_coach_tool_mocked(self):
+        """Test coach tool mocked."""
         req = {
             "jsonrpc": "2.0",
             "id": 6,
@@ -120,6 +134,7 @@ class TestMCPToolCall:
         assert request_arg.audience == "leadership"
 
     def test_unknown_tool_returns_error(self):
+        """Test unknown tool returns error."""
         req = {
             "jsonrpc": "2.0",
             "id": 7,
@@ -130,6 +145,7 @@ class TestMCPToolCall:
         assert "error" in resp
 
     def test_unknown_method_returns_error(self):
+        """Test unknown method returns error."""
         req = {"jsonrpc": "2.0", "id": 8, "method": "unknown/method", "params": {}}
         resp = _handle(req, _cfg())
         assert "error" in resp

@@ -16,7 +16,10 @@ from greybeard.packs import (
 
 
 class TestLoadBuiltinPacks:
+    """Test Load Builtin Packs."""
+
     def test_loads_staff_core(self):
+        """Test loads staff core."""
         pack = load_pack("staff-core")
         assert isinstance(pack, ContentPack)
         assert pack.name == "staff-core"
@@ -26,21 +29,25 @@ class TestLoadBuiltinPacks:
         assert len(pack.example_questions) > 0
 
     def test_loads_oncall_future_you(self):
+        """Test loads oncall future you."""
         pack = load_pack("oncall-future-you")
         assert pack.name == "oncall-future-you"
         assert "3am" in pack.perspective.lower() or "on-call" in pack.perspective.lower()
 
     def test_loads_mentor_mode(self):
+        """Test loads mentor mode."""
         pack = load_pack("mentor-mode")
         assert pack.name == "mentor-mode"
         assert pack.tone
 
     def test_loads_solutions_architect(self):
+        """Test loads solutions architect."""
         pack = load_pack("solutions-architect")
         assert pack.name == "solutions-architect"
         assert len(pack.heuristics) > 0
 
     def test_loads_security_reviewer(self):
+        """Test loads security reviewer."""
         pack = load_pack("security-reviewer")
         assert pack.name == "security-reviewer"
         assert len(pack.heuristics) > 0
@@ -50,6 +57,7 @@ class TestLoadBuiltinPacks:
         assert any(kw in combined for kw in ["auth", "injection", "token", "secret", "rate limit"])
 
     def test_loads_startup_pragmatist(self):
+        """Test loads startup pragmatist."""
         pack = load_pack("startup-pragmatist")
         assert pack.name == "startup-pragmatist"
         assert len(pack.heuristics) > 0
@@ -58,6 +66,7 @@ class TestLoadBuiltinPacks:
         assert any(kw in combined for kw in ["complexity", "scale", "simple", "ship", "abstract"])
 
     def test_loads_incident_postmortem(self):
+        """Test loads incident postmortem."""
         pack = load_pack("incident-postmortem")
         assert pack.name == "incident-postmortem"
         assert len(pack.heuristics) > 0
@@ -66,6 +75,7 @@ class TestLoadBuiltinPacks:
         assert any(kw in combined for kw in ["blame", "root cause", "action item", "blameless"])
 
     def test_loads_data_migrations(self):
+        """Test loads data migrations."""
         pack = load_pack("data-migrations")
         assert pack.name == "data-migrations"
         assert len(pack.heuristics) > 0
@@ -74,24 +84,30 @@ class TestLoadBuiltinPacks:
         assert any(kw in combined for kw in ["lock", "rollback", "migration", "backfill"])
 
     def test_loads_idp_readiness(self):
+        """Test loads idp readiness."""
         pack = load_pack("idp-readiness")
         assert pack.name == "idp-readiness"
         assert len(pack.focus_areas) > 0
 
     @pytest.mark.parametrize("pack_name", BUILTIN_PACK_NAMES)
     def test_all_builtin_packs_load(self, pack_name):
+        """Test all builtin packs load."""
         pack = load_pack(pack_name)
         assert pack.name == pack_name
         assert pack.perspective
         assert pack.tone
 
     def test_raises_on_unknown_pack(self):
+        """Test raises on unknown pack."""
         with pytest.raises(FileNotFoundError, match="not found"):
             load_pack("nonexistent-pack")
 
 
 class TestLoadCustomPack:
+    """Test Load Custom Pack."""
+
     def test_loads_from_yaml_file(self, tmp_path):
+        """Test loads from yaml file."""
         pack_file = tmp_path / "my-pack.yaml"
         pack_file.write_text(
             yaml.dump(
@@ -113,6 +129,7 @@ class TestLoadCustomPack:
         assert pack.heuristics == ["heuristic one", "heuristic two"]
 
     def test_loads_with_missing_optional_fields(self, tmp_path):
+        """Test loads with missing optional fields."""
         pack_file = tmp_path / "minimal.yaml"
         pack_file.write_text(yaml.dump({"name": "minimal", "perspective": "Min", "tone": "calm"}))
         pack = load_pack(str(pack_file))
@@ -120,10 +137,12 @@ class TestLoadCustomPack:
         assert pack.communication_style == ""
 
     def test_raises_on_missing_file(self):
+        """Test raises on missing file."""
         with pytest.raises(FileNotFoundError, match="not found"):
             load_pack("/nonexistent/path/pack.yaml")
 
     def test_uses_stem_as_name_if_name_not_in_yaml(self, tmp_path):
+        """Test uses stem as name if name not in yaml."""
         pack_file = tmp_path / "auto-named.yaml"
         pack_file.write_text(yaml.dump({"perspective": "Some", "tone": "direct"}))
         pack = load_pack(str(pack_file))
@@ -131,24 +150,32 @@ class TestLoadCustomPack:
 
 
 class TestListBuiltinPacks:
+    """Test List Builtin Packs."""
+
     def test_returns_list(self):
+        """Test returns list."""
         packs = list_builtin_packs()
         assert isinstance(packs, list)
         assert len(packs) > 0
 
     def test_includes_expected_packs(self):
+        """Test includes expected packs."""
         packs = list_builtin_packs()
         for expected in BUILTIN_PACK_NAMES:
             assert expected in packs
 
 
 class TestListInstalledPacks:
+    """Test List Installed Packs."""
+
     def test_returns_empty_when_no_cache(self, tmp_path, monkeypatch):
+        """Test returns empty when no cache."""
         monkeypatch.setattr("greybeard.packs.PACK_CACHE_DIR", tmp_path / "empty-packs")
         result = list_installed_packs()
         assert result == []
 
     def test_finds_cached_packs(self, tmp_path, monkeypatch):
+        """Test finds cached packs."""
         cache = tmp_path / "packs"
         source_dir = cache / "test__source"
         source_dir.mkdir(parents=True)
@@ -172,35 +199,45 @@ class TestListInstalledPacks:
 
 
 class TestSourceSlug:
+    """Test Source Slug."""
+
     def test_github_source(self):
+        """Test github source."""
         slug = _source_slug("github:owner/repo")
         assert "owner" in slug
         assert "repo" in slug
         assert "/" not in slug
 
     def test_url_source(self):
+        """Test url source."""
         slug = _source_slug("https://example.com/packs/my-pack.yaml")
         assert "/" not in slug
         assert len(slug) < 80
 
     def test_long_source_truncated(self):
+        """Test long source truncated."""
         long = "github:" + "a" * 100 + "/" + "b" * 100
         slug = _source_slug(long)
         assert len(slug) <= 64
 
 
 class TestContentPackPromptFragment:
+    """Test Content Pack Prompt Fragment."""
+
     def test_fragment_includes_perspective(self):
+        """Test fragment includes perspective."""
         pack = load_pack("staff-core")
         fragment = pack.to_system_prompt_fragment()
         assert pack.perspective[:20] in fragment
 
     def test_fragment_includes_heuristics(self):
+        """Test fragment includes heuristics."""
         pack = load_pack("staff-core")
         fragment = pack.to_system_prompt_fragment()
         assert any(h[:20] in fragment for h in pack.heuristics)
 
     def test_fragment_includes_tone(self):
+        """Test fragment includes tone."""
         pack = load_pack("staff-core")
         fragment = pack.to_system_prompt_fragment()
         assert pack.tone[:10] in fragment
@@ -241,12 +278,12 @@ class TestGitHubPackInstallation:
         mock_pack2 = MagicMock()
         mock_pack2.name = "pack2"
 
-        with patch("greybeard.packs._fetch_json", return_value=mock_contents):
-            with patch("greybeard.packs._load_url_pack", side_effect=[mock_pack1, mock_pack2]):
-                result = _install_github_source("owner/repo")
-                assert len(result) == 2
-                assert result[0].name == "pack1"
-                assert result[1].name == "pack2"
+        with patch("greybeard.packs._fetch_json", return_value=mock_contents), \
+             patch("greybeard.packs._load_url_pack", side_effect=[mock_pack1, mock_pack2]):
+            result = _install_github_source("owner/repo")
+            assert len(result) == 2
+            assert result[0].name == "pack1"
+            assert result[1].name == "pack2"
 
     def test_install_from_github_invalid_spec(self):
         """Test that invalid GitHub spec raises error."""
@@ -265,9 +302,9 @@ class TestGitHubPackInstallation:
 
         from greybeard.packs import _install_github_source
 
-        with patch("greybeard.packs._fetch_json", side_effect=Exception("API error")):
-            with pytest.raises(FileNotFoundError, match="Could not list"):
-                _install_github_source("owner/repo")
+        with patch("greybeard.packs._fetch_json", side_effect=Exception("API error")), \
+             pytest.raises(FileNotFoundError, match="Could not list"):
+            _install_github_source("owner/repo")
 
     def test_install_from_github_no_yaml_files(self, monkeypatch):
         """Test error when no yaml files found in directory."""
@@ -282,6 +319,6 @@ class TestGitHubPackInstallation:
             {"name": "README.md", "download_url": "https://raw.../README.md"},
         ]
 
-        with patch("greybeard.packs._fetch_json", return_value=mock_contents):
-            with pytest.raises(FileNotFoundError, match="No .yaml files found"):
-                _install_github_source("owner/repo")
+        with patch("greybeard.packs._fetch_json", return_value=mock_contents), \
+             pytest.raises(FileNotFoundError, match=r"No \.yaml files found"):
+            _install_github_source("owner/repo")

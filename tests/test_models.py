@@ -6,7 +6,10 @@ from greybeard.models import ContentPack, ReviewRequest
 
 
 class TestContentPack:
+    """Test Content Pack."""
+
     def test_to_system_prompt_fragment_minimal(self):
+        """Test to system prompt fragment minimal."""
         pack = ContentPack(
             name="test",
             perspective="A test perspective",
@@ -17,6 +20,7 @@ class TestContentPack:
         assert "calm" in fragment
 
     def test_to_system_prompt_fragment_with_heuristics(self):
+        """Test to system prompt fragment with heuristics."""
         pack = ContentPack(
             name="test",
             perspective="Tester",
@@ -28,6 +32,7 @@ class TestContentPack:
         assert "Always ask why" in fragment
 
     def test_to_system_prompt_fragment_with_questions(self):
+        """Test to system prompt fragment with questions."""
         pack = ContentPack(
             name="test",
             perspective="Tester",
@@ -39,6 +44,7 @@ class TestContentPack:
         assert "What breaks at 3am?" in fragment
 
     def test_to_system_prompt_fragment_with_communication_style(self):
+        """Test to system prompt fragment with communication style."""
         pack = ContentPack(
             name="test",
             perspective="Tester",
@@ -49,6 +55,7 @@ class TestContentPack:
         assert "Be concise and specific." in fragment
 
     def test_empty_lists_not_in_fragment(self):
+        """Test empty lists not in fragment."""
         pack = ContentPack(
             name="test",
             perspective="Tester",
@@ -60,10 +67,13 @@ class TestContentPack:
 
 
 class TestReviewRequest:
+    """Test Review Request."""
+
     def _make_pack(self) -> ContentPack:
         return ContentPack(name="test", perspective="Tester", tone="calm")
 
     def test_default_values(self):
+        """Test default values."""
         pack = self._make_pack()
         req = ReviewRequest(mode="review", pack=pack)
         assert req.input_text == ""
@@ -72,6 +82,7 @@ class TestReviewRequest:
         assert req.repo_path is None
 
     def test_with_all_fields(self):
+        """Test with all fields."""
         pack = self._make_pack()
         req = ReviewRequest(
             mode="mentor",

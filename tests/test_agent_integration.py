@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from greybeard.common.agent import BaseAgent
-from greybeard.common.llm_wrapper import LLMWrapper
 
 
 class SimpleAgent(BaseAgent):
@@ -98,7 +96,7 @@ class TestAgentIntegration:
         agent.conversation_history.append({"role": "assistant", "content": "A1"})
         agent.conversation_history.append({"role": "user", "content": "Q2"})
         
-        result = agent.run("Q3")
+        agent.run("Q3")
         
         # Conversation should be tracked
         assert agent.conversation_history[0]["content"] == "Q1"

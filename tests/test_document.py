@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
 import json
-from pathlib import Path
 
 from greybeard.common.document import DocumentationGenerator
 
@@ -93,14 +91,13 @@ class TestDocumentationGenerator:
     def test_format_yaml_fallback(self):
         """Test YAML formatting with missing yaml library."""
         doc_gen = DocumentationGenerator()
-        
-        with pytest.importorskip("yaml", minversion=None) or True:
-            # Test that it at least returns something
-            result = doc_gen.format(
-                content="test",
-                format_type="yaml",
-            )
-            assert result is not None
+
+        # Test that it at least returns something
+        result = doc_gen.format(
+            content="test",
+            format_type="yaml",
+        )
+        assert result is not None
 
     def test_format_default_is_markdown(self):
         """Test default format is markdown."""
@@ -174,14 +171,13 @@ class TestDocumentationGenerator:
     def test_save_yaml_fallback_to_json(self, tmp_path):
         """Test YAML fallback saves as JSON."""
         doc_gen = DocumentationGenerator()
-        
-        with pytest.importorskip("yaml", minversion=None) or True:
-            data = {"key": "value"}
-            filepath = tmp_path / "test.yaml"
-            
-            doc_gen.save_yaml(data, str(filepath))
-            
-            assert filepath.exists()
+
+        data = {"key": "value"}
+        filepath = tmp_path / "test.yaml"
+
+        doc_gen.save_yaml(data, str(filepath))
+
+        assert filepath.exists()
 
     def test_create_template(self):
         """Test creating markdown template."""

@@ -7,10 +7,10 @@ Greybeard agents inherit from and use.
 from __future__ import annotations
 
 from .agent import BaseAgent
+from .document import DocumentationGenerator
+from .interview import InterviewCapability
 from .llm_wrapper import LLMWrapper
 from .research import ResearchCapability
-from .interview import InterviewCapability
-from .document import DocumentationGenerator
 
 __all__ = [
     "BaseAgent",

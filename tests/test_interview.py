@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 
 from greybeard.common.interview import InterviewCapability
 

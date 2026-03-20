@@ -30,6 +30,8 @@ def mock_config():
 
 
 class TestCliVersion:
+    """Test Cli Version."""
+
     def test_version_flag(self, runner):
         """Test that --version returns version info."""
         result = runner.invoke(cli, ["--version"])
@@ -38,6 +40,8 @@ class TestCliVersion:
 
 
 class TestCliHelp:
+    """Test Cli Help."""
+
     def test_help_flag(self, runner):
         """Test that --help returns help text."""
         result = runner.invoke(cli, ["--help"])
@@ -52,6 +56,8 @@ class TestCliHelp:
 
 
 class TestConfigCommand:
+    """Test Config Command."""
+
     def test_config_show(self, runner, mock_config):
         """Test config show command."""
         with patch("greybeard.cli.console") as mock_console:
@@ -92,6 +98,8 @@ class TestConfigCommand:
 
 
 class TestPacksCommand:
+    """Test Packs Command."""
+
     def test_packs_list(self, runner):
         """Test packs command lists available packs."""
         with patch("greybeard.cli.list_builtin_packs") as mock_list:
@@ -102,6 +110,8 @@ class TestPacksCommand:
 
 
 class TestAnalyzeCommand:
+    """Test Analyze Command."""
+
     @patch("greybeard.cli.run_review")
     @patch("greybeard.cli._read_stdin_if_available")
     def test_analyze_from_stdin(self, mock_stdin, mock_review, runner, mock_config):
@@ -165,6 +175,8 @@ class TestAnalyzeCommand:
 
 
 class TestSelfCheckCommand:
+    """Test Self Check Command."""
+
     @patch("greybeard.cli.run_review")
     @patch("greybeard.cli._read_stdin_if_available")
     def test_self_check_basic(self, mock_stdin, mock_review, runner, mock_config):
@@ -200,6 +212,8 @@ class TestSelfCheckCommand:
 
 
 class TestCoachCommand:
+    """Test Coach Command."""
+
     @patch("greybeard.cli.run_review")
     def test_coach_basic(self, mock_review, runner, mock_config):
         """Test coach command."""
@@ -247,6 +261,8 @@ class TestCoachCommand:
 
 
 class TestInitCommand:
+    """Test Init Command."""
+
     @patch("greybeard.cli.click.prompt")
     def test_init_openai_backend(self, mock_prompt, runner, mock_config):
         """Test init command with OpenAI backend."""
@@ -287,6 +303,8 @@ class TestInitCommand:
 
 
 class TestMcpCommand:
+    """Test Mcp Command."""
+
     @patch("greybeard.mcp_server.serve")
     def test_mcp_command(self, mock_serve, runner, mock_config):
         """Test mcp command starts server."""

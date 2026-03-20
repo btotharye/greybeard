@@ -7,14 +7,15 @@ Provides shared capabilities like multi-turn conversation, research, and documen
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 from rich.console import Console
 
+from .document import DocumentationGenerator
+from .interview import InterviewCapability
 from .llm_wrapper import LLMWrapper
 from .research import ResearchCapability
-from .interview import InterviewCapability
-from .document import DocumentationGenerator
 
 console = Console()
 
@@ -83,7 +84,7 @@ Format your responses in clear, structured markdown."""
         self,
         initial_question: str,
         max_turns: int = 10,
-        expected_completion_fn: callable | None = None,
+        expected_completion_fn: Callable[[str], bool] | None = None,
     ) -> str:
         """Run a multi-turn conversation.
         

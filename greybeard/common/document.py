@@ -6,9 +6,11 @@ Provides structured output in multiple formats (markdown, JSON, YAML).
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
-from datetime import datetime
+
+# mypy: disable-error-code="import-untyped"
 
 
 class DocumentationGenerator:
@@ -61,7 +63,7 @@ class DocumentationGenerator:
         metadata: dict[str, Any] | None = None,
     ) -> str:
         """Format as JSON."""
-        data = {
+        data: dict[str, Any] = {
             "content": content,
             "timestamp": datetime.utcnow().isoformat(),
         }
@@ -78,20 +80,23 @@ class DocumentationGenerator:
     ) -> str:
         """Format as YAML."""
         try:
-            import yaml
+            import yaml  # noqa: F401
         except ImportError:
             # Fallback to JSON if yaml not available
             return self._format_json(content, metadata)
-        
-        data = {
+
+        import yaml  # type: ignore
+
+        data: dict[str, Any] = {
             "content": content,
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
         if metadata:
             data["metadata"] = metadata
-        
-        return yaml.dump(data, default_flow_style=False)
+
+        yaml_output = yaml.dump(data, default_flow_style=False)
+        return yaml_output if isinstance(yaml_output, str) else str(yaml_output)
 
     def save_markdown(self, content: str, filepath: str) -> None:
         """Save content as markdown file.
@@ -118,17 +123,19 @@ class DocumentationGenerator:
 
     def save_yaml(self, data: dict[str, Any], filepath: str) -> None:
         """Save data as YAML file.
-        
+
         Args:
             data: Data to save
             filepath: Path to save to
         """
         try:
-            import yaml
+            import yaml  # noqa: F401
         except ImportError:
             self.save_json(data, filepath)
             return
-        
+
+        import yaml
+
         path = Path(filepath)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w") as f:

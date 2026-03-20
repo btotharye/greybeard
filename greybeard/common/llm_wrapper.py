@@ -6,11 +6,9 @@ for agents to call LLMs.
 
 from __future__ import annotations
 
-from typing import Any
-
-from ..config import GreybeardConfig
 from ..analyzer import run_review
-from ..models import ReviewRequest
+from ..config import GreybeardConfig
+from ..models import ContentPack, ReviewRequest
 
 
 class LLMWrapper:
@@ -57,13 +55,18 @@ class LLMWrapper:
             for msg in messages
         )
         
+        # Create a minimal pack for the request
+        pack = ContentPack(
+            name="agent-call",
+            perspective="Balanced technical reviewer",
+            tone="Constructive",
+        )
+        
         request = ReviewRequest(
             input_text=user_content,
             mode="review",
-            pack=None,
+            pack=pack,
             audience=None,
-            format="markdown",
-            output=None,
         )
         
         response = run_review(
@@ -99,13 +102,18 @@ class LLMWrapper:
             for msg in messages
         )
         
+        # Create a minimal pack for the request
+        pack = ContentPack(
+            name="agent-call",
+            perspective="Balanced technical reviewer",
+            tone="Constructive",
+        )
+        
         request = ReviewRequest(
             input_text=user_content,
             mode="review",
-            pack=None,
+            pack=pack,
             audience=None,
-            format="markdown",
-            output=None,
         )
         
         # Use streaming

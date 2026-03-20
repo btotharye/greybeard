@@ -20,44 +20,61 @@ from greybeard.pack_wizard import (
 
 
 class TestSlugify:
+    """Test Slugify."""
+
     def test_simple_name(self):
+        """Test simple name."""
         assert _slugify("hiring-interview") == "hiring-interview"
 
     def test_spaces_to_hyphens(self):
+        """Test spaces to hyphens."""
         assert _slugify("Hiring Interview") == "hiring-interview"
 
     def test_strips_special_chars(self):
+        """Test strips special chars."""
         assert _slugify("Security Review!") == "security-review"
 
     def test_collapses_hyphens(self):
+        """Test collapses hyphens."""
         assert _slugify("my--pack") == "my-pack"
 
     def test_lowercase(self):
+        """Test lowercase."""
         assert _slugify("API-Gateway") == "api-gateway"
 
 
 class TestValidatePackName:
+    """Test Validate Pack Name."""
+
     def test_valid_name(self):
+        """Test valid name."""
         assert _validate_pack_name("security-reviewer") is None
 
     def test_valid_single_word(self):
+        """Test valid single word."""
         assert _validate_pack_name("hiring") is None
 
     def test_empty_name(self):
+        """Test empty name."""
         assert _validate_pack_name("") is not None
 
     def test_invalid_chars(self):
+        """Test invalid chars."""
         # After slugifying, special chars are stripped; validate gets the raw slug
         # "my pack!" slugifies to "my-pack" which is valid — but validate takes the
         # already-slugified value in practice
         assert _validate_pack_name("my-pack") is None
 
     def test_name_with_numbers(self):
+        """Test name with numbers."""
         assert _validate_pack_name("pack-v2") is None
 
 
 class TestBuildYaml:
+    """Test Build Yaml."""
+
     def test_produces_valid_yaml(self):
+        """Test produces valid yaml."""
         data = {
             "name": "test-pack",
             "description": "A test pack.",
@@ -76,6 +93,7 @@ class TestBuildYaml:
         assert len(parsed["heuristics"]) == 1
 
     def test_multiline_perspective_uses_block_scalar(self):
+        """Test multiline perspective uses block scalar."""
         data = {
             "name": "test-pack",
             "description": "desc",
@@ -90,6 +108,7 @@ class TestBuildYaml:
         assert "perspective: |" in output
 
     def test_single_quotes_in_heuristics(self):
+        """Test single quotes in heuristics."""
         data = {
             "name": "test-pack",
             "description": "desc",
@@ -107,7 +126,10 @@ class TestBuildYaml:
 
 
 class TestBuildExampleMd:
+    """Test Build Example Md."""
+
     def test_contains_pack_title(self):
+        """Test contains pack title."""
         md = _build_example_md(
             "my-pack",
             "My Pack",
@@ -118,6 +140,7 @@ class TestBuildExampleMd:
         assert "My Pack" in md
 
     def test_contains_first_heuristic(self):
+        """Test contains first heuristic."""
         md = _build_example_md(
             "test-pack",
             "Test Pack",
@@ -128,12 +151,16 @@ class TestBuildExampleMd:
         assert "Heuristic question?" in md
 
     def test_contains_action_items_section(self):
+        """Test contains action items section."""
         md = _build_example_md("p", "P", "d", ["f"], ["h"])
         assert "Action Items" in md
 
 
 class TestBuildReadme:
+    """Test Build Readme."""
+
     def test_contains_pack_name_in_command(self):
+        """Test contains pack name in command."""
         md = _build_readme(
             "security-review",
             "Security Review",
@@ -143,11 +170,13 @@ class TestBuildReadme:
         assert "--pack security-review" in md
 
     def test_contains_focus_areas(self):
+        """Test contains focus areas."""
         md = _build_readme("p", "P", "d", ["auth boundaries", "rate limiting"])
         assert "auth boundaries" in md
         assert "rate limiting" in md
 
     def test_contains_quick_start(self):
+        """Test contains quick start."""
         md = _build_readme("p", "P", "d", ["f"])
         assert "Quick Start" in md
 

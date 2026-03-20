@@ -6,9 +6,9 @@ analyzing existing data sources.
 
 from __future__ import annotations
 
-from typing import Any
-from pathlib import Path
 import json
+from pathlib import Path
+from typing import Any
 
 
 class ResearchCapability:
@@ -20,17 +20,18 @@ class ResearchCapability:
 
     def research_topic(self, topic: str, sources: list[str] | None = None) -> str:
         """Research a topic using available sources.
-        
+
         Args:
             topic: Topic to research
             sources: Optional list of data sources
-            
+
         Returns:
             Research summary
         """
         if topic in self.cached_research:
-            return self.cached_research[topic]
-        
+            cached = self.cached_research[topic]
+            return str(cached) if cached is not None else ""
+
         # Placeholder for actual research implementation
         # Could integrate with web APIs, documentation, etc.
         summary = f"Research on: {topic}"
@@ -56,10 +57,10 @@ class ResearchCapability:
 
     def analyze_structure(self, dirpath: str) -> dict[str, Any]:
         """Analyze directory structure and contents.
-        
+
         Args:
             dirpath: Directory path to analyze
-            
+
         Returns:
             Analysis of directory structure
         """
@@ -67,22 +68,34 @@ class ResearchCapability:
             path = Path(dirpath)
             if not path.is_dir():
                 return {"error": f"Not a directory: {dirpath}"}
-            
-            structure = {
+
+            structure: dict[str, Any] = {
                 "files": [],
                 "directories": [],
                 "file_count": 0,
                 "dir_count": 0,
             }
-            
+
             for item in path.iterdir():
                 if item.is_file():
-                    structure["files"].append(item.name)
-                    structure["file_count"] += 1
+                    files = structure["files"]
+                    if isinstance(files, list):
+                        files.append(item.name)
+                    structure["file_count"] = (
+                        structure["file_count"] + 1
+                        if isinstance(structure["file_count"], int)
+                        else 1
+                    )
                 elif item.is_dir() and not item.name.startswith("."):
-                    structure["directories"].append(item.name)
-                    structure["dir_count"] += 1
-            
+                    dirs = structure["directories"]
+                    if isinstance(dirs, list):
+                        dirs.append(item.name)
+                    structure["dir_count"] = (
+                        structure["dir_count"] + 1
+                        if isinstance(structure["dir_count"], int)
+                        else 1
+                    )
+
             return structure
         except Exception as e:
             return {"error": str(e)}
@@ -132,17 +145,18 @@ class ResearchCapability:
 
     def load_json_data(self, filepath: str) -> dict[str, Any] | list[Any]:
         """Load and parse JSON data.
-        
+
         Args:
             filepath: Path to JSON file
-            
+
         Returns:
             Parsed JSON data
         """
         try:
             path = Path(filepath)
             with path.open() as f:
-                return json.load(f)
+                result = json.load(f)
+                return result if isinstance(result, (dict, list)) else {"data": result}
         except Exception as e:
             return {"error": str(e)}
 

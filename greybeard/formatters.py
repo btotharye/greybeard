@@ -245,8 +245,7 @@ _HTML_TEMPLATE = """\
 
 
 def _md_to_html_body(markdown: str) -> str:
-    """
-    Minimal Markdown-to-HTML converter (no external deps).
+    r"""Minimal Markdown-to-HTML converter (no external deps).
 
     Handles: headings, bold, italic, inline code, fenced code blocks,
     bullet/numbered lists, blockquotes, horizontal rules, paragraphs.

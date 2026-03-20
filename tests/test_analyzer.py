@@ -23,28 +23,35 @@ def _make_request(**kwargs) -> ReviewRequest:
 
 
 class TestBuildUserMessage:
+    """Test Build User Message."""
+
     def test_includes_input_text(self):
+        """Test includes input text."""
         req = _make_request(input_text="diff --git a/foo.py b/foo.py\n+some change")
         msg = _build_user_message(req)
         assert "diff --git" in msg
 
     def test_includes_context_notes(self):
+        """Test includes context notes."""
         req = _make_request(context_notes="This is part of a DB migration")
         msg = _build_user_message(req)
         assert "DB migration" in msg
 
     def test_no_input_returns_fallback(self):
+        """Test no input returns fallback."""
         req = _make_request()
         msg = _build_user_message(req)
         assert "No input" in msg or "no input" in msg.lower()
 
     def test_both_context_and_input_included(self):
+        """Test both context and input included."""
         req = _make_request(input_text="some diff", context_notes="some context")
         msg = _build_user_message(req)
         assert "some diff" in msg
         assert "some context" in msg
 
     def test_large_input_warns(self, capsys):
+        """Test large input warns."""
         large_input = "x" * 200_000
         req = _make_request(input_text=large_input)
         msg = _build_user_message(req)
@@ -54,7 +61,10 @@ class TestBuildUserMessage:
 
 
 class TestCollectRepoContext:
+    """Test Collect Repo Context."""
+
     def test_includes_readme(self, tmp_path):
+        """Test includes readme."""
         readme = tmp_path / "README.md"
         readme.write_text("# My Project\n\nThis is a test project.")
         context = _collect_repo_context(str(tmp_path))
@@ -62,6 +72,7 @@ class TestCollectRepoContext:
         assert "test project" in context
 
     def test_includes_directory_structure(self, tmp_path):
+        """Test includes directory structure."""
         (tmp_path / "src").mkdir()
         (tmp_path / "src" / "main.py").write_text("# main")
         (tmp_path / "tests").mkdir()
@@ -70,6 +81,7 @@ class TestCollectRepoContext:
         assert "tests" in context
 
     def test_skips_node_modules(self, tmp_path):
+        """Test skips node modules."""
         (tmp_path / "node_modules").mkdir()
         (tmp_path / "node_modules" / "some-lib").mkdir()
         (tmp_path / "src").mkdir()
@@ -78,12 +90,14 @@ class TestCollectRepoContext:
         assert "src" in context
 
     def test_handles_no_readme(self, tmp_path):
+        """Test handles no readme."""
         (tmp_path / "src").mkdir()
         context = _collect_repo_context(str(tmp_path))
         assert "README" not in context
         assert "src" in context
 
     def test_handles_nonexistent_path(self):
+        """Test handles nonexistent path."""
         context = _collect_repo_context("/nonexistent/path/that/does/not/exist")
         assert isinstance(context, str)
         assert context == ""
@@ -93,6 +107,7 @@ class TestRunReviewMocked:
     """Tests for run_review that mock out the LLM call."""
 
     def test_run_review_calls_openai_compat(self):
+        """Test run review calls openai compat."""
         from greybeard.analyzer import run_review
 
         pack = _make_pack()
@@ -107,6 +122,7 @@ class TestRunReviewMocked:
         assert result == "## Summary\n\nMocked review."
 
     def test_run_review_uses_anthropic_for_anthropic_backend(self):
+        """Test run review uses anthropic for anthropic backend."""
         from greybeard.analyzer import run_review
 
         pack = _make_pack()
@@ -122,6 +138,7 @@ class TestRunReviewMocked:
         assert result == "## Summary\n\nAnthropic review."
 
     def test_model_override_passed_through(self):
+        """Test model override passed through."""
         from greybeard.analyzer import run_review
 
         pack = _make_pack()

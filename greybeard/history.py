@@ -43,60 +43,26 @@ RISK_ADVICE: dict[str, str] = {
     "no rollback": (
         "Design every change to be reversible. Feature flags and blue-green deployments help."
     ),
-    "rollback": (
-        "Make sure every deploy has a tested rollback path before you ship."
-    ),
-    "data loss": (
-        "Add pre-migration snapshots and a restore drill to your runbook."
-    ),
-    "missing tests": (
-        "Establish a test coverage gate so this pattern doesn't recur."
-    ),
-    "test coverage": (
-        "Set a minimum coverage threshold in CI so gaps surface before review."
-    ),
-    "toil": (
-        "Automate the toil or schedule a dedicated reduction sprint."
-    ),
-    "single point of failure": (
-        "Add redundancy or at least a documented fallback procedure."
-    ),
-    "no monitoring": (
-        "Add alerting before you ship — you can't fix what you can't see."
-    ),
-    "observability": (
-        "Instrument the happy path first, then add anomaly alerts."
-    ),
-    "scope creep": (
-        "Lock the scope before the next review and use a decision log for additions."
-    ),
-    "deadline": (
-        "Revisit the scope/quality trade-off explicitly with stakeholders."
-    ),
-    "security": (
-        "Run a threat model early — retrofitting security is expensive."
-    ),
-    "auth": (
-        "Verify AuthN/AuthZ flows with a dedicated security review or pen test."
-    ),
-    "performance": (
-        "Add a benchmark suite and a latency budget so regressions surface in CI."
-    ),
-    "dependency": (
-        "Pin critical dependencies and audit transitive ones periodically."
-    ),
-    "vendor lock": (
-        "Abstract the vendor behind an interface so you can swap it out if needed."
-    ),
+    "rollback": ("Make sure every deploy has a tested rollback path before you ship."),
+    "data loss": ("Add pre-migration snapshots and a restore drill to your runbook."),
+    "missing tests": ("Establish a test coverage gate so this pattern doesn't recur."),
+    "test coverage": ("Set a minimum coverage threshold in CI so gaps surface before review."),
+    "toil": ("Automate the toil or schedule a dedicated reduction sprint."),
+    "single point of failure": ("Add redundancy or at least a documented fallback procedure."),
+    "no monitoring": ("Add alerting before you ship — you can't fix what you can't see."),
+    "observability": ("Instrument the happy path first, then add anomaly alerts."),
+    "scope creep": ("Lock the scope before the next review and use a decision log for additions."),
+    "deadline": ("Revisit the scope/quality trade-off explicitly with stakeholders."),
+    "security": ("Run a threat model early — retrofitting security is expensive."),
+    "auth": ("Verify AuthN/AuthZ flows with a dedicated security review or pen test."),
+    "performance": ("Add a benchmark suite and a latency budget so regressions surface in CI."),
+    "dependency": ("Pin critical dependencies and audit transitive ones periodically."),
+    "vendor lock": ("Abstract the vendor behind an interface so you can swap it out if needed."),
     "communication": (
         "Make the decision visible in writing and get explicit sign-off from affected teams."
     ),
-    "alignment": (
-        "Run a DACI or RFC process to force alignment before execution."
-    ),
-    "technical debt": (
-        "Track debt as tickets so it doesn't silently compound."
-    ),
+    "alignment": ("Run a DACI or RFC process to force alignment before execution."),
+    "technical debt": ("Track debt as tickets so it doesn't silently compound."),
     "migration": (
         "Build a validation step that proves the migrated state is correct before cutting over."
     ),

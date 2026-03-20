@@ -710,8 +710,7 @@ def trends(days: int, pack: str | None, use_llm: bool, model: str | None) -> Non
         filters = f" ({', '.join(filter_desc)})" if filter_desc else ""
         console.print(f"[yellow]No decision history found{filters}.[/yellow]")
         console.print(
-            "Use [bold]greybeard analyze --save-decision <name>[/bold] "
-            "to start tracking decisions."
+            "Use [bold]greybeard analyze --save-decision <name>[/bold] to start tracking decisions."
         )
         return
 
@@ -843,11 +842,18 @@ def _synthesize_with_llm(
 
 
 @cli.command("history")
-@click.option("--last", "days", default=30, show_default=True, metavar="DAYS",
-              help="Show entries from last N days (0 = all).")
+@click.option(
+    "--last",
+    "days",
+    default=30,
+    show_default=True,
+    metavar="DAYS",
+    help="Show entries from last N days (0 = all).",
+)
 @click.option("--pack", "-p", default=None, help="Filter by pack name.")
-@click.option("--limit", "-n", default=20, show_default=True,
-              help="Maximum number of entries to show.")
+@click.option(
+    "--limit", "-n", default=20, show_default=True, help="Maximum number of entries to show."
+)
 def history_cmd(days: int, pack: str | None, limit: int) -> None:
     r"""Show raw decision history log.
 
@@ -860,10 +866,7 @@ def history_cmd(days: int, pack: str | None, limit: int) -> None:
 
     if not entries:
         console.print("[yellow]No history entries found.[/yellow]")
-        console.print(
-            "Use [bold]greybeard analyze --save-decision <name>[/bold] "
-            "to start logging."
-        )
+        console.print("Use [bold]greybeard analyze --save-decision <name>[/bold] to start logging.")
         return
 
     table = Table(

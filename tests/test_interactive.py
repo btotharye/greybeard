@@ -1494,6 +1494,144 @@ class TestREPLCommandEdgeCases:
         mock_refine.assert_called_once()
 
 
+# -----------------------------------------------------------------------
+# Additional comprehensive coverage tests for error paths
+# -----------------------------------------------------------------------
+
+
+class TestAnthropicErrorPaths:
+    """Comprehensive tests for anthropic error handling to ensure coverage of lines 287-309."""
+
+    def test_anthropic_missing_api_key_error_message(self, sample_pack: ContentPack) -> None:
+        """Test missing API key error output."""
+        config = GreybeardConfig(
+            llm=LLMConfig(backend="anthropic", model="claude-3-5-sonnet"),
+            default_mode="review",
+            default_pack="test",
+        )
+        session = InteractiveSession("review", sample_pack, config)
+
+        # Mock the config to have no API key AND mock the anthropic import
+        mock_anthropic_module = Mock()
+        mock_anthropic_module.Anthropic = Mock()
+
+        with patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
+            with patch.object(config.llm, "resolved_api_key", return_value=None):
+                with patch.object(
+                    config.llm, "resolved_api_key_env", return_value="ANTHROPIC_API_KEY"
+                ):
+                    with patch("greybeard.interactive.print") as mock_print:
+                        with patch("builtins.__import__", wraps=__import__) as mock_import:
+
+                            def side_effect(name, *args, **kwargs):
+                                if name == "anthropic":
+                                    return mock_anthropic_module
+                                return __import__(name, *args, **kwargs)
+
+                            mock_import.side_effect = side_effect
+
+                            with pytest.raises(SystemExit) as exc_info:
+                                session._call_anthropic("system prompt", "user message")
+                            assert exc_info.value.code == 1
+                            # Verify error message was printed
+                            print_calls = [str(call) for call in mock_print.call_args_list]
+                            # Check error was printed
+                            has_api_key = any(
+                                "ANTHROPIC_API_KEY" in str(call) for call in print_calls
+                            )
+                            has_error = any("Error" in str(call) for call in print_calls)
+                            assert has_api_key or has_error
+
+    def test_anthropic_missing_package_error_message(self, sample_pack: ContentPack) -> None:
+        """Test that _call_anthropic properly handles missing anthropic package."""
+        config = GreybeardConfig(
+            llm=LLMConfig(backend="anthropic", model="claude-3-5-sonnet"),
+            default_mode="review",
+            default_pack="test",
+        )
+        session = InteractiveSession("review", sample_pack, config)
+
+        # Mock import to fail
+        import builtins
+        real_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "anthropic":
+                raise ImportError("No module named 'anthropic'")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=mock_import):
+            with pytest.raises(SystemExit) as exc_info:
+                session._call_anthropic("system prompt", "user message")
+            assert exc_info.value.code == 1
+
+    def test_anthropic_streaming_output(self, sample_pack: ContentPack) -> None:
+        """Test anthropic streaming properly outputs text chunks (lines 296-309)."""
+        config = GreybeardConfig(
+            llm=LLMConfig(backend="anthropic", model="claude-3-5-sonnet"),
+            default_mode="review",
+            default_pack="test",
+        )
+        session = InteractiveSession("review", sample_pack, config)
+
+        # Mock anthropic client and streaming
+        mock_stream = Mock()
+        mock_stream.__enter__ = Mock(return_value=mock_stream)
+        mock_stream.__exit__ = Mock(return_value=None)
+        mock_stream.text_stream = ["Hello ", "World", "!"]
+
+        mock_client_instance = Mock()
+        mock_client_instance.messages.stream = Mock(return_value=mock_stream)
+
+        mock_anthropic_module = Mock()
+        mock_anthropic_module.Anthropic = Mock(return_value=mock_client_instance)
+
+        with patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
+            with patch.object(config.llm, "resolved_api_key", return_value="test-key"):
+                with patch("builtins.__import__", wraps=__import__) as mock_import:
+                    def side_effect(name, *args, **kwargs):
+                        if name == "anthropic":
+                            return mock_anthropic_module
+                        return __import__(name, *args, **kwargs)
+                    mock_import.side_effect = side_effect
+                    result = session._call_anthropic("system prompt", "user message")
+
+        assert result == "Hello World!"
+
+    def test_anthropic_with_api_key_success(self, sample_pack: ContentPack) -> None:
+        """Test successful anthropic call with valid API key."""
+        config = GreybeardConfig(
+            llm=LLMConfig(backend="anthropic", model="claude-3-5-sonnet"),
+            default_mode="review",
+            default_pack="test",
+        )
+        session = InteractiveSession("review", sample_pack, config)
+
+        # Mock streaming response
+        mock_stream = Mock()
+        mock_stream.__enter__ = Mock(return_value=mock_stream)
+        mock_stream.__exit__ = Mock(return_value=None)
+        mock_stream.text_stream = ["Test response"]
+
+        mock_client_instance = Mock()
+        mock_client_instance.messages.stream = Mock(return_value=mock_stream)
+
+        mock_anthropic_module = Mock()
+        mock_anthropic_module.Anthropic = Mock(return_value=mock_client_instance)
+
+        with patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
+            with patch.object(config.llm, "resolved_api_key", return_value="valid-key"):
+                with patch("builtins.__import__", wraps=__import__) as mock_import:
+                    def side_effect(name, *args, **kwargs):
+                        if name == "anthropic":
+                            return mock_anthropic_module
+                        return __import__(name, *args, **kwargs)
+                    mock_import.side_effect = side_effect
+                    result = session._call_anthropic("system prompt", "user message")
+
+        assert result == "Test response"
+
+
 # Additional fixture
 @pytest.fixture
 def interactive_pack() -> ContentPack:

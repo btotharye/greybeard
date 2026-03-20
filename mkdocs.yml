@@ -61,6 +61,8 @@ nav:
       - Content Packs: guides/packs.md
       - MCP Integration: guides/mcp.md
       - Saving Output: guides/output.md
+      - Interactive Mode: guides/interactive-mode.md
+      - Creating Agents: guides/creating_agents.md
   - Reference:
       - CLI Reference: reference/cli.md
       - Pack Schema: reference/pack-schema.md

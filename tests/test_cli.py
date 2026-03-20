@@ -302,6 +302,108 @@ class TestInitCommand:
         assert "Invalid choice" in result.output
 
 
+class TestInteractiveMode:
+    """Test interactive mode for analyze and coach commands (lines 225-233, 769+)."""
+
+    @patch("greybeard.cli.run_interactive_repl")
+    @patch("greybeard.cli.load_pack")
+    def test_analyze_interactive_mode_with_stdin(
+        self, mock_load_pack, mock_repl, runner, mock_config
+    ):
+        """Test analyze command with --interactive flag and stdin input (lines 225-233)."""
+        mock_pack = MagicMock()
+        mock_pack.name = "test-pack"
+        mock_load_pack.return_value = mock_pack
+
+        result = runner.invoke(
+            cli,
+            ["analyze", "--interactive"],
+            input="test input",
+        )
+
+        assert result.exit_code == 0
+        # Verify run_interactive_repl was called
+        assert mock_repl.called
+        call_kwargs = mock_repl.call_args[1]
+        assert call_kwargs["initial_input"] == "test input"
+        assert call_kwargs["mode"] == "review"
+        assert call_kwargs["pack"] == mock_pack
+
+    @patch("greybeard.cli.run_interactive_repl")
+    @patch("greybeard.cli.load_pack")
+    def test_analyze_interactive_with_context(self, mock_load_pack, mock_repl, runner, mock_config):
+        """Test analyze --interactive with additional context."""
+        mock_pack = MagicMock()
+        mock_pack.name = "test-pack"
+        mock_load_pack.return_value = mock_pack
+
+        result = runner.invoke(
+            cli,
+            ["analyze", "--interactive", "--context", "test context"],
+            input="test input",
+        )
+
+        assert result.exit_code == 0
+        assert mock_repl.called
+        call_kwargs = mock_repl.call_args[1]
+        assert call_kwargs["initial_context"] == "test context"
+
+    @patch("greybeard.cli.run_interactive_repl")
+    @patch("greybeard.cli.load_pack")
+    def test_analyze_interactive_with_mode(self, mock_load_pack, mock_repl, runner, mock_config):
+        """Test analyze --interactive with custom mode."""
+        mock_pack = MagicMock()
+        mock_pack.name = "test-pack"
+        mock_load_pack.return_value = mock_pack
+
+        result = runner.invoke(
+            cli,
+            ["analyze", "--interactive", "--mode", "mentor"],
+            input="test input",
+        )
+
+        assert result.exit_code == 0
+        assert mock_repl.called
+        call_kwargs = mock_repl.call_args[1]
+        assert call_kwargs["mode"] == "mentor"
+
+    @patch("greybeard.cli.run_interactive_repl")
+    @patch("greybeard.cli.load_pack")
+    def test_coach_interactive_mode(self, mock_load_pack, mock_repl, runner, mock_config):
+        """Test coach command with --interactive flag (lines 769+)."""
+        mock_pack = MagicMock()
+        mock_pack.name = "test-pack"
+        mock_load_pack.return_value = mock_pack
+
+        result = runner.invoke(
+            cli,
+            ["coach", "--audience", "team", "--interactive", "--context", "test concern"],
+        )
+
+        assert result.exit_code == 0
+        # Verify run_interactive_repl was called
+        assert mock_repl.called
+        call_kwargs = mock_repl.call_args[1]
+        assert call_kwargs["initial_context"] == "test concern"
+        assert call_kwargs["mode"] == "coach"
+
+    @patch("greybeard.cli.run_interactive_repl")
+    @patch("greybeard.cli.load_pack")
+    def test_coach_interactive_with_audience(self, mock_load_pack, mock_repl, runner, mock_config):
+        """Test coach command --interactive with different audience."""
+        mock_pack = MagicMock()
+        mock_pack.name = "test-pack"
+        mock_load_pack.return_value = mock_pack
+
+        result = runner.invoke(
+            cli,
+            ["coach", "--audience", "leadership", "--interactive", "--context", "test"],
+        )
+
+        assert result.exit_code == 0
+        assert mock_repl.called
+
+
 class TestMcpCommand:
     """Test Mcp Command."""
 

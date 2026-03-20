@@ -141,6 +141,73 @@ Some perspectives that would make great packs:
 
 ---
 
+## Contributing to Interactive Mode
+
+Interactive mode (`greybeard/interactive.py`) is a relatively new feature that enables stateful, multi-turn conversations. If you're improving or extending it:
+
+### Key Files
+
+- **`greybeard/interactive.py`** — Core `InteractiveSession` class and REPL loop
+- **`tests/test_interactive.py`** — Test suite
+- **`docs/guides/interactive-mode.md`** — User guide (refer here for behavior details)
+
+### Testing Interactive Mode
+
+Interactive mode requires human input simulation in tests. Use `unittest.mock` to patch the `Prompt.ask()` call:
+
+```python
+from unittest.mock import patch
+from greybeard.interactive import InteractiveSession
+
+def test_followup_question():
+    session = InteractiveSession(mode="review", pack=sample_pack, config=sample_config)
+    session.run_initial_analysis("test input")
+    
+    # Mock user input
+    with patch('greybeard.interactive.Prompt.ask', return_value="What are the risks?"):
+        response = session.ask_followup("What are the risks?")
+    
+    assert response  # response is non-empty
+    assert len(session.get_conversation_history()) == 2  # user + assistant
+```
+
+See `tests/test_interactive.py` for more examples.
+
+### Common Changes & Patterns
+
+**Adding a new interactive command:**
+
+1. Add method to `InteractiveSession` (e.g., `session.analyze_alternative()`)
+2. Add parsing in `run_interactive_repl()` to recognize the command
+3. Call the session method and stream the response
+4. Add tests in `test_interactive.py`
+5. Update help text in `_print_help()`
+6. Document in `docs/guides/interactive-mode.md`
+
+**Modifying system prompts for follow-ups:**
+
+- Update `_build_followup_system_prompt()` in `InteractiveSession`
+- This prompt is crucial for coherent multi-turn conversations
+- Always reference the pack's perspective/heuristics
+- Include clear instructions to build on prior context
+
+**Streaming responses:**
+
+Interactive mode streams all LLM output to the terminal. Do NOT suppress streaming for UX reasons (see `_call_openai_compat()` and `_call_anthropic()` for patterns).
+
+### Interactive Mode Architecture
+
+The design is intentionally simple:
+
+1. **Session initialization** — Store mode, pack, config, model
+2. **Initial analysis** — Run full `run_review()`, store result, add to history
+3. **Conversation loop** — User input → reconstruct context → call LLM → stream response → add to history
+4. **History management** — Keep recent messages for context, trim old ones to avoid token bloat
+
+The `conversation_history` list is the single source of truth for all prior context.
+
+---
+
 ## Code contributions
 
 ### Before opening a PR

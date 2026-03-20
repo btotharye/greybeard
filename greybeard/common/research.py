@@ -40,10 +40,10 @@ class ResearchCapability:
 
     def gather_file_context(self, filepath: str) -> str:
         """Gather context from a file.
-        
+
         Args:
             filepath: Path to file to analyze
-            
+
         Returns:
             File content or summary
         """
@@ -91,9 +91,7 @@ class ResearchCapability:
                     if isinstance(dirs, list):
                         dirs.append(item.name)
                     structure["dir_count"] = (
-                        structure["dir_count"] + 1
-                        if isinstance(structure["dir_count"], int)
-                        else 1
+                        structure["dir_count"] + 1 if isinstance(structure["dir_count"], int) else 1
                     )
 
             return structure
@@ -102,39 +100,31 @@ class ResearchCapability:
 
     def get_git_context(self, repo_path: str | None = None) -> dict[str, Any]:
         """Get git repository context.
-        
+
         Args:
             repo_path: Optional path to git repo (defaults to cwd)
-            
+
         Returns:
             Git repository information
         """
         import subprocess
-        
+
         try:
             cwd = repo_path or "."
-            
+
             # Get current branch
             branch = subprocess.check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                cwd=cwd,
-                text=True
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=cwd, text=True
             ).strip()
-            
+
             # Get recent commits
             log = subprocess.check_output(
-                ["git", "log", "--oneline", "-n", "10"],
-                cwd=cwd,
-                text=True
+                ["git", "log", "--oneline", "-n", "10"], cwd=cwd, text=True
             ).strip()
-            
+
             # Get diff summary
-            diff = subprocess.check_output(
-                ["git", "diff", "--stat"],
-                cwd=cwd,
-                text=True
-            ).strip()
-            
+            diff = subprocess.check_output(["git", "diff", "--stat"], cwd=cwd, text=True).strip()
+
             return {
                 "current_branch": branch,
                 "recent_commits": log,
@@ -156,7 +146,7 @@ class ResearchCapability:
             path = Path(filepath)
             with path.open() as f:
                 result = json.load(f)
-                return result if isinstance(result, (dict, list)) else {"data": result}
+                return result if isinstance(result, dict | list) else {"data": result}
         except Exception as e:
             return {"error": str(e)}
 

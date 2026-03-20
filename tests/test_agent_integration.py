@@ -9,7 +9,7 @@ from greybeard.common.agent import BaseAgent
 
 class SimpleAgent(BaseAgent):
     """Simple agent for testing."""
-    
+
     def run(self, user_input: str) -> dict:
         """Simple run implementation."""
         return {
@@ -21,27 +21,27 @@ class SimpleAgent(BaseAgent):
 
 class IntegrationTestAgent(BaseAgent):
     """Agent with full capability usage."""
-    
+
     def run(self, user_input: str) -> dict:
         """Run with all capabilities."""
         # Gather context
         self.context["input"] = user_input
-        
+
         # Multi-turn conversation
         result = self.multi_turn_conversation(
             initial_question=user_input,
             expected_completion_fn=self._is_done,
         )
-        
+
         # Format output
         formatted = self.documentation.format(result, "markdown")
-        
+
         return {
             "result": result,
             "formatted": formatted,
             "conversation_turns": len(self.conversation_history),
         }
-    
+
     def _is_done(self, response: str) -> bool:
         """Check if conversation is complete."""
         return len(response) > 0
@@ -56,14 +56,14 @@ class TestAgentIntegration:
             name="test-agent",
             description="integration test",
         )
-        
+
         # Gather context
         agent.gather_context({"source": "test"})
         assert agent.context["source"] == "test"
-        
+
         # Run agent
         result = agent.run("test input")
-        
+
         # Verify results
         assert result["input"] == "test input"
         assert result["context"]["source"] == "test"
@@ -74,12 +74,12 @@ class TestAgentIntegration:
             name="multi-capability",
             description="test multiple capabilities",
         )
-        
+
         # Mock LLM
         agent.llm.call = Mock(return_value="Test response from LLM")
-        
+
         result = agent.run("What should I do?")
-        
+
         assert "result" in result
         assert "formatted" in result
         assert result["conversation_turns"] > 0
@@ -90,14 +90,14 @@ class TestAgentIntegration:
             name="conversation-tracker",
             description="test",
         )
-        
+
         # Simulate conversation
         agent.conversation_history.append({"role": "user", "content": "Q1"})
         agent.conversation_history.append({"role": "assistant", "content": "A1"})
         agent.conversation_history.append({"role": "user", "content": "Q2"})
-        
+
         agent.run("Q3")
-        
+
         # Conversation should be tracked
         assert agent.conversation_history[0]["content"] == "Q1"
         assert agent.conversation_history[1]["content"] == "A1"
@@ -109,14 +109,14 @@ class TestAgentIntegration:
             name="context-accumulator",
             description="test",
         )
-        
+
         # Accumulate context over time
         agent.gather_context({"phase": 1})
         agent.context["status"] = "running"
         agent.context["results"] = []
-        
+
         result = agent.run("Update")
-        
+
         assert result["context"]["phase"] == 1
         assert result["context"]["status"] == "running"
         assert isinstance(result["context"]["results"], list)
@@ -127,16 +127,17 @@ class TestAgentIntegration:
             name="formatter",
             description="test",
         )
-        
+
         content = "# Test Header\n\nTest content"
-        
+
         # Format as markdown
         markdown = agent.format_output(content, format_type="markdown")
         assert "# Test Header" in markdown
-        
+
         # Format as JSON
         json_output = agent.format_output(content, format_type="json")
         import json
+
         parsed = json.loads(json_output)
         assert parsed["content"] == content
 
@@ -144,10 +145,10 @@ class TestAgentIntegration:
         """Test multiple agents operate independently."""
         agent1 = SimpleAgent("agent1", "test")
         agent2 = SimpleAgent("agent2", "test")
-        
+
         agent1.gather_context({"id": 1})
         agent2.gather_context({"id": 2})
-        
+
         assert agent1.context["id"] == 1
         assert agent2.context["id"] == 2
 
@@ -157,7 +158,7 @@ class TestAgentIntegration:
             name="researcher",
             description="test",
         )
-        
+
         # Use research
         context = agent.research.analyze_structure(".")
         assert "files" in context or "error" in context
@@ -168,14 +169,11 @@ class TestAgentIntegration:
             name="interviewer",
             description="test",
         )
-        
+
         # Use interview
-        with patch('rich.console.Console.print'):
-            agent.interview.start_interview(
-                "Initial question",
-                topic="test topic"
-            )
-        
+        with patch("rich.console.Console.print"):
+            agent.interview.start_interview("Initial question", topic="test topic")
+
         assert agent.interview.context["topic"] == "test topic"
 
     def test_agent_documentation_integration(self):
@@ -184,13 +182,13 @@ class TestAgentIntegration:
             name="documenter",
             description="test",
         )
-        
+
         template = agent.documentation.create_template(
             title="Test Template",
             sections={"Intro": "intro text"},
             metadata={"version": "1.0"},
         )
-        
+
         assert "# Test Template" in template
         assert "## Intro" in template
         assert "version: 1.0" in template
@@ -201,21 +199,21 @@ class TestAgentIntegration:
             name="error-handler",
             description="test",
         )
-        
+
         # Try to load nonexistent file
         result = agent.research.gather_file_context("/nonexistent/file.txt")
-        
+
         assert "not found" in result.lower() or "error" in result.lower()
 
     def test_agent_state_isolation(self):
         """Test agent state is isolated."""
         agent1 = SimpleAgent("agent1", "test")
         agent2 = SimpleAgent("agent2", "test")
-        
+
         # Modify agent1
         agent1.conversation_history.append({"role": "user", "content": "Test"})
         agent1.context["data"] = "test"
-        
+
         # agent2 should be unaffected
         assert len(agent2.conversation_history) == 0
         assert "data" not in agent2.context
@@ -223,13 +221,13 @@ class TestAgentIntegration:
     def test_agent_capability_access(self):
         """Test agent can access all capabilities."""
         agent = SimpleAgent("test", "test")
-        
+
         # Verify all capabilities exist
-        assert hasattr(agent, 'llm')
-        assert hasattr(agent, 'research')
-        assert hasattr(agent, 'interview')
-        assert hasattr(agent, 'documentation')
-        
+        assert hasattr(agent, "llm")
+        assert hasattr(agent, "research")
+        assert hasattr(agent, "interview")
+        assert hasattr(agent, "documentation")
+
         assert agent.llm is not None
         assert agent.research is not None
         assert agent.interview is not None
@@ -237,16 +235,16 @@ class TestAgentIntegration:
 
     def test_agent_framework_extensibility(self):
         """Test that agents can extend the framework."""
-        
+
         class CustomAgent(BaseAgent):
             def __init__(self):
                 super().__init__("custom", "test")
                 self.custom_data = "custom value"
-            
+
             def run(self, user_input: str) -> dict:
                 return {"custom": self.custom_data}
-        
+
         agent = CustomAgent()
         result = agent.run("test")
-        
+
         assert result["custom"] == "custom value"

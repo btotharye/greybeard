@@ -13,7 +13,7 @@ class TestLLMWrapper:
 
     def test_initialization_with_default_config(self):
         """Test LLMWrapper initializes with default config."""
-        with patch.object(GreybeardConfig, 'load') as mock_load:
+        with patch.object(GreybeardConfig, "load") as mock_load:
             mock_load.return_value = Mock(spec=GreybeardConfig)
             wrapper = LLMWrapper()
             assert wrapper.config is not None
@@ -29,15 +29,15 @@ class TestLLMWrapper:
         """Test basic LLM call."""
         mock_config = Mock(spec=GreybeardConfig)
         wrapper = LLMWrapper(config=mock_config)
-        
-        with patch('greybeard.common.llm_wrapper.run_review') as mock_run:
+
+        with patch("greybeard.common.llm_wrapper.run_review") as mock_run:
             mock_run.return_value = "Test response"
-            
+
             result = wrapper.call(
                 system="System prompt",
                 messages=[{"role": "user", "content": "Hello"}],
             )
-            
+
             assert result == "Test response"
             mock_run.assert_called_once()
 
@@ -45,16 +45,16 @@ class TestLLMWrapper:
         """Test call with custom temperature."""
         mock_config = Mock(spec=GreybeardConfig)
         wrapper = LLMWrapper(config=mock_config)
-        
-        with patch('greybeard.common.llm_wrapper.run_review') as mock_run:
+
+        with patch("greybeard.common.llm_wrapper.run_review") as mock_run:
             mock_run.return_value = "Response"
-            
+
             wrapper.call(
                 system="System",
                 messages=[],
                 temperature=0.3,
             )
-            
+
             # Verify call was made
             assert mock_run.called
 
@@ -62,31 +62,31 @@ class TestLLMWrapper:
         """Test call with model override."""
         mock_config = Mock(spec=GreybeardConfig)
         wrapper = LLMWrapper(config=mock_config)
-        
-        with patch('greybeard.common.llm_wrapper.run_review') as mock_run:
+
+        with patch("greybeard.common.llm_wrapper.run_review") as mock_run:
             mock_run.return_value = "Response"
-            
+
             wrapper.call(
                 system="System",
                 messages=[],
                 model_override="gpt-4",
             )
-            
+
             assert mock_run.called
 
     def test_stream_call_method(self):
         """Test streaming LLM call."""
         mock_config = Mock(spec=GreybeardConfig)
         wrapper = LLMWrapper(config=mock_config)
-        
-        with patch('greybeard.common.llm_wrapper.run_review') as mock_run:
+
+        with patch("greybeard.common.llm_wrapper.run_review") as mock_run:
             mock_run.return_value = "Streaming response"
-            
+
             result = wrapper.stream_call(
                 system="System",
                 messages=[{"role": "user", "content": "Hello"}],
             )
-            
+
             assert result == "Streaming response"
             mock_run.assert_called_once()
 
@@ -94,7 +94,7 @@ class TestLLMWrapper:
         """Test getting config."""
         mock_config = Mock(spec=GreybeardConfig)
         wrapper = LLMWrapper(config=mock_config)
-        
+
         retrieved_config = wrapper.get_config()
         assert retrieved_config is mock_config
 
@@ -102,11 +102,11 @@ class TestLLMWrapper:
         """Test reloading config from disk."""
         mock_config1 = Mock(spec=GreybeardConfig)
         mock_config2 = Mock(spec=GreybeardConfig)
-        
+
         wrapper = LLMWrapper(config=mock_config1)
         assert wrapper.config is mock_config1
-        
-        with patch.object(GreybeardConfig, 'load', return_value=mock_config2):
+
+        with patch.object(GreybeardConfig, "load", return_value=mock_config2):
             wrapper.reload_config()
             assert wrapper.config is mock_config2
 
@@ -114,18 +114,18 @@ class TestLLMWrapper:
         """Test call with conversation history."""
         mock_config = Mock(spec=GreybeardConfig)
         wrapper = LLMWrapper(config=mock_config)
-        
+
         messages = [
             {"role": "user", "content": "Question 1"},
             {"role": "assistant", "content": "Answer 1"},
             {"role": "user", "content": "Question 2"},
         ]
-        
-        with patch('greybeard.common.llm_wrapper.run_review') as mock_run:
+
+        with patch("greybeard.common.llm_wrapper.run_review") as mock_run:
             mock_run.return_value = "Final answer"
-            
+
             result = wrapper.call(system="System", messages=messages)
-            
+
             assert result == "Final answer"
             # Verify messages were passed
             call_args = mock_run.call_args
@@ -135,10 +135,10 @@ class TestLLMWrapper:
         """Test call with empty message list."""
         mock_config = Mock(spec=GreybeardConfig)
         wrapper = LLMWrapper(config=mock_config)
-        
-        with patch('greybeard.common.llm_wrapper.run_review') as mock_run:
+
+        with patch("greybeard.common.llm_wrapper.run_review") as mock_run:
             mock_run.return_value = "Response to nothing"
-            
+
             result = wrapper.call(system="System", messages=[])
-            
+
             assert result == "Response to nothing"

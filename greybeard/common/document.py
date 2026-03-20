@@ -23,12 +23,12 @@ class DocumentationGenerator:
         metadata: dict[str, Any] | None = None,
     ) -> str:
         """Format content in specified format.
-        
+
         Args:
             content: The content to format
             format_type: Output format (markdown, json, yaml)
             metadata: Optional metadata to include
-            
+
         Returns:
             Formatted output
         """
@@ -46,14 +46,14 @@ class DocumentationGenerator:
     ) -> str:
         """Format as markdown."""
         lines = []
-        
+
         if metadata:
             lines.append("---")
             for key, value in metadata.items():
                 lines.append(f"{key}: {value}")
             lines.append("---")
             lines.append("")
-        
+
         lines.append(content)
         return "\n".join(lines)
 
@@ -67,10 +67,10 @@ class DocumentationGenerator:
             "content": content,
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
         if metadata:
             data["metadata"] = metadata
-        
+
         return json.dumps(data, indent=2)
 
     def _format_yaml(
@@ -100,7 +100,7 @@ class DocumentationGenerator:
 
     def save_markdown(self, content: str, filepath: str) -> None:
         """Save content as markdown file.
-        
+
         Args:
             content: Content to save
             filepath: Path to save to
@@ -111,7 +111,7 @@ class DocumentationGenerator:
 
     def save_json(self, data: dict[str, Any] | list[Any], filepath: str) -> None:
         """Save data as JSON file.
-        
+
         Args:
             data: Data to save
             filepath: Path to save to
@@ -148,30 +148,30 @@ class DocumentationGenerator:
         metadata: dict[str, Any] | None = None,
     ) -> str:
         """Create a markdown template with sections.
-        
+
         Args:
             title: Document title
             sections: Dictionary of section name -> placeholder text
             metadata: Optional metadata
-            
+
         Returns:
             Markdown template
         """
         lines = []
-        
+
         if metadata:
             lines.append("---")
             for key, value in metadata.items():
                 lines.append(f"{key}: {value}")
             lines.append("---")
             lines.append("")
-        
+
         lines.append(f"# {title}")
         lines.append("")
-        
+
         for section_name, placeholder in sections.items():
             lines.append(f"## {section_name}")
             lines.append(placeholder)
             lines.append("")
-        
+
         return "\n".join(lines)

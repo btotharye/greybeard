@@ -278,8 +278,10 @@ class TestGitHubPackInstallation:
         mock_pack2 = MagicMock()
         mock_pack2.name = "pack2"
 
-        with patch("greybeard.packs._fetch_json", return_value=mock_contents), \
-             patch("greybeard.packs._load_url_pack", side_effect=[mock_pack1, mock_pack2]):
+        with (
+            patch("greybeard.packs._fetch_json", return_value=mock_contents),
+            patch("greybeard.packs._load_url_pack", side_effect=[mock_pack1, mock_pack2]),
+        ):
             result = _install_github_source("owner/repo")
             assert len(result) == 2
             assert result[0].name == "pack1"
@@ -302,8 +304,10 @@ class TestGitHubPackInstallation:
 
         from greybeard.packs import _install_github_source
 
-        with patch("greybeard.packs._fetch_json", side_effect=Exception("API error")), \
-             pytest.raises(FileNotFoundError, match="Could not list"):
+        with (
+            patch("greybeard.packs._fetch_json", side_effect=Exception("API error")),
+            pytest.raises(FileNotFoundError, match="Could not list"),
+        ):
             _install_github_source("owner/repo")
 
     def test_install_from_github_no_yaml_files(self, monkeypatch):
@@ -319,6 +323,8 @@ class TestGitHubPackInstallation:
             {"name": "README.md", "download_url": "https://raw.../README.md"},
         ]
 
-        with patch("greybeard.packs._fetch_json", return_value=mock_contents), \
-             pytest.raises(FileNotFoundError, match=r"No \.yaml files found"):
+        with (
+            patch("greybeard.packs._fetch_json", return_value=mock_contents),
+            pytest.raises(FileNotFoundError, match=r"No \.yaml files found"),
+        ):
             _install_github_source("owner/repo")

@@ -13,14 +13,14 @@ from ..models import ContentPack, ReviewRequest
 
 class LLMWrapper:
     """Wrapper around Greybeard's LLM backends.
-    
+
     Provides a simple interface for agents to call the configured LLM
     without worrying about backend specifics.
     """
 
     def __init__(self, config: GreybeardConfig | None = None):
         """Initialize LLM wrapper.
-        
+
         Args:
             config: Optional GreybeardConfig. If None, loads default.
         """
@@ -34,48 +34,45 @@ class LLMWrapper:
         model_override: str | None = None,
     ) -> str:
         """Call the configured LLM.
-        
+
         Args:
             system: System prompt
             messages: Conversation messages
             temperature: Temperature for generation
             model_override: Optional model override
-            
+
         Returns:
             LLM response text
         """
         # Convert messages to a text format the existing analyzer expects
         # This is a bridge between agent framework and existing system
-        
+
         # For now, we'll construct a request using the existing ReviewRequest
         # In a future refactor, we might make the analyzer more flexible
-        
-        user_content = "\n\n".join(
-            f"[{msg['role'].upper()}]: {msg['content']}"
-            for msg in messages
-        )
-        
+
+        user_content = "\n\n".join(f"[{msg['role'].upper()}]: {msg['content']}" for msg in messages)
+
         # Create a minimal pack for the request
         pack = ContentPack(
             name="agent-call",
             perspective="Balanced technical reviewer",
             tone="Constructive",
         )
-        
+
         request = ReviewRequest(
             input_text=user_content,
             mode="review",
             pack=pack,
             audience=None,
         )
-        
+
         response = run_review(
             request,
             config=self.config,
             model_override=model_override,
             stream=False,  # Non-streaming for agent use
         )
-        
+
         return response
 
     def stream_call(
@@ -86,36 +83,33 @@ class LLMWrapper:
         model_override: str | None = None,
     ) -> str:
         """Call the configured LLM with streaming.
-        
+
         Args:
             system: System prompt
             messages: Conversation messages
             temperature: Temperature for generation
             model_override: Optional model override
-            
+
         Returns:
             LLM response text (accumulated from stream)
         """
         # Construct request
-        user_content = "\n\n".join(
-            f"[{msg['role'].upper()}]: {msg['content']}"
-            for msg in messages
-        )
-        
+        user_content = "\n\n".join(f"[{msg['role'].upper()}]: {msg['content']}" for msg in messages)
+
         # Create a minimal pack for the request
         pack = ContentPack(
             name="agent-call",
             perspective="Balanced technical reviewer",
             tone="Constructive",
         )
-        
+
         request = ReviewRequest(
             input_text=user_content,
             mode="review",
             pack=pack,
             audience=None,
         )
-        
+
         # Use streaming
         response = run_review(
             request,
@@ -123,12 +117,12 @@ class LLMWrapper:
             model_override=model_override,
             stream=True,  # Enable streaming
         )
-        
+
         return response
 
     def get_config(self) -> GreybeardConfig:
         """Get the current LLM configuration.
-        
+
         Returns:
             GreybeardConfig instance
         """

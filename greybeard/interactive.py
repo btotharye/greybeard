@@ -245,8 +245,7 @@ class InteractiveSession:
         if not api_key and self.config.llm.backend not in ("ollama", "lmstudio"):
             env_var = self.config.llm.resolved_api_key_env()
             print(
-                f"Error: {env_var} is not set.\n"
-                f"Export it or add it to a .env file.",
+                f"Error: {env_var} is not set.\nExport it or add it to a .env file.",
                 file=sys.stderr,
             )
             sys.exit(1)

@@ -331,9 +331,7 @@ class TestInteractiveMode:
 
     @patch("greybeard.cli.run_interactive_repl")
     @patch("greybeard.cli.load_pack")
-    def test_analyze_interactive_with_context(
-        self, mock_load_pack, mock_repl, runner, mock_config
-    ):
+    def test_analyze_interactive_with_context(self, mock_load_pack, mock_repl, runner, mock_config):
         """Test analyze --interactive with additional context."""
         mock_pack = MagicMock()
         mock_pack.name = "test-pack"
@@ -352,9 +350,7 @@ class TestInteractiveMode:
 
     @patch("greybeard.cli.run_interactive_repl")
     @patch("greybeard.cli.load_pack")
-    def test_analyze_interactive_with_mode(
-        self, mock_load_pack, mock_repl, runner, mock_config
-    ):
+    def test_analyze_interactive_with_mode(self, mock_load_pack, mock_repl, runner, mock_config):
         """Test analyze --interactive with custom mode."""
         mock_pack = MagicMock()
         mock_pack.name = "test-pack"
@@ -373,9 +369,7 @@ class TestInteractiveMode:
 
     @patch("greybeard.cli.run_interactive_repl")
     @patch("greybeard.cli.load_pack")
-    def test_coach_interactive_mode(
-        self, mock_load_pack, mock_repl, runner, mock_config
-    ):
+    def test_coach_interactive_mode(self, mock_load_pack, mock_repl, runner, mock_config):
         """Test coach command with --interactive flag (lines 769+)."""
         mock_pack = MagicMock()
         mock_pack.name = "test-pack"
@@ -395,9 +389,7 @@ class TestInteractiveMode:
 
     @patch("greybeard.cli.run_interactive_repl")
     @patch("greybeard.cli.load_pack")
-    def test_coach_interactive_with_audience(
-        self, mock_load_pack, mock_repl, runner, mock_config
-    ):
+    def test_coach_interactive_with_audience(self, mock_load_pack, mock_repl, runner, mock_config):
         """Test coach command --interactive with different audience."""
         mock_pack = MagicMock()
         mock_pack.name = "test-pack"

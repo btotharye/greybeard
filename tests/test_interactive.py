@@ -219,9 +219,7 @@ class TestRefinement:
     ) -> None:
         """Test that refinement includes new context in the message."""
         interactive_session.initial_analysis = "Initial"
-        interactive_session.conversation_history.append(
-            {"role": "assistant", "content": "Initial"}
-        )
+        interactive_session.conversation_history.append({"role": "assistant", "content": "Initial"})
         mock_call_llm.return_value = "Refined"
 
         interactive_session.refine_analysis("6-month rollout plan")
@@ -240,9 +238,7 @@ class TestAlternativeExploration:
     ) -> None:
         """Test exploring an alternative."""
         interactive_session.initial_analysis = "Initial"
-        interactive_session.conversation_history.append(
-            {"role": "assistant", "content": "Initial"}
-        )
+        interactive_session.conversation_history.append({"role": "assistant", "content": "Initial"})
         mock_call_llm.return_value = "Alternative analysis"
 
         result = interactive_session.explore_alternative("Use event sourcing")
@@ -261,9 +257,7 @@ class TestAlternativeExploration:
     ) -> None:
         """Test that exploration includes the alternative."""
         interactive_session.initial_analysis = "Initial"
-        interactive_session.conversation_history.append(
-            {"role": "assistant", "content": "Initial"}
-        )
+        interactive_session.conversation_history.append({"role": "assistant", "content": "Initial"})
         mock_call_llm.return_value = "Analysis"
 
         interactive_session.explore_alternative("Event sourcing approach")
@@ -319,9 +313,7 @@ class TestConversationHistory:
         self, interactive_session: InteractiveSession
     ) -> None:
         """Test clearing conversation without initial analysis."""
-        interactive_session.conversation_history = [
-            {"role": "user", "content": "Question"}
-        ]
+        interactive_session.conversation_history = [{"role": "user", "content": "Question"}]
 
         interactive_session.clear_conversation()
 
@@ -331,9 +323,7 @@ class TestConversationHistory:
 class TestLLMCalls:
     """Test LLM backend calls."""
 
-    @patch(
-        "greybeard.interactive.InteractiveSession._call_openai_compat", return_value="response"
-    )
+    @patch("greybeard.interactive.InteractiveSession._call_openai_compat", return_value="response")
     def test_call_openai_compat(
         self, mock_call: Mock, interactive_session: InteractiveSession
     ) -> None:
@@ -400,9 +390,7 @@ class TestEdgeCases:
     ) -> None:
         """Test handling of long conversation history."""
         interactive_session.initial_analysis = "Initial"
-        interactive_session.conversation_history = [
-            {"role": "assistant", "content": "Initial"}
-        ]
+        interactive_session.conversation_history = [{"role": "assistant", "content": "Initial"}]
 
         # Add many turns to conversation
         for i in range(20):
@@ -427,9 +415,7 @@ class TestEdgeCases:
     ) -> None:
         """Test handling of empty LLM response."""
         interactive_session.initial_analysis = "Initial"
-        interactive_session.conversation_history = [
-            {"role": "assistant", "content": "Initial"}
-        ]
+        interactive_session.conversation_history = [{"role": "assistant", "content": "Initial"}]
         mock_call_llm.return_value = ""
 
         result = interactive_session.ask_followup("Question?")
@@ -576,9 +562,7 @@ class TestErrorPaths:
             with patch.dict("os.environ", {}, clear=True):
                 session._call_anthropic("system", "user")
 
-    def test_call_openai_compat_import_error(
-        self, interactive_session: InteractiveSession
-    ) -> None:
+    def test_call_openai_compat_import_error(self, interactive_session: InteractiveSession) -> None:
         """Test OpenAI call handles missing openai package gracefully."""
         with pytest.raises(SystemExit):
             with patch.dict("sys.modules", {"openai": None}):
@@ -629,7 +613,9 @@ class TestLocalLLMBackends:
     def test_openai_compat_lmstudio_no_api_key(self, sample_pack: ContentPack) -> None:
         """Test OpenAI-compat call with lmstudio backend doesn't require API key."""
         config = GreybeardConfig(
-            llm=LLMConfig(backend="lmstudio", model="local-model", base_url="http://localhost:1234/v1"),
+            llm=LLMConfig(
+                backend="lmstudio", model="local-model", base_url="http://localhost:1234/v1"
+            ),
             default_mode="review",
             default_pack="test",
         )
@@ -873,8 +859,10 @@ class TestREPLInteractiveLoop:
         )
 
         # Should have shown conversation history
-        assert any("conversation" in str(call).lower() or "history" in str(call).lower()
-                   for call in mock_console.print.call_args_list)
+        assert any(
+            "conversation" in str(call).lower() or "history" in str(call).lower()
+            for call in mock_console.print.call_args_list
+        )
 
     @patch("greybeard.interactive.run_review", return_value="Initial")
     @patch("greybeard.interactive.Prompt.ask")
@@ -1113,7 +1101,7 @@ class TestREPLInteractiveLoop:
         # Make ask_followup raise an exception, then exit
         with patch.object(InteractiveSession, "ask_followup", side_effect=ValueError("Test error")):
             mock_prompt.side_effect = ["some question", "quit"]
-            
+
             run_interactive_repl(
                 mode="review",
                 pack=sample_pack,
@@ -1121,7 +1109,7 @@ class TestREPLInteractiveLoop:
                 initial_input="input",
                 initial_context="",
             )
-        
+
         # Verify the error was caught and printed
         assert any("Error:" in str(call) for call in mock_console.print.call_args_list)
 
@@ -1135,9 +1123,9 @@ class TestBackendDispatch:
     ) -> None:
         """Test that anthropic backend is selected correctly (line 231)."""
         interactive_session.config.llm.backend = "anthropic"
-        
+
         result = interactive_session._call_llm("system", "user")
-        
+
         mock_anthropic.assert_called_once_with("system", "user")
         assert result == "Response"
 
@@ -1152,9 +1140,9 @@ class TestBackendDispatch:
             pack=interactive_pack,
             config=sample_config,
         )
-        
+
         result = session._call_llm("system", "user")
-        
+
         mock_openai.assert_called_once_with("system", "user")
         assert result == "Response"
 
@@ -1165,7 +1153,7 @@ class TestBackendDispatch:
         with patch("builtins.__import__", side_effect=ImportError("No module named 'openai'")):
             with pytest.raises(SystemExit) as exc_info:
                 interactive_session._call_openai_compat("system", "user")
-            
+
             assert exc_info.value.code == 1
 
 
@@ -1183,24 +1171,24 @@ class TestOpenAIStreaming:
         """Test that OpenAI streaming correctly processes chunks (lines 268-273)."""
         # Mock the OpenAI client and its streaming response
         mock_client = Mock()
-        
+
         # Create mock chunks with delta content
         mock_chunk1 = Mock()
         mock_chunk1.choices = [Mock(delta=Mock(content="Hello "))]
         mock_chunk2 = Mock()
         mock_chunk2.choices = [Mock(delta=Mock(content="World"))]
-        
+
         mock_client.chat.completions.create.return_value = [mock_chunk1, mock_chunk2]
-        
+
         # Mock config to provide API key
         interactive_session.config.llm.backend = "openai"
-        
+
         with patch.object(
             interactive_session.config.llm, "resolved_api_key", return_value="test-key"
         ):
             with patch("openai.OpenAI", return_value=mock_client):
                 result = interactive_session._call_openai_compat("System", "User")
-        
+
         # Verify chunks were streamed and concatenated
         assert result == "Hello World"
         # Verify print was called for each chunk
@@ -1216,21 +1204,21 @@ class TestOpenAIStreaming:
     ) -> None:
         """Test that OpenAI handles empty delta content gracefully."""
         mock_client = Mock()
-        
+
         # Create chunk with None delta content
         mock_chunk = Mock()
         mock_chunk.choices = [Mock(delta=Mock(content=None))]
-        
+
         mock_client.chat.completions.create.return_value = [mock_chunk]
-        
+
         interactive_session.config.llm.backend = "openai"
-        
+
         with patch.object(
             interactive_session.config.llm, "resolved_api_key", return_value="test-key"
         ):
             with patch("openai.OpenAI", return_value=mock_client):
                 result = interactive_session._call_openai_compat("System", "User")
-        
+
         # Empty content should result in empty string
         assert result == ""
 
@@ -1244,17 +1232,17 @@ class TestOpenAIStreaming:
     ) -> None:
         """Test OpenAI client creation with custom base_url (line 257)."""
         mock_client = Mock()
-        
+
         mock_chunk = Mock()
         mock_chunk.choices = [Mock(delta=Mock(content="Response"))]
         mock_client.chat.completions.create.return_value = [mock_chunk]
-        
+
         # Set up config with base URL
         interactive_session.config.llm.backend = "openai"
         interactive_session.config.llm.api_base = "https://custom.example.com"
-        
+
         mock_openai = Mock(return_value=mock_client)
-        
+
         with patch.object(
             interactive_session.config.llm, "resolved_api_key", return_value="test-key"
         ):
@@ -1265,7 +1253,7 @@ class TestOpenAIStreaming:
             ):
                 with patch("openai.OpenAI", mock_openai):
                     interactive_session._call_openai_compat("System", "User")
-        
+
         # Verify OpenAI was called with base_url
         call_kwargs = mock_openai.call_args[1]
         assert "base_url" in call_kwargs
@@ -1275,16 +1263,14 @@ class TestOpenAIStreaming:
 def _has_module(module_name: str) -> bool:
     """Check if a module is available."""
     import importlib.util
+
     return importlib.util.find_spec(module_name) is not None
 
 
 class TestAnthropicStreaming:
     """Test Anthropic streaming response handling (lines 287-309)."""
 
-    @pytest.mark.skipif(
-        not _has_module("anthropic"),
-        reason="anthropic package not installed"
-    )
+    @pytest.mark.skipif(not _has_module("anthropic"), reason="anthropic package not installed")
     @patch("builtins.print")
     @patch("greybeard.interactive.console")
     def test_anthropic_streaming_chunks(
@@ -1296,33 +1282,30 @@ class TestAnthropicStreaming:
         """Test that Anthropic streaming correctly processes chunks (lines 305-307)."""
         # Mock the Anthropic client and streaming context manager
         mock_client = Mock()
-        
+
         # Create a mock context manager that yields text chunks
         mock_stream = Mock()
         mock_stream.__enter__ = Mock(return_value=mock_stream)
         mock_stream.__exit__ = Mock(return_value=None)
         mock_stream.text_stream = ["Hello ", "World"]
-        
+
         mock_client.messages.stream.return_value = mock_stream
-        
+
         # Set up config
         interactive_session.config.llm.backend = "anthropic"
-        
+
         with patch.object(
             interactive_session.config.llm, "resolved_api_key", return_value="test-key"
         ):
             with patch("anthropic.Anthropic", return_value=mock_client):
                 result = interactive_session._call_anthropic("System", "User")
-        
+
         # Verify chunks were streamed and concatenated
         assert result == "Hello World"
         # Verify print was called for each chunk
         assert mock_print.call_count >= 2
 
-    @pytest.mark.skipif(
-        not _has_module("anthropic"),
-        reason="anthropic package not installed"
-    )
+    @pytest.mark.skipif(not _has_module("anthropic"), reason="anthropic package not installed")
     @patch("builtins.print")
     @patch("greybeard.interactive.console")
     def test_anthropic_streaming_empty_response(
@@ -1333,22 +1316,22 @@ class TestAnthropicStreaming:
     ) -> None:
         """Test Anthropic handles empty streaming gracefully."""
         mock_client = Mock()
-        
+
         mock_stream = Mock()
         mock_stream.__enter__ = Mock(return_value=mock_stream)
         mock_stream.__exit__ = Mock(return_value=None)
         mock_stream.text_stream = []
-        
+
         mock_client.messages.stream.return_value = mock_stream
-        
+
         interactive_session.config.llm.backend = "anthropic"
-        
+
         with patch.object(
             interactive_session.config.llm, "resolved_api_key", return_value="test-key"
         ):
             with patch("anthropic.Anthropic", return_value=mock_client):
                 result = interactive_session._call_anthropic("System", "User")
-        
+
         # Empty stream should result in empty string
         assert result == ""
 
@@ -1359,7 +1342,7 @@ class TestAnthropicStreaming:
         with patch("builtins.__import__", side_effect=ImportError("No module named 'anthropic'")):
             with pytest.raises(SystemExit) as exc_info:
                 interactive_session._call_anthropic("system", "user")
-            
+
             assert exc_info.value.code == 1
 
 
@@ -1553,6 +1536,7 @@ class TestAnthropicErrorPaths:
 
         # Mock import to fail
         import builtins
+
         real_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):
@@ -1589,10 +1573,12 @@ class TestAnthropicErrorPaths:
         with patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
             with patch.object(config.llm, "resolved_api_key", return_value="test-key"):
                 with patch("builtins.__import__", wraps=__import__) as mock_import:
+
                     def side_effect(name, *args, **kwargs):
                         if name == "anthropic":
                             return mock_anthropic_module
                         return __import__(name, *args, **kwargs)
+
                     mock_import.side_effect = side_effect
                     result = session._call_anthropic("system prompt", "user message")
 
@@ -1622,10 +1608,12 @@ class TestAnthropicErrorPaths:
         with patch.dict("sys.modules", {"anthropic": mock_anthropic_module}):
             with patch.object(config.llm, "resolved_api_key", return_value="valid-key"):
                 with patch("builtins.__import__", wraps=__import__) as mock_import:
+
                     def side_effect(name, *args, **kwargs):
                         if name == "anthropic":
                             return mock_anthropic_module
                         return __import__(name, *args, **kwargs)
+
                     mock_import.side_effect = side_effect
                     result = session._call_anthropic("system prompt", "user message")
 
@@ -1646,5 +1634,3 @@ def interactive_pack() -> ContentPack:
         communication_style="clear",
         description="Test pack",
     )
-
-

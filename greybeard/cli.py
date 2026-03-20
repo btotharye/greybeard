@@ -24,6 +24,7 @@ from .history import (
     load_history,
     save_decision,
 )
+from .interactive import run_interactive_repl
 from .models import ReviewRequest
 from .packs import (
     install_pack_source,
@@ -173,12 +174,19 @@ def cli() -> None:
     metavar="NAME",
     help="Save this review to decision history (e.g. 'auth-migration-q1').",
 )
-def analyze(mode, pack, repo, context, model, audience, output, fmt, save_decision_name) -> None:
+@click.option(
+    "--interactive",
+    "-i",
+    is_flag=True,
+    help="Start interactive REPL after initial analysis.",
+)
+def analyze(mode, pack, repo, context, model, audience, output, fmt, save_decision_name, interactive) -> None:
     r"""Analyze a decision, diff, or document.
 
     \b
     Examples:
       git diff main | greybeard analyze
+      git diff main | greybeard analyze --interactive
       git diff main | greybeard analyze --mode mentor --pack oncall-future-you
       cat design-doc.md | greybeard analyze --output review.md
       cat design-doc.md | greybeard analyze --format json --output review.json
@@ -186,6 +194,7 @@ def analyze(mode, pack, repo, context, model, audience, output, fmt, save_decisi
       cat design-doc.md | greybeard analyze --format jira
       greybeard analyze --repo . --context "mid-sprint auth migration"
       git diff main | greybeard analyze --save-decision "auth-migration-q1"
+      git diff main | greybeard analyze --interactive --mode mentor
     """
     cfg = GreybeardConfig.load()
     mode = mode or cfg.default_mode
@@ -208,6 +217,18 @@ def analyze(mode, pack, repo, context, model, audience, output, fmt, save_decisi
 
     resolved_model = model or cfg.llm.resolved_model()
     _print_header(mode, content_pack.name, cfg.llm.backend, resolved_model)
+
+    # Interactive mode: start REPL session instead of single analysis
+    if interactive:
+        run_interactive_repl(
+            mode=mode,
+            pack=content_pack,
+            config=cfg,
+            model_override=model,
+            initial_input=input_text,
+            initial_context=context,
+        )
+        return
 
     request = ReviewRequest(
         mode=mode,  # type: ignore[arg-type]
@@ -326,7 +347,13 @@ def self_check(context, pack, model, output, fmt) -> None:
     show_default=True,
     help="Output format.",
 )
-def coach(audience, context, pack, model, output, fmt) -> None:
+@click.option(
+    "--interactive",
+    "-i",
+    is_flag=True,
+    help="Start interactive REPL after initial analysis.",
+)
+def coach(audience, context, pack, model, output, fmt, interactive) -> None:
     r"""Get help communicating a concern or decision constructively.
 
     \b
@@ -334,6 +361,7 @@ def coach(audience, context, pack, model, output, fmt) -> None:
       greybeard coach --audience team --context "I think we're shipping too fast"
       cat concern.md | greybeard coach --audience leadership
       greybeard coach --audience peers --context "concerns" --format jira
+      greybeard coach --audience team --context "shipping too fast" --interactive
     """
     cfg = GreybeardConfig.load()
     try:
@@ -350,6 +378,18 @@ def coach(audience, context, pack, model, output, fmt) -> None:
 
     resolved_model = model or cfg.llm.resolved_model()
     _print_header("coach", content_pack.name, cfg.llm.backend, resolved_model)
+
+    # Interactive mode
+    if interactive:
+        run_interactive_repl(
+            mode="coach",
+            pack=content_pack,
+            config=cfg,
+            model_override=model,
+            initial_input=input_text,
+            initial_context=context,
+        )
+        return
 
     request = ReviewRequest(
         mode="coach",

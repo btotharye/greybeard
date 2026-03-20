@@ -59,7 +59,7 @@ $ cat my-design.md | greybeard analyze --interactive --mode review
 Running initial analysis...
 
 [cyan]## Summary[/cyan]
-Your proposed Redis caching layer would reduce database load by ~60% in the 
+Your proposed Redis caching layer would reduce database load by ~60% in the
 happy path, but introduces new operational complexity...
 
 [green]## Key Risks[/green]
@@ -457,5 +457,5 @@ See `greybeard/interactive.py` for the full API.
 
 - [CLI Reference](../reference/cli.md) — All `greybeard` commands
 - [Content Packs Guide](packs.md) — Choosing and building packs
-- [Modes & Philosophy](modes.md) — Understanding review, mentor, coach, self-check
+- [Quick Start](../getting-started/quickstart.md) — Overview of modes: review, mentor, coach, self-check
 - [MCP Integration](mcp.md) — Using interactive mode in Claude Desktop, Cursor, Zed

@@ -150,9 +150,7 @@ def should_skip_gate(gate: RiskGate, branch: str) -> bool:
     return False
 
 
-def get_applicable_gate(
-    filepath: str, gates: list[RiskGate], branch: str
-) -> RiskGate | None:
+def get_applicable_gate(filepath: str, gates: list[RiskGate], branch: str) -> RiskGate | None:
     """Find the applicable risk gate for a file."""
     for gate in gates:
         if should_skip_gate(gate, branch):
@@ -162,9 +160,7 @@ def get_applicable_gate(
     return None
 
 
-def extract_diff_context(
-    diff_content: str, max_lines: int = 500
-) -> str:
+def extract_diff_context(diff_content: str, max_lines: int = 500) -> str:
     """Extract diff context with optional truncation."""
     lines = diff_content.split("\n")
 
@@ -237,7 +233,7 @@ def get_staged_files() -> list[str]:
             check=False,
         )
         # Handle both returncode attribute and mock object with default returncode
-        returncode = getattr(result, 'returncode', 0)
+        returncode = getattr(result, "returncode", 0)
         if returncode != 0:
             return []
         stdout = result.stdout
@@ -256,7 +252,7 @@ def get_staged_diff() -> str:
             check=False,
         )
         # Handle both returncode attribute and mock object with default returncode
-        returncode = getattr(result, 'returncode', 0)
+        returncode = getattr(result, "returncode", 0)
         if returncode != 0:
             return ""
         return result.stdout
@@ -274,7 +270,7 @@ def get_current_branch() -> str:
             check=False,
         )
         # Handle both returncode attribute and mock object with default returncode
-        returncode = getattr(result, 'returncode', 0)
+        returncode = getattr(result, "returncode", 0)
         if returncode != 0:
             return "main"
         return result.stdout.strip()

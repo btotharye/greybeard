@@ -152,9 +152,7 @@ class TestPRCommentFormatting:
     def test_format_pr_comment_with_metadata(self):
         """Test formatting with metadata."""
         content = "Review content"
-        comment = format_pr_comment_with_metadata(
-            content, "staff-core", False, "abc1234", "main"
-        )
+        comment = format_pr_comment_with_metadata(content, "staff-core", False, "abc1234", "main")
 
         assert "Review content" in comment
         assert "[abc1234]" in comment
@@ -174,9 +172,7 @@ class TestPRCommentFormatting:
     def test_format_pr_comment_with_metadata_blocking(self):
         """Test blocking metadata formatting."""
         content = "Critical"
-        comment = format_pr_comment_with_metadata(
-            content, "staff-core", True, "abc1234", "main"
-        )
+        comment = format_pr_comment_with_metadata(content, "staff-core", True, "abc1234", "main")
 
         assert "BLOCKING" in comment
         assert "[abc1234]" in comment
@@ -341,13 +337,16 @@ class TestPackHandling:
 class TestEnvironmentVariables:
     """Test GitHub environment variable handling."""
 
-    @patch.dict("os.environ", {
-        "GITHUB_SHA": "abc123",
-        "GITHUB_REF": "refs/pull/42/merge",
-        "GITHUB_BASE_REF": "develop",
-        "GITHUB_REPOSITORY": "owner/repo",
-        "GITHUB_EVENT_NAME": "pull_request",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "GITHUB_SHA": "abc123",
+            "GITHUB_REF": "refs/pull/42/merge",
+            "GITHUB_BASE_REF": "develop",
+            "GITHUB_REPOSITORY": "owner/repo",
+            "GITHUB_EVENT_NAME": "pull_request",
+        },
+    )
     def test_get_github_env_all_set(self):
         """Test getting all GitHub env variables."""
         env = get_github_env()
@@ -478,9 +477,7 @@ class TestReviewExecution:
     @patch("greybeard.github_action.load_pack")
     @patch("greybeard.github_action.read_diff_file")
     @patch("greybeard.github_action.GreybeardConfig.load")
-    def test_run_github_action_success(
-        self, mock_config, mock_read, mock_load_pack, mock_review
-    ):
+    def test_run_github_action_success(self, mock_config, mock_read, mock_load_pack, mock_review):
         """Test successful review execution."""
         mock_config.return_value = MagicMock()
         mock_read.return_value = "diff content"
@@ -496,9 +493,7 @@ class TestReviewExecution:
     @patch("greybeard.github_action.run_review")
     @patch("greybeard.github_action.load_pack")
     @patch("greybeard.github_action.read_diff_file")
-    def test_run_github_action_safe_handles_error(
-        self, mock_read, mock_load_pack, mock_review
-    ):
+    def test_run_github_action_safe_handles_error(self, mock_read, mock_load_pack, mock_review):
         """Test safe review handles errors gracefully."""
         mock_read.side_effect = Exception("File not found")
 

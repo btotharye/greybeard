@@ -22,7 +22,7 @@ KNOWN_BACKENDS = ["openai", "anthropic", "ollama", "lmstudio"]
 # Default models per backend
 DEFAULT_MODELS: dict[str, str] = {
     "openai": "gpt-4o",
-    "anthropic": "claude-3-5-sonnet-latest",
+    "anthropic": "claude-sonnet-4-6",
     "ollama": "llama3.2",
     "lmstudio": "local-model",
 }

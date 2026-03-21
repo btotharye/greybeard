@@ -44,7 +44,7 @@ jobs:
       - name: Configure Anthropic backend
         run: |
           greybeard config set llm.backend anthropic
-          greybeard config set llm.model claude-3-5-sonnet-latest
+          greybeard config set llm.model claude-sonnet-4-6
 
       - name: Generate git diff
         id: diff

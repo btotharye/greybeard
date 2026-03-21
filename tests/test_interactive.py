@@ -566,12 +566,6 @@ class TestErrorPaths:
         """Test OpenAI call handles missing openai package gracefully."""
         with pytest.raises(SystemExit):
             with patch.dict("sys.modules", {"openai": None}):
-                # Force reimport to fail
-                import sys
-
-                # Clear openai from modules if it exists
-                if "openai" in sys.modules:
-                    del sys.modules["openai"]
                 interactive_session._call_openai_compat("system", "user")
 
     def test_call_anthropic_import_error(self, sample_pack: ContentPack) -> None:
@@ -585,12 +579,6 @@ class TestErrorPaths:
 
         with pytest.raises(SystemExit):
             with patch.dict("sys.modules", {"anthropic": None}):
-                # Force reimport to fail
-                import sys
-
-                # Clear anthropic from modules if it exists
-                if "anthropic" in sys.modules:
-                    del sys.modules["anthropic"]
                 session._call_anthropic("system", "user")
 
 

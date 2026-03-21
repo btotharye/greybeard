@@ -5,8 +5,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from greybeard.batch_analyzer import AggregatedFindings, BatchAnalyzer, Finding
 from greybeard.reporters.dashboard import DashboardReporter
 

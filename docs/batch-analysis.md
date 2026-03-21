@@ -322,6 +322,6 @@ The interactive HTML dashboard includes:
 
 ## See Also
 
-- [greybeard CLI](./cli.md)
-- [Review Modes](./modes.md)
-- [Content Packs](./packs.md)
+- [greybeard CLI](reference/cli.md)
+- [Interactive Mode](guides/interactive-mode.md)
+- [Content Packs](guides/packs.md)

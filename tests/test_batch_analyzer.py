@@ -6,10 +6,7 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from greybeard.batch_analyzer import (
-    AggregatedFindings,
     BatchAnalyzer,
     Finding,
     ReviewSummary,
@@ -182,7 +179,8 @@ class TestBatchAnalyzer:
 
         # Should detect these as similar and deduplicate
         sql_findings = [
-            f for f in aggregated.findings
+            f
+            for f in aggregated.findings
             if "sql" in f.title.lower() or "injection" in f.title.lower()
         ]
         # After deduplication, should have fewer distinct findings
@@ -192,8 +190,12 @@ class TestBatchAnalyzer:
         """Test identifying recurring findings."""
         analyzer = BatchAnalyzer()
         # Same finding in 2+ reviews
-        analyzer.add_review("review1.txt", "Critical: Missing authentication check\nHigh: Validation issue")
-        analyzer.add_review("review2.txt", "Critical: Missing authentication check\nHigh: SQL injection")
+        analyzer.add_review(
+            "review1.txt", "Critical: Missing authentication check\nHigh: Validation issue"
+        )
+        analyzer.add_review(
+            "review2.txt", "Critical: Missing authentication check\nHigh: SQL injection"
+        )
         analyzer.add_review("review3.txt", "High: Something else")
 
         aggregated = analyzer.analyze()

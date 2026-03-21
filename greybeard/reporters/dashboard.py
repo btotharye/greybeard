@@ -157,7 +157,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }}
         
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #0f1419;
             color: #e0e0e0;
             line-height: 1.6;
@@ -483,8 +484,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="section">
             <h2>All Findings</h2>
             <div class="tabs">
-                <button class="tab active" onclick="switchTab(event, 'all-findings')">All ({total_findings})</button>
-                <button class="tab" onclick="switchTab(event, 'recurring-findings')">Recurring ({recurring_count})</button>
+                <button class="tab active" onclick="switchTab(event, 'all-findings')">
+                    All ({total_findings})
+                </button>
+                <button class="tab" onclick="switchTab(event, 'recurring-findings')">
+                    Recurring ({recurring_count})
+                </button>
             </div>
             
             <div id="all-findings" class="tab-content active">
@@ -555,7 +560,7 @@ class DashboardReporter:
         # Build heatmap section
         heatmap_section = ""
         if self.aggregated.risk_heatmap:
-            heatmap_html = f"""
+            heatmap_html = """
         <div class="section">
             <h2>Risk Heatmap by Category</h2>
             <div class="chart-container">
@@ -574,7 +579,8 @@ class DashboardReporter:
             <ul class="trends-list">
         """
             for trend in self.aggregated.trends:
-                trends_html += f'            <li class="trend-item">{self._escape_html(trend)}</li>\n'
+                trend_html = self._escape_html(trend)
+                trends_html += f'            <li class="trend-item">{trend_html}</li>\n'
             trends_html += "            </ul>\n        </div>"
             trends_section = trends_html
 
@@ -589,7 +595,9 @@ class DashboardReporter:
             for finding in self.aggregated.recurring_findings:
                 recurring_findings_html += self._render_finding_item(finding, show_frequency=True)
         else:
-            recurring_findings_html = '<li style="padding: 1rem; color: #808080;">No recurring findings</li>'
+            recurring_findings_html = (
+                '<li style="padding: 1rem; color: #808080;">No recurring findings</li>'
+            )
 
         # Prepare D3 scripts
         d3_scripts = self._build_d3_scripts()
@@ -623,14 +631,14 @@ class DashboardReporter:
 
         # Inject risk data
         risk_data_json = json.dumps(risk_data)
-        html = html.replace('const riskData = {risk_data};', f'const riskData = {risk_data_json};')
+        html = html.replace("const riskData = {risk_data};", f"const riskData = {risk_data_json};")
 
         # Inject heatmap data if present
         if self.aggregated.risk_heatmap:
             heatmap_data_json = json.dumps(self.aggregated.risk_heatmap)
             html = html.replace(
-                'const heatmapData = {heatmap_data};',
-                f'const heatmapData = {heatmap_data_json};',
+                "const heatmapData = {heatmap_data};",
+                f"const heatmapData = {heatmap_data_json};",
             )
 
         return html
@@ -643,14 +651,23 @@ class DashboardReporter:
 
         freq_text = ""
         if show_frequency:
-            freq_text = f' <span style="font-size: 0.85rem; color: #a0a0a0;">(Found in {finding.frequency} reviews)</span>'
+            freq_text = (
+                f' <span style="font-size: 0.85rem; color: #a0a0a0;">'
+                f"(Found in {finding.frequency} reviews)</span>"
+            )
 
-        return f"""                    <li class="finding-item {finding.risk_level}">
+        desc_html = (
+            f'<div class="finding-desc">{self._escape_html(finding.description)}</div>'
+            if finding.description
+            else ""
+        )
+        risk_level = finding.risk_level
+        return f"""                    <li class="finding-item {risk_level}">
                         <div class="finding-title">
                             {self._escape_html(finding.title)}{freq_text}
-                            <span class="finding-badge {finding.risk_level}">{finding.risk_level}</span>
+                            <span class="finding-badge {risk_level}">{risk_level}</span>
                         </div>
-                        {f'<div class="finding-desc">{self._escape_html(finding.description)}</div>' if finding.description else ''}
+                        {desc_html}
                         <div class="finding-meta">
                             <span>📁 {self._escape_html(sources)}</span>
                             <span>🔁 {finding.frequency}x</span>

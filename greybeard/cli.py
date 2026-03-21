@@ -1168,7 +1168,7 @@ def batch_analyze(reviews: tuple[str, ...], output_format: str, output: str | No
             content = Path(review_path).read_text()
             analyzer.add_review(str(review_path), content)
             console.print(f"  [green]✓[/green] {Path(review_path).name}")
-        except (FileNotFoundError, IOError) as e:
+        except (OSError, FileNotFoundError) as e:
             console.print(f"  [red]✗[/red] {Path(review_path).name}: {e}")
             sys.exit(1)
 

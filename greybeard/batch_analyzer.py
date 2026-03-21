@@ -216,10 +216,19 @@ class BatchAnalyzer:
         # Pattern for marked findings
         # Looks for lines with risk indicators
         patterns = {
-            "critical": r"(?:critical|severity:\s*critical|🔴.*critical|⚠️\s*critical)",
-            "high": r"(?:^high[:\s]|high\s+(?:risk|concern|severity)|severity:\s*high|🟠.*high|⚠️\s*high)",
-            "medium": r"(?:^medium[:\s]|medium\s+(?:risk|concern|severity)|severity:\s*medium|🟡.*medium)",
-            "low": r"(?:^low[:\s]|low\s+(?:risk|concern|severity)|severity:\s*low|🟢.*low)",
+            "critical": (r"(?:critical|severity:\s*critical|🔴.*critical|⚠️\s*critical)"),
+            "high": (
+                r"(?:^high[:\s]|high\s+(?:risk|concern|severity)|severity:\s*high"
+                r"|🟠.*high|⚠️\s*high)"
+            ),
+            "medium": (
+                r"(?:^medium[:\s]|medium\s+(?:risk|concern|severity)|severity:\s*"
+                r"medium|🟡.*medium)"
+            ),
+            "low": (
+                r"(?:^low[:\s]|low\s+(?:risk|concern|severity)|severity:\s*low"
+                r"|🟢.*low)"
+            ),
             "info": r"(?:^info[:\s]|^info$|fyi|note:\s*|note -|ℹ️)",
         }
 
@@ -375,9 +384,7 @@ class BatchAnalyzer:
         # Trend 1: High frequency findings
         high_freq = [f for f in findings if f.frequency >= len(self.reviews) * 0.5]
         if high_freq:
-            trends.append(
-                f"High consensus: {len(high_freq)} finding(s) appear in 50%+ of reviews"
-            )
+            trends.append(f"High consensus: {len(high_freq)} finding(s) appear in 50%+ of reviews")
 
         # Trend 2: Risk concentration
         critical_findings = [f for f in findings if f.risk_level == "critical"]
@@ -397,9 +404,8 @@ class BatchAnalyzer:
                 key=lambda x: -x[1],
             )[:5]
             if top_tags:
-                trends.append(
-                    f"Top risk categories: {', '.join(f'{tag}({count})' for tag, count in top_tags)}"
-                )
+                trend_str = ", ".join(f"{tag}({count})" for tag, count in top_tags)
+                trends.append(f"Top risk categories: {trend_str}")
 
         return trends
 
@@ -466,19 +472,23 @@ class BatchAnalyzer:
         ]
 
         if self.aggregated.trends:
-            lines.extend([
-                "## Detected Trends",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## Detected Trends",
+                    "",
+                ]
+            )
             for trend in self.aggregated.trends:
                 lines.append(f"- {trend}")
             lines.append("")
 
         if self.aggregated.recurring_findings:
-            lines.extend([
-                "## Recurring Findings (Consensus Issues)",
-                "",
-            ])
+            lines.extend(
+                [
+                    "## Recurring Findings (Consensus Issues)",
+                    "",
+                ]
+            )
             for finding in self.aggregated.recurring_findings:
                 lines.append(
                     f"### {finding.title} ({finding.risk_level.upper()}, "
@@ -491,14 +501,14 @@ class BatchAnalyzer:
                 lines.append(f"**Affected sources:** {', '.join(finding.sources)}")
                 lines.append("")
 
-        lines.extend([
-            "## All Findings",
-            "",
-        ])
+        lines.extend(
+            [
+                "## All Findings",
+                "",
+            ]
+        )
         for i, finding in enumerate(self.aggregated.findings, 1):
-            lines.append(
-                f"{i}. {finding.title} ({finding.risk_level.upper()})"
-            )
+            lines.append(f"{i}. {finding.title} ({finding.risk_level.upper()})")
             if finding.description:
                 lines.append(f"   {finding.description}")
 

@@ -76,7 +76,7 @@ class TestFormatConstants:
 
     def test_supported_formats_list(self):
         """Test supported formats list."""
-        assert set(SUPPORTED_FORMATS) == {"markdown", "json", "html", "jira"}
+        assert set(SUPPORTED_FORMATS) == {"markdown", "json", "html", "jira", "pdf"}
 
     def test_format_extensions_coverage(self):
         """Test format extensions coverage."""

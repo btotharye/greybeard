@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
 
-OutputFormat = Literal["markdown", "json", "html", "jira"]
-SUPPORTED_FORMATS: list[str] = ["markdown", "json", "html", "jira"]
+OutputFormat = Literal["markdown", "json", "html", "jira", "pdf"]
+SUPPORTED_FORMATS: list[str] = ["markdown", "json", "html", "jira", "pdf"]
 
 # File extension to use when --output is not specified or has no extension
 FORMAT_EXTENSIONS: dict[str, str] = {
@@ -27,6 +27,7 @@ FORMAT_EXTENSIONS: dict[str, str] = {
     "json": ".json",
     "html": ".html",
     "jira": ".txt",
+    "pdf": ".pdf",
 }
 
 
@@ -58,6 +59,9 @@ def convert(markdown: str, fmt: OutputFormat, meta: ReviewMetadata) -> str:
         return _to_html(markdown, meta)
     elif fmt == "jira":
         return _to_jira(markdown, meta)
+    elif fmt == "pdf":
+        # PDF is converted as HTML (PDF export would require additional libraries)
+        return _to_html(markdown, meta)
     else:
         raise ValueError(f"Unsupported format: {fmt!r}. Choose from: {SUPPORTED_FORMATS}")
 

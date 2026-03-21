@@ -411,6 +411,165 @@ See [MCP Integration Guide](docs/guides/mcp.md) for detailed setup and workflow 
 
 ---
 
+## GitHub Actions Integration
+
+Automatically review pull requests with greybeard using GitHub Actions. Get Staff-engineer-level feedback on every change before merging.
+
+### Quick Start
+
+1. Add the workflow file to your repo:
+```bash
+# Create the workflow directory
+mkdir -p .github/workflows
+
+# Copy the greybeard review workflow
+curl -L https://raw.githubusercontent.com/btotharye/greybeard/main/.github/workflows/greybeard-review.yml \
+  -o .github/workflows/greybeard-review.yml
+```
+
+2. Set up GitHub Secrets:
+   - **`OPENAI_API_KEY`** (or your LLM provider's key)
+   - **`GITHUB_TOKEN`** (auto-provided by GitHub Actions, no setup needed)
+
+3. Optional: Configure with GitHub Variables
+   - **`GREYBEARD_PACK`** — Default pack (default: `staff-core`)
+   - **`GREYBEARD_RISK_THRESHOLD`** — When to block PRs: `none`, `low`, `medium`, `high`, `critical` (default: `high`)
+
+### Workflow Features
+
+The workflow:
+- ✅ Reviews PRs automatically on open, update, and ready-for-review
+- ✅ Posts detailed comments with findings
+- ✅ Sets GitHub Check status for branch protection
+- ✅ Supports multiple review perspectives in parallel
+- ✅ Deduplicates comments on PR updates
+- ✅ Works with all LLM backends (OpenAI, Anthropic, Ollama, LM Studio)
+
+### Configuration
+
+The default workflow uses:
+- **Pack:** `staff-core` (can override with `GREYBEARD_PACK` variable)
+- **Risk Threshold:** `high` (fails on critical findings)
+- **LLM:** OpenAI GPT-4o (can set `GREYBEARD_LLM_MODEL` variable)
+
+### Example: Strict Reviews on Infrastructure Changes
+
+Customize the workflow to require staff review on sensitive files:
+
+```yaml
+# .github/workflows/greybeard-review.yml
+name: greybeard Review
+on: [pull_request]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      checks: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: btotharye/greybeard-action@main
+        with:
+          pack: "platform-eng"
+          risk-threshold: "critical"  # Only block on critical findings
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Advanced Configuration
+
+Use GitHub environment variables for team-specific settings:
+
+```bash
+# View current config
+export OPENAI_API_KEY=sk-...
+greybeard config show
+```
+
+Or pass environment variables to the workflow:
+
+```yaml
+env:
+  GREYBEARD_PACK: "security-reviewer"
+  GREYBEARD_RISK_THRESHOLD: "medium"
+  GREYBEARD_LLM_BACKEND: "anthropic"
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+### Troubleshooting
+
+**Q: The workflow isn't posting comments on my PR**
+- Check that `GITHUB_TOKEN` has `pull-requests: write` permissions
+- Verify your LLM API key is set correctly
+
+**Q: Too many comments / duplicates**
+- The workflow deduplicates by default — check if comments are stale
+- Try re-running the workflow manually
+
+**Q: Want different reviews for different files?**
+- Use **Pre-commit hooks** (below) for file-specific rules
+
+See [GitHub Actions Integration Guide](docs/guides/github-actions.md) for more examples and troubleshooting.
+
+---
+
+## Pre-commit Hook Integration
+
+Run greybeard checks before committing—fail on risk gates, require approvals on sensitive changes.
+
+### Quick Start
+
+1. Install pre-commit:
+```bash
+pip install pre-commit
+```
+
+2. Add to `.pre-commit-config.yaml`:
+```yaml
+repos:
+  - repo: https://github.com/btotharye/greybeard
+    rev: main
+    hooks:
+      - id: greybeard
+        stages: [commit]
+```
+
+3. Install hooks:
+```bash
+pre-commit install
+```
+
+### Risk Gates
+
+Fail commits on sensitive paths:
+
+```yaml
+# .greybeard-precommit.yaml
+enabled: true
+default_pack: staff-core
+fail_on_concerns: critical
+
+risk_gates:
+  - name: "infra-changes"
+    patterns: ["infra/*", "terraform/*"]
+    fail_on_concerns: critical
+    required_packs: ["platform-eng"]
+    skip_if_branch: ["hotfix/*"]  # Skip on urgent branches
+
+  - name: "auth-changes"
+    patterns: ["auth/*", "security/*"]
+    fail_on_concerns: high
+    required_packs: ["security-reviewer"]
+```
+
+Then commit normally—greybeard will check before the commit goes through.
+
+See [Pre-commit Integration Guide](docs/guides/precommit.md) for full configuration and examples.
+
+---
+
 ## Advanced Topics
 
 ### Building Custom Agents

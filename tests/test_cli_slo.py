@@ -227,9 +227,7 @@ class TestContextFlagParsing:
             }
             mock_analyze.return_value = mock_rec
 
-            result = runner.invoke(
-                slo_check, ["--context", "service-name:my-api-service-v2"]
-            )
+            result = runner.invoke(slo_check, ["--context", "service-name:my-api-service-v2"])
             assert result.exit_code == 0
             call_args = mock_analyze.call_args
             context = call_args.kwargs["context"]
@@ -248,9 +246,7 @@ class TestContextFlagParsing:
             }
             mock_analyze.return_value = mock_rec
 
-            result = runner.invoke(
-                slo_check, ["--context", "data-type:json:structured"]
-            )
+            result = runner.invoke(slo_check, ["--context", "data-type:json:structured"])
             assert result.exit_code == 0
             call_args = mock_analyze.call_args
             context = call_args.kwargs["context"]
@@ -1069,9 +1065,7 @@ class TestEdgeCasesAndBoundaries:
             }
             mock_analyze.return_value = mock_rec
 
-            result = runner.invoke(
-                slo_check, ["--context", "service-name:用户-API-🚀"]
-            )
+            result = runner.invoke(slo_check, ["--context", "service-name:用户-API-🚀"])
             assert result.exit_code == 0
 
     def test_empty_targets_list(self, runner):
@@ -1137,9 +1131,7 @@ class TestEdgeCasesAndBoundaries:
             }
             mock_analyze.return_value = mock_rec
 
-            result = runner.invoke(
-                slo_check, ["--context", "key  :   value  with  spaces"]
-            )
+            result = runner.invoke(slo_check, ["--context", "key  :   value  with  spaces"])
             assert result.exit_code == 0
             call_kwargs = mock_analyze.call_args.kwargs
             # Should strip spaces
@@ -1297,7 +1289,7 @@ class TestJsonSpecificFormatting:
             result = runner.invoke(slo_check, ["-o", "json"])
             assert result.exit_code == 0
             data = json.loads(result.output)
-            
+
             # Verify all fields
             assert data["service_type"] == "saas"
             assert data["service_name"] == "api"
@@ -1406,9 +1398,7 @@ class TestContextParsing:
             }
             mock_analyze.return_value = mock_rec
 
-            result = runner.invoke(
-                slo_check, ["--context", "image:gcr.io/project/service:v1.0"]
-            )
+            result = runner.invoke(slo_check, ["--context", "image:gcr.io/project/service:v1.0"])
             assert result.exit_code == 0
             call_kwargs = mock_analyze.call_args.kwargs
             # Should split on first colon only

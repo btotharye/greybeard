@@ -91,7 +91,7 @@ jobs:
             const reviewFile = `/tmp/review_${pack}.md`;
             if (!fs.existsSync(reviewFile)) return;
             const reviewContent = fs.readFileSync(reviewFile, 'utf8');
-            const blocking = ${{ steps.risk-check.outputs.blocking }};
+            const blocking = '${{ steps.risk-check.outputs.blocking }}' === '1';
             const icons = {
               'staff-core': '🧙',
               'on-call': '📟',
@@ -135,7 +135,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const blocking = ${{ steps.risk-check.outputs.blocking }};
+            const blocking = '${{ steps.risk-check.outputs.blocking }}' === '1';
             const pack = '${{ matrix.pack }}';
             const status = blocking ? 'failure' : 'success';
             await github.rest.checks.create({

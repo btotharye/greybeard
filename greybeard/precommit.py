@@ -304,7 +304,6 @@ def analyze_review_output(review_text: str, concern_level_threshold: str) -> tup
     return passed, concerns
 
 
-
 def run_diff_review(
     config: PreCommitConfig, pack: str | None = None, verbose: bool = False
 ) -> PreCommitReview:

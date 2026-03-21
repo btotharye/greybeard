@@ -582,7 +582,7 @@ from greybeard.common import BaseAgent
 class MyAgent(BaseAgent):
     def __init__(self):
         super().__init__(name="my-agent", description="...")
-    
+
     def run(self, user_input: str) -> dict:
         # Use research, interview, documentation capabilities
         context = self.research.gather_file_context("file.txt")

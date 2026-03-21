@@ -59,6 +59,9 @@ def convert(markdown: str, fmt: OutputFormat, meta: ReviewMetadata) -> str:
         return _to_html(markdown, meta)
     elif fmt == "jira":
         return _to_jira(markdown, meta)
+    elif fmt == "pdf":
+        # PDF is converted as HTML (PDF export would require additional libraries)
+        return _to_html(markdown, meta)
     else:
         raise ValueError(f"Unsupported format: {fmt!r}. Choose from: {SUPPORTED_FORMATS}")
 

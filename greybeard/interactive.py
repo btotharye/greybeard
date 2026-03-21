@@ -265,8 +265,8 @@ class InteractiveSession:
         full_text = ""
         console.print()
         stream = client.chat.completions.create(model=self.model, messages=messages, stream=True)  # type: ignore[union-attr,arg-type,attr-defined]
-        for chunk in stream:  # type: ignore[misc]
-            delta = chunk.choices[0].delta.content or ""
+        for chunk in stream:  # type: ignore[misc,union-attr]
+            delta = chunk.choices[0].delta.content or ""  # type: ignore[union-attr]
             print(delta, end="", flush=True)
             full_text += delta
         console.print("\n")

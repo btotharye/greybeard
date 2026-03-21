@@ -81,16 +81,9 @@ def format_pr_comment(
     blocking_badge = "⚠️ **BLOCKING ISSUES DETECTED**\n\n" if blocking else ""
 
     if len(review_content) > max_length:
-        review_content = (
-            review_content[:max_length]
-            + "\n\n... _(review truncated)_"
-        )
+        review_content = review_content[:max_length] + "\n\n... _(review truncated)_"
 
-    comment = (
-        f"{blocking_badge}"
-        f"## {icon} Greybeard Review: {pack}\n\n"
-        f"{review_content}"
-    )
+    comment = f"{blocking_badge}## {icon} Greybeard Review: {pack}\n\n{review_content}"
 
     return comment
 
@@ -126,7 +119,7 @@ def create_check_payload(
     text: str | None = None,
 ) -> dict[str, Any]:
     """Create a GitHub Check Run payload."""
-    payload = {
+    payload: dict[str, Any] = {
         "name": name,
         "status": status,
         "conclusion": conclusion,
@@ -137,7 +130,9 @@ def create_check_payload(
     }
 
     if text:
-        payload["output"]["text"] = text
+        output = payload["output"]
+        assert isinstance(output, dict)
+        output["text"] = text
 
     return payload
 
@@ -234,9 +229,7 @@ def get_greybeard_config_from_env() -> dict[str, str]:
         "llm_backend": os.getenv("GREYBEARD_LLM_BACKEND", "openai"),
         "llm_model": os.getenv("GREYBEARD_LLM_MODEL", "gpt-4o"),
         "llm_base_url": os.getenv("GREYBEARD_LLM_BASE_URL", ""),
-        "risk_threshold": os.getenv(
-            "GREYBEARD_RISK_THRESHOLD", DEFAULT_RISK_THRESHOLD
-        ),
+        "risk_threshold": os.getenv("GREYBEARD_RISK_THRESHOLD", DEFAULT_RISK_THRESHOLD),
         "packs": os.getenv("GREYBEARD_PACKS", ",".join(DEFAULT_PACKS)),
         "mode": os.getenv("GREYBEARD_MODE", "review"),
     }
@@ -268,9 +261,7 @@ def validate_llm_credentials(backend: str) -> bool:
     return bool(os.getenv(api_key_var))
 
 
-def find_existing_comment(
-    comments: list[dict[str, Any]], pack: str
-) -> dict[str, Any] | None:
+def find_existing_comment(comments: list[dict[str, Any]], pack: str) -> dict[str, Any] | None:
     """Find an existing Greybeard comment for a pack."""
     for comment in comments:
         if f"Greybeard Review: {pack}" in comment.get("body", ""):

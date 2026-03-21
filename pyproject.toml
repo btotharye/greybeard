@@ -82,6 +82,16 @@ path = "greybeard/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["greybeard"]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "test_venv/",
+    ".venv/",
+    "venv/",
+    "htmlcov/",
+    "site/",
+    ".pytest_cache/",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

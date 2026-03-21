@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pack: ["staff-core", "on-call", "security"]
+        pack: ["staff-core", "oncall-future-you", "security-reviewer"]
 
     steps:
       - name: Checkout PR branch
@@ -39,19 +39,25 @@ jobs:
 
       - name: Install greybeard
         run: |
-          uv tool install greybeard
+          uv tool install "greybeard[anthropic]"
+
+      - name: Configure Anthropic backend
+        run: |
+          greybeard config set llm.backend anthropic
 
       - name: Generate git diff
         id: diff
         run: |
           git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+          # Truncate to ~400KB to stay within LLM token limits
+          truncate -s 400k /tmp/pr.diff
           DIFF_SIZE=$(wc -c < /tmp/pr.diff)
           echo "size=$DIFF_SIZE" >> $GITHUB_OUTPUT
 
       - name: Analyze with Greybeard
         id: review
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           REVIEW_OUTPUT=$(greybeard analyze \
             --pack "${{ matrix.pack }}" \
@@ -92,8 +98,8 @@ jobs:
             const blocking = '${{ steps.risk-check.outputs.blocking }}' === '1';
             const icons = {
               'staff-core': '🧙',
-              'on-call': '📟',
-              'security': '🔒'
+              'oncall-future-you': '📟',
+              'security-reviewer': '🔒'
             };
             const icon = icons[pack] || '📋';
             let truncated = reviewContent;

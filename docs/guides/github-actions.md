@@ -179,6 +179,16 @@ If blocking issues are detected, the comment is prefixed with:
 ⚠️ **BLOCKING ISSUES DETECTED**
 ```
 
+> **Known limitation — blocking detection uses keyword matching.**
+> The `Check for blocking issues` step does a case-insensitive `grep` on the review markdown
+> using a hard-coded pattern list. If the LLM outputs blocking concerns in an unexpected
+> format, the check may pass when it should fail (false negative). The review comment is
+> **always posted** regardless, so human reviewers can still see the content.
+>
+> If you need reliable automated blocking, use `GREYBEARD_RISK_THRESHOLD=low` (catches more)
+> or treat the Greybeard check as advisory-only and keep human review as the gate.
+> A structured JSON output mode that would make this deterministic is on the roadmap.
+
 ---
 
 ## GitHub Check Status

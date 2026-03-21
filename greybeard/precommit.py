@@ -104,8 +104,18 @@ class PreCommitConfig:
         if not config_file.exists():
             return cls()
 
-        with config_file.open() as f:
-            data = yaml.safe_load(f) or {}
+        try:
+            with config_file.open() as f:
+                data = yaml.safe_load(f) or {}
+        except yaml.YAMLError as exc:
+            # Surface a helpful error instead of a raw YAML traceback.
+            mark = getattr(exc, "problem_mark", None)
+            location = f" (line {mark.line + 1}, column {mark.column + 1})" if mark else ""
+            raise SystemExit(
+                f"[greybeard] invalid YAML in {config_file}{location}: "
+                f"{exc.problem if hasattr(exc, 'problem') else exc}\n"
+                f"Run `greybeard-precommit config show` after fixing the file to verify."
+            ) from None
 
         gates = []
         for gate_data in data.get("risk_gates", []):

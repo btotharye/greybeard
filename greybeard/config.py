@@ -19,9 +19,15 @@ PACK_CACHE_DIR = CONFIG_DIR / "packs"
 # Backend names we know about
 KNOWN_BACKENDS = ["openai", "anthropic", "ollama", "lmstudio"]
 
-# Default models per backend
+# Default models per backend.
+# Anthropic default is claude-haiku-4-5-20251001 (not Sonnet) — a deliberate
+# cost/speed trade-off for the GitHub Actions workflow where reviews run on
+# every labeled PR. Haiku is ~5× cheaper and ~2× faster than Sonnet for
+# typical diffs. Users who want higher-quality reviews should set the model
+# explicitly: `greybeard config set llm.model claude-sonnet-4-6`
 DEFAULT_MODELS: dict[str, str] = {
     "openai": "gpt-4o",
+    # cost-optimised default; override with claude-sonnet-4-6 for higher quality
     "anthropic": "claude-haiku-4-5-20251001",
     "ollama": "llama3.2",
     "lmstudio": "local-model",

@@ -361,6 +361,71 @@ This updates to the latest release tag. Review the changelog before merging.
 
 ---
 
+## Configuration Reference
+
+Full schema for `.greybeard-precommit.yaml`. All fields are optional — sensible defaults apply.
+
+```yaml
+# .greybeard-precommit.yaml
+
+# Master on/off switch. Set to false to disable all hooks immediately.
+enabled: true
+
+# Default pack name used when no gate-specific pack is configured.
+# Valid values: staff-core, oncall-future-you, security-reviewer, or a path
+# to a custom pack YAML.
+default_pack: staff-core
+
+# Additional packs to run alongside default_pack on every commit.
+additional_packs: []
+
+# Concern level that blocks a commit at the repo level.
+# Gate-level fail_on_concerns overrides this for matched files.
+# Options: none | critical | high | medium | low
+fail_on_concerns: high
+
+# Skip commits where nothing is staged (git add was not run).
+skip_unstaged: true
+
+# Maximum number of diff lines to send to the LLM.
+# Larger values increase cost and latency; smaller values may miss context.
+max_context_lines: 500
+
+# Print debug output (staged files, pack name, gate matches).
+verbose: false
+
+# Allow committing with no staged changes (useful in CI pipelines).
+allow_empty_commits: false
+
+# Glob patterns excluded from all reviews.
+excluded_paths:
+  - "vendor/**"
+  - "node_modules/**"
+  - "*.lock"
+  - "*.pb.py"
+
+# Risk gates — zero or more named policies.
+risk_gates:
+  - name: string # Required. Human-readable gate name.
+
+    patterns: # Required. Glob patterns that activate this gate.
+      - "auth/**"
+
+    fail_on_concerns: high # Optional. Overrides repo-level fail_on_concerns.
+
+    required_packs: # Optional. Specific packs for this gate.
+      - security-reviewer
+
+    skip_if_branch: # Optional. Python regex patterns. Gate is skipped on
+      - "^hotfix/" # branches whose name matches any pattern here.
+      - "^emergency/"
+```
+
+All string values in `patterns` and `skip_if_branch` use Python `fnmatch` glob syntax
+(patterns) or `re` regex syntax (skip_if_branch).
+
+---
+
 ## Troubleshooting
 
 **`greybeard-precommit: command not found`**

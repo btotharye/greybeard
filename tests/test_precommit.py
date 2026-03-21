@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 import yaml
 
 from greybeard.precommit import (
@@ -424,6 +425,25 @@ class TestPreCommitConfigLoad:
 
         assert config.enabled is True
         assert config.default_pack == "staff-core"
+
+    def test_load_raises_systemexit_on_malformed_yaml(self):
+        """Malformed YAML in config file raises SystemExit with a clear message."""
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_dir = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                config_path = Path(tmpdir) / ".greybeard-precommit.yaml"
+                config_path.write_text(
+                    "enabled: true\nrisk_gates:\n  - name: bad\n    patterns: [unclosed bracket\n"
+                )
+                with pytest.raises(SystemExit) as exc_info:
+                    PreCommitConfig.load()
+            finally:
+                os.chdir(original_dir)
+
+        assert ".greybeard-precommit.yaml" in str(exc_info.value)
 
 
 # ---------------------------------------------------------------------------

@@ -289,21 +289,21 @@ class TestFormatting:
 class TestGitIntegration:
     """Test git command wrappers."""
 
-    @patch("subprocess.run")
+    @patch("greybeard.precommit.subprocess.run")
     def test_get_staged_files(self, mock_run):
         """Test getting staged files."""
         mock_run.return_value = MagicMock(stdout="file1.py\nfile2.py\n", stderr="", returncode=0)
         files = get_staged_files()
         assert files == ["file1.py", "file2.py"]
 
-    @patch("subprocess.run")
+    @patch("greybeard.precommit.subprocess.run")
     def test_get_staged_files_empty(self, mock_run):
         """Test getting staged files when empty."""
         mock_run.return_value = MagicMock(stdout="", stderr="", returncode=0)
         files = get_staged_files()
         assert files == []
 
-    @patch("subprocess.run")
+    @patch("greybeard.precommit.subprocess.run")
     def test_get_staged_diff(self, mock_run):
         """Test getting staged diff."""
         diff_text = "diff --git a/file.py b/file.py\n+new line"
@@ -311,7 +311,7 @@ class TestGitIntegration:
         diff = get_staged_diff()
         assert diff == diff_text
 
-    @patch("subprocess.run")
+    @patch("greybeard.precommit.subprocess.run")
     def test_get_current_branch(self, mock_run):
         """Test getting current branch."""
         mock_run.return_value = MagicMock(stdout="feat/new-feature\n", stderr="", returncode=0)

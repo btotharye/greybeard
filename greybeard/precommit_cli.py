@@ -1,0 +1,193 @@
+"""CLI entry point for greybeard pre-commit hooks.
+
+This module provides the `greybeard-precommit` command used by the pre-commit
+framework. It's a thin wrapper around the precommit module that provides a CLI
+interface.
+
+Usage:
+  greybeard-precommit diff [--pack PACK] [--verbose]
+  greybeard-precommit check [--verbose]
+  greybeard-precommit config [init|show|edit]
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+
+import click
+from rich.console import Console
+
+from .precommit import (
+    PreCommitConfig,
+    format_review_output,
+    run_diff_review,
+    run_risk_check,
+)
+
+console = Console()
+
+
+@click.group()
+def cli() -> None:
+    """🧙 greybeard pre-commit integration.
+
+    Run greybeard reviews on staged changes before commit.
+
+    \b
+    Commands:
+      greybeard-precommit diff      Run review on staged diff
+      greybeard-precommit check     Check risk gates
+      greybeard-precommit config    Manage pre-commit configuration
+    """
+
+
+@cli.command()
+@click.option(
+    "--pack",
+    "-p",
+    default=None,
+    help="Content pack to use (default from config)",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Print verbose debug output",
+)
+def diff(pack: str | None, verbose: bool) -> None:
+    """Run greybeard review on staged changes."""
+    config = PreCommitConfig.load()
+
+    if not config.enabled:
+        console.print("[dim]Pre-commit review disabled in config[/dim]")
+        sys.exit(0)
+
+    if verbose:
+        console.print("[dim]Loading pre-commit config...[/dim]")
+
+    review = run_diff_review(config, pack=pack, verbose=verbose)
+
+    # Print review output
+    output = format_review_output(review, verbose=verbose)
+    console.print(output)
+
+    # Exit with appropriate code
+    sys.exit(0 if review.passed else 1)
+
+
+@cli.command()
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Print verbose debug output",
+)
+def check(verbose: bool) -> None:
+    """Check staged changes against risk gates."""
+    config = PreCommitConfig.load()
+
+    if not config.enabled:
+        console.print("[dim]Pre-commit check disabled in config[/dim]")
+        sys.exit(0)
+
+    if verbose:
+        console.print("[dim]Running risk gate checks...[/dim]")
+
+    review = run_risk_check(config, verbose=verbose)
+
+    # Print check output
+    output = format_review_output(review, verbose=verbose)
+    console.print(output)
+
+    # Exit with appropriate code
+    sys.exit(0 if review.passed else 1)
+
+
+@cli.group()
+def config() -> None:
+    """Manage pre-commit configuration."""
+
+
+@config.command()
+@click.option(
+    "--path",
+    default=".greybeard-precommit.yaml",
+    help="Path to save config",
+)
+def init(path: str) -> None:
+    """Initialize a default pre-commit config."""
+    cfg = PreCommitConfig()
+    cfg.save(path)
+    console.print(f"[green]✓[/green] Config initialized at {path}")
+
+
+@config.command()
+def show() -> None:
+    """Show current pre-commit configuration."""
+    cfg = PreCommitConfig.load()
+
+    # Create display table
+    from rich.table import Table
+
+    table = Table(title="Pre-Commit Configuration")
+    table.add_column("Setting", style="cyan")
+    table.add_column("Value", style="magenta")
+
+    table.add_row("Enabled", str(cfg.enabled))
+    table.add_row("Default Pack", cfg.default_pack)
+    table.add_row("Additional Packs", ", ".join(cfg.additional_packs) or "(none)")
+    table.add_row("Fail On Concerns", cfg.fail_on_concerns)
+    table.add_row("Max Context Lines", str(cfg.max_context_lines))
+    table.add_row("Skip Unstaged", str(cfg.skip_unstaged))
+    table.add_row("Verbose", str(cfg.verbose))
+    table.add_row("Excluded Paths", "\n".join(cfg.excluded_paths) or "(none)")
+    table.add_row("Risk Gates", str(len(cfg.risk_gates)))
+
+    console.print(table)
+
+    if cfg.risk_gates:
+        console.print("\n[bold]Risk Gates:[/bold]")
+        for gate in cfg.risk_gates:
+            console.print(
+                f"  • {gate.name}: patterns={gate.patterns}, "
+                f"fail_on={gate.fail_on_concerns}, "
+                f"packs={gate.required_packs}"
+            )
+
+
+@config.command()
+@click.option(
+    "--editor",
+    default=None,
+    help="Editor to use (default: $EDITOR or vim)",
+)
+def edit(editor: str | None) -> None:
+    """Edit pre-commit configuration in your editor."""
+    path = ".greybeard-precommit.yaml"
+
+    # If config doesn't exist, initialize it
+    if not os.path.exists(path):
+        cfg = PreCommitConfig()
+        cfg.save(path)
+        console.print(f"[green]✓[/green] Created {path}")
+
+    # Determine editor
+    if not editor:
+        editor = os.environ.get("EDITOR", "vim")
+
+    # Open editor
+    try:
+        subprocess.run([editor, path], check=True)
+        console.print("[green]✓[/green] Config saved")
+    except FileNotFoundError:
+        console.print(f"[red]✗[/red] Editor not found: {editor}")
+        sys.exit(1)
+    except subprocess.CalledProcessError:
+        console.print("[yellow]⚠️  Editor exited with error[/yellow]")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    cli()

@@ -1,0 +1,21 @@
+> """Shared agent framework and utilities for Greybeard.
+
+> This module contains the foundational classes and utilities that all
+> Greybeard agents inherit from and use.
+> """
+
+! from __future__ import annotations
+
+! from .agent import BaseAgent
+! from .document import DocumentationGenerator
+! from .interview import InterviewCapability
+! from .llm_wrapper import LLMWrapper
+! from .research import ResearchCapability
+
+! __all__ = [
+!     "BaseAgent",
+!     "LLMWrapper",
+!     "ResearchCapability",
+!     "InterviewCapability",
+!     "DocumentationGenerator",
+! ]

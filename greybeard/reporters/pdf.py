@@ -6,7 +6,7 @@ from typing import Any
 
 try:
     from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, StyleSheet1, getSampleStyleSheet
     from reportlab.lib.units import inch
@@ -18,6 +18,7 @@ try:
         Table,
         TableStyle,
     )
+
     HAS_REPORTLAB = True
 except ImportError:
     HAS_REPORTLAB = False
@@ -36,15 +37,16 @@ def _check_reportlab() -> None:
 class PDFReporter:
     """Generate professional PDF reports for greybeard reviews."""
 
-    COLOR_HEADER = colors.HexColor("#2C3E50")
-    COLOR_ACCENT = colors.HexColor("#9B59B6")
-    COLOR_LIGHT_BG = colors.HexColor("#ECF0F1")
-    COLOR_BORDER = colors.HexColor("#BDC3C7")
-    COLOR_TEXT = colors.HexColor("#2C3E50")
-
-    def __init__(self, markdown: str, meta: ReviewMetadata, pagesize: Any = letter):
+    def __init__(self, markdown: str, meta: ReviewMetadata, pagesize: Any = None):
         """Initialize the PDF reporter."""
         _check_reportlab()
+        if pagesize is None:
+            pagesize = letter
+        self.COLOR_HEADER = colors.HexColor("#2C3E50")
+        self.COLOR_ACCENT = colors.HexColor("#9B59B6")
+        self.COLOR_LIGHT_BG = colors.HexColor("#ECF0F1")
+        self.COLOR_BORDER = colors.HexColor("#BDC3C7")
+        self.COLOR_TEXT = colors.HexColor("#2C3E50")
         self.markdown = markdown
         self.meta = meta
         self.pagesize = pagesize
@@ -57,7 +59,7 @@ class PDFReporter:
         base_styles = getSampleStyleSheet()
         self.styles: StyleSheet1 = StyleSheet1()
 
-        for name in base_styles.listStyleNames():
+        for name in base_styles.byName:
             self.styles.add(base_styles[name])
 
         self.styles.add(
@@ -130,14 +132,16 @@ class PDFReporter:
 
         meta_table = Table(meta_data, colWidths=[1.5 * inch, 3 * inch])
         meta_table.setStyle(
-            TableStyle([
-                ("BACKGROUND", (0, 0), (0, -1), self.COLOR_LIGHT_BG),
-                ("TEXTCOLOR", (0, 0), (-1, -1), self.COLOR_TEXT),
-                ("ALIGN", (0, 0), (-1, -1), TA_LEFT),
-                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("GRID", (0, 0), (-1, -1), 1, self.COLOR_BORDER),
-            ])
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (0, -1), self.COLOR_LIGHT_BG),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), self.COLOR_TEXT),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("GRID", (0, 0), (-1, -1), 1, self.COLOR_BORDER),
+                ]
+            )
         )
         story.append(meta_table)
         story.append(PageBreak())
@@ -161,25 +165,31 @@ class PDFReporter:
 
             risk_table_data = [["Risk", "Severity"]]
             for risk in risk_items[:10]:
-                severity = "🔴 Critical" if any(
-                    kw in risk.lower()
-                    for kw in ["no plan", "unknown", "critical", "fail", "loss"]
-                ) else "🟠 High" if any(
-                    kw in risk.lower() for kw in ["risk", "issue", "concern"]
-                ) else "🟡 Medium"
+                severity = (
+                    "🔴 Critical"
+                    if any(
+                        kw in risk.lower()
+                        for kw in ["no plan", "unknown", "critical", "fail", "loss"]
+                    )
+                    else "🟠 High"
+                    if any(kw in risk.lower() for kw in ["risk", "issue", "concern"])
+                    else "🟡 Medium"
+                )
 
                 risk_table_data.append([risk, severity])
 
             risk_table = Table(risk_table_data, colWidths=[4 * inch, 1.5 * inch])
             risk_table.setStyle(
-                TableStyle([
-                    ("BACKGROUND", (0, 0), (-1, 0), self.COLOR_ACCENT),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("ALIGN", (0, 0), (-1, -1), TA_LEFT),
-                    ("FONTSIZE", (0, 0), (-1, -1), 9),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, self.COLOR_LIGHT_BG]),
-                    ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
-                ])
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), self.COLOR_ACCENT),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, self.COLOR_LIGHT_BG]),
+                        ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
+                    ]
+                )
             )
             story.append(risk_table)
 
@@ -193,9 +203,7 @@ class PDFReporter:
 
         tradeoffs = self.sections.get("tradeoffs", "")
         if tradeoffs:
-            story.append(
-                Paragraph("<b>Tradeoffs & Considerations:</b>", self.styles["CustomBody"])
-            )
+            story.append(Paragraph("<b>Tradeoffs & Considerations:</b>", self.styles["CustomBody"]))
             story.append(Paragraph(tradeoffs, self.styles["CustomBody"]))
             story.append(Spacer(self.width, 0.1 * inch))
 
@@ -209,18 +217,20 @@ class PDFReporter:
             )
             question_items = _parse_bullets(questions)
             if question_items:
-                question_data = [[f"{i+1}. {q}"] for i, q in enumerate(question_items[:8])]
+                question_data = [[f"{i + 1}. {q}"] for i, q in enumerate(question_items[:8])]
                 question_table = Table(question_data, colWidths=[5.5 * inch])
                 question_table.setStyle(
-                    TableStyle([
-                        ("BACKGROUND", (0, 0), (-1, -1), self.COLOR_LIGHT_BG),
-                        ("ALIGN", (0, 0), (-1, -1), TA_LEFT),
-                        ("FONTSIZE", (0, 0), (-1, -1), 9),
-                        ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
-                    ])
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, -1), self.COLOR_LIGHT_BG),
+                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                            ("FONTSIZE", (0, 0), (-1, -1), 9),
+                            ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
+                        ]
+                    )
                 )
                 story.append(question_table)
-            else:
+            else:  # pragma: no cover
                 story.append(Paragraph(questions, self.styles["CustomBody"]))
 
         comm = self.sections.get("communication_language", "")
@@ -250,20 +260,21 @@ class PDFReporter:
 
         details_table = Table(details, colWidths=[2 * inch, 3.5 * inch])
         details_table.setStyle(
-            TableStyle([
-                ("BACKGROUND", (0, 0), (0, -1), self.COLOR_LIGHT_BG),
-                ("TEXTCOLOR", (0, 0), (-1, -1), self.COLOR_TEXT),
-                ("ALIGN", (0, 0), (-1, -1), TA_LEFT),
-                ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
-            ])
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (0, -1), self.COLOR_LIGHT_BG),
+                    ("TEXTCOLOR", (0, 0), (-1, -1), self.COLOR_TEXT),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
+                ]
+            )
         )
         story.append(details_table)
         story.append(Spacer(self.width, 0.3 * inch))
 
         footer_text = (
-            "<i>This report was generated by greybeard, a staff-level review assistant."
-            "</i>"
+            "<i>This report was generated by greybeard, a staff-level review assistant.</i>"
         )
         story.append(Paragraph(footer_text, self.styles["Metadata"]))
 

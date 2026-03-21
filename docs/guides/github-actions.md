@@ -1,0 +1,426 @@
+# GitHub Actions Integration
+
+greybeard can run as a GitHub Actions workflow, posting staff-level PR review comments across
+three parallel perspectives: engineering quality, operational risk, and security.
+
+---
+
+## How It Works
+
+The workflow triggers when you add the `greybeard-review` label to a PR (or manually from the
+Actions tab). It runs three jobs in parallel — one per review pack — each posting its own comment
+to the PR.
+
+```
+Label added → workflow triggers → 3 jobs run in parallel
+                                   ├── staff-core        → 🧙 PR comment
+                                   ├── oncall-future-you → 📟 PR comment
+                                   └── security-reviewer → 🔒 PR comment
+                                        ↓
+                               GitHub Check status set (pass/fail)
+```
+
+---
+
+## Setup
+
+### 1. Copy the workflow file
+
+```bash
+mkdir -p .github/workflows
+curl -L https://raw.githubusercontent.com/btotharye/greybeard/main/.github/workflows/greybeard-review.yml \
+  -o .github/workflows/greybeard-review.yml
+```
+
+### 2. Add your API key as a Secret
+
+Go to your repo → **Settings → Secrets and variables → Actions → New repository secret**.
+
+| Secret name         | Value                                                                |
+| ------------------- | -------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY` | Your key from [console.anthropic.com](https://console.anthropic.com) |
+
+`GITHUB_TOKEN` is provided automatically — no setup needed.
+
+### 3. Create the trigger label
+
+Go to your repo → **Issues → Labels → New label**:
+
+- **Name:** `greybeard-review`
+- **Color:** `#6f42c1` (purple) or any colour you like
+
+### 4. Trigger your first review
+
+Open a PR (or find an existing one) and add the `greybeard-review` label. The workflow will
+appear under the **Actions** tab within seconds.
+
+---
+
+## Trigger Modes
+
+The bundled workflow supports two trigger modes:
+
+### Label-based (default — recommended)
+
+Only runs when you explicitly add the `greybeard-review` label to a PR.
+
+```yaml
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+```
+
+**Pros:** Full cost control. No surprise charges from routine pushes.
+**Cons:** You have to remember to add the label.
+
+### Automatic (every PR push)
+
+To run on every push to an open PR, change the trigger:
+
+```yaml
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+```
+
+**Pros:** Never miss a review.
+**Cons:** Costs money on every push. For a busy repo with frequent commits, this adds up.
+
+### Manual dispatch only
+
+To disable automatic triggering entirely and only allow manual runs from the Actions tab:
+
+```yaml
+on:
+  workflow_dispatch:
+```
+
+---
+
+## Cost Management
+
+### Model selection
+
+The workflow uses **Claude Haiku** by default — the fastest and most cost-effective option.
+
+| Model                                  | Input / Output (per MTok) | ~Cost per 3-pack review |
+| -------------------------------------- | ------------------------- | ----------------------- |
+| `claude-haiku-4-5-20251001` ✅ default | $1 / $5                   | ~$0.05–0.20             |
+| `claude-sonnet-4-6`                    | $3 / $15                  | ~$0.30–1.00             |
+| `claude-opus-4-6`                      | $5 / $25                  | ~$0.50–2.00+            |
+
+To switch models, update the **Configure Anthropic backend** step in the workflow:
+
+```yaml
+- name: Configure Anthropic backend
+  run: |
+    greybeard config set llm.backend anthropic
+    greybeard config set llm.model claude-sonnet-4-6
+```
+
+### Diff size
+
+The workflow truncates the diff to 400KB before sending it to the LLM. For very large PRs
+this means the review covers the most important (earliest) changes. To change the limit:
+
+```yaml
+- name: Generate git diff
+  run: |
+    git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+    truncate -s 200k /tmp/pr.diff   # smaller = cheaper/faster
+```
+
+---
+
+## Review Packs
+
+The default workflow runs three packs in parallel:
+
+| Pack                | Perspective         | What it flags                                            |
+| ------------------- | ------------------- | -------------------------------------------------------- |
+| `staff-core`        | Engineering quality | Architecture, readability, test coverage, coupling       |
+| `oncall-future-you` | Operational risk    | Missing runbooks, alerting, rollback plan, 3am scenarios |
+| `security-reviewer` | Security            | Auth gaps, injection risks, secrets exposure, data leaks |
+
+To run only specific packs, edit the matrix:
+
+```yaml
+strategy:
+  matrix:
+    pack: ["staff-core"] # just one pack
+```
+
+---
+
+## PR Comments
+
+Each pack posts its own comment. On re-runs the comment is **updated**, not duplicated.
+
+The comment format:
+
+```
+## 🧙 Greybeard Review: staff-core
+
+### Summary
+...
+
+### Key Risks
+...
+
+---
+_Review generated by Greybeard on `abc1234`_
+```
+
+If blocking issues are detected, the comment is prefixed with:
+
+```
+⚠️ **BLOCKING ISSUES DETECTED**
+```
+
+> **Known limitation — blocking detection uses keyword matching.**
+> The `Check for blocking issues` step does a case-insensitive `grep` on the review markdown
+> using a hard-coded pattern list. If the LLM outputs blocking concerns in an unexpected
+> format, the check may pass when it should fail (false negative). The review comment is
+> **always posted** regardless, so human reviewers can still see the content.
+>
+> If you need reliable automated blocking, use `GREYBEARD_RISK_THRESHOLD=low` (catches more)
+> or treat the Greybeard check as advisory-only and keep human review as the gate.
+> A structured JSON output mode that would make this deterministic is on the roadmap.
+
+---
+
+## GitHub Check Status
+
+The workflow sets a GitHub Check for each pack. You can add these as required status checks
+for branch protection:
+
+1. Go to **Settings → Branches → Branch protection rules**
+2. Enable **Require status checks to pass before merging**
+3. Search for `Greybeard: staff-core`, `Greybeard: oncall-future-you`, `Greybeard: security-reviewer`
+
+When blocking issues are detected, the check fails (red ✗) and will block merging if required.
+
+---
+
+## Permissions
+
+The workflow needs these permissions:
+
+```yaml
+permissions:
+  contents: read # checkout the PR branch
+  pull-requests: write # post/update comments
+  checks: write # set check status
+```
+
+These are already set in the bundled workflow file.
+
+---
+
+## Using a Different LLM Backend
+
+### OpenAI
+
+```yaml
+- name: Configure backend
+  run: |
+    greybeard config set llm.backend openai
+    greybeard config set llm.model gpt-4o-mini   # cheaper option
+
+- name: Analyze with Greybeard
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+### Ollama (self-hosted)
+
+Not suitable for GitHub Actions (requires a running Ollama server), but works well for
+[pre-commit hooks](pre-commit.md) on developer machines.
+
+---
+
+## Reliability & Cost Controls
+
+### Graceful degradation on failures
+
+The workflow uses `continue-on-error: true` on the analyze step. If greybeard fails
+(API error, pack not found, network blip), the job does **not** hard-fail the PR check.
+Instead:
+
+- A `⚠️ Review unavailable` comment is posted with a link to the Actions log
+- The GitHub Check is set to `neutral` (not `failure`) — the PR is **not blocked**
+- The exact error is visible in the Actions run for debugging
+
+This means a transient API outage or a bad pack name won't silently block all PRs or
+silently succeed while posting garbage output.
+
+**What `neutral` means for branch protection:** if you've added `Greybeard: staff-core`
+as a required status check, a `neutral` conclusion still allows merging. Only `failure`
+(blocking issues detected) blocks the merge. Adjust your branch protection rules if you
+want `neutral` to block too.
+
+### Token budget vs byte budget
+
+The diff is truncated at **200KB bytes** before being sent to the LLM. This is intentionally
+conservative:
+
+| Truncation | Approx tokens (code @ 4 chars/token) | Safety margin on Haiku (200k ctx) |
+| ---------- | ------------------------------------ | --------------------------------- |
+| 200KB      | ~50k tokens                          | 4× headroom                       |
+| 400KB      | ~100k tokens                         | 2× headroom (tight)               |
+
+Code diffs are typically dense, but 200KB still covers a very large PR (~2,000–5,000 lines
+of changes). Most meaningful reviews fit well within this.
+
+To adjust:
+
+```yaml
+- name: Generate git diff
+  run: |
+    git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+    truncate -s 100k /tmp/pr.diff   # smaller = cheaper, faster
+```
+
+### Expected latency
+
+The 15-minute job timeout is generous for typical PRs. Actual latency depends on diff
+size and model:
+
+| Diff size                 | Haiku (~2s/1k tokens) | Sonnet (~4s/1k tokens) | Typical wall-clock                      |
+| ------------------------- | --------------------- | ---------------------- | --------------------------------------- |
+| Small (< 50 lines)        | < 5s                  | < 10s                  | 15–30s total (install + auth + analyze) |
+| Medium (~200 lines)       | ~10s                  | ~20s                   | 30–60s                                  |
+| Large (~500 lines)        | ~20s                  | ~40s                   | 60–90s                                  |
+| Max (200KB / ~50k tokens) | ~90s                  | ~3 min                 | 4–5 min                                 |
+
+The workflow wraps `greybeard analyze` in an explicit **8-minute timeout** (`timeout 8m`).
+If the LLM is slow or the API is degraded, the step exits with code 124, which triggers
+the same `neutral` check + `⚠️ Review unavailable` comment used for other failures — the
+job does not hang for 15 minutes and does not silently succeed.
+
+If you see frequent timeouts:
+
+- Reduce the diff cap: `truncate -s 100k /tmp/pr.diff`
+- Switch from Sonnet to Haiku for speed
+- Check [status.anthropic.com](https://status.anthropic.com) for API slowdowns
+
+### Cost monitoring
+
+There is no built-in budget cap in the workflow — that's managed at the Anthropic account level.
+
+**Recommended:** set a monthly spend limit in [console.anthropic.com](https://console.anthropic.com)
+under **Settings → Billing → Usage limits**. This prevents org-wide spikes from large PRs or
+accidental trigger loops.
+
+Rough cost estimates with default Haiku + 200KB truncation (3 packs per run):
+
+| Scenario               | Input tokens (est.) | ~Cost per trigger |
+| ---------------------- | ------------------- | ----------------- |
+| Small PR (< 50 lines)  | ~5k                 | < $0.01           |
+| Medium PR (~200 lines) | ~15k                | ~$0.03            |
+| Large PR (~500 lines)  | ~30k                | ~$0.08            |
+| Max truncated (200KB)  | ~50k                | ~$0.15            |
+
+### Pre-commit hook stability
+
+If you use greybeard's pre-commit hooks, **always pin to a release tag** in your
+`.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/btotharye/greybeard
+    rev: v0.7.0 # ✅ pinned release — safe
+    # rev: main   # ❌ never use main — a bad commit breaks all developers
+```
+
+**Kill switch:** if greybeard is unexpectedly blocking commits, set `enabled: false` in
+`.greybeard-precommit.yaml` to disable all hooks without removing the configuration:
+
+```yaml
+# .greybeard-precommit.yaml
+enabled: false
+```
+
+This is faster than removing hooks from `.pre-commit-config.yaml` and lets you re-enable
+once the issue is resolved.
+
+---
+
+## Troubleshooting
+
+**The workflow doesn't trigger when I add the label**
+
+- The label name must be exactly `greybeard-review` (case-sensitive).
+- Label-triggered workflows only fire when the workflow file is on the **default branch**.
+  If you're testing from a feature branch, use `workflow_dispatch` instead.
+
+**`404 - model not found`**
+
+The Anthropic model name in your workflow is outdated. Check
+[Anthropic's model overview](https://docs.anthropic.com/en/docs/about-claude/models/overview)
+for current model names. Use `claude-haiku-4-5-20251001` or `claude-sonnet-4-6`.
+
+**`403 Resource not accessible by integration`**
+
+The workflow is missing `checks: write` or `pull-requests: write` permissions. Make sure your
+workflow file has the full `permissions` block shown above.
+
+**Review comments aren't appearing**
+
+1. Check the Actions log for the failing step.
+2. Verify `ANTHROPIC_API_KEY` (or whichever key you're using) is set correctly in Secrets.
+3. Confirm the review file was actually generated: look for the `Analyze with Greybeard` step output.
+
+**"⚠️ Review unavailable" comment appears instead of a real review**
+
+The `Analyze with Greybeard` step failed. The PR check is set to `neutral` (not blocking).
+
+Common causes:
+
+- API key not set or invalid → check `ANTHROPIC_API_KEY` in repo Secrets
+- Anthropic API outage → re-run the workflow once it recovers
+- Model name invalid → verify the model name against [Anthropic's model list](https://docs.anthropic.com/en/docs/about-claude/models/overview)
+- Pack not found → confirm pack names in the matrix match installed packs (`staff-core`, `oncall-future-you`, `security-reviewer`)
+
+**Pre-commit hook is blocking all developers' commits**
+
+If a greybeard release breaks the hook, use the kill switch:
+
+```yaml
+# .greybeard-precommit.yaml
+enabled: false
+```
+
+This disables all greybeard hooks immediately without changing `.pre-commit-config.yaml`.
+To prevent this situation in future, pin to a specific release tag (not `main`):
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/btotharye/greybeard
+    rev: v0.7.0 # pin to a specific release
+```
+
+**Job timed out — no review posted**
+
+The 8-minute per-step timeout fired, which means the LLM took longer than expected.
+This sets the check to `neutral` and posts a `⚠️ Review unavailable` comment — the PR
+is not blocked.
+
+Common causes and fixes:
+
+- **Large diff**: reduce with `truncate -s 100k /tmp/pr.diff`
+- **Slow model**: switch from `claude-sonnet-4-6` to `claude-haiku-4-5-20251001`
+- **API degradation**: check [status.anthropic.com](https://status.anthropic.com); re-run once resolved
+- **Persistent timeouts**: increase the timeout in the workflow by changing `timeout 8m` to `timeout 12m`
+  (must stay under the 15-minute job limit)
+
+**Reviews are too expensive**
+
+- Switch to `claude-haiku-4-5-20251001` (default — cheapest option).
+- Use label-based triggering (default) instead of auto-triggering on every push.
+- Reduce the diff size limit: `truncate -s 100k /tmp/pr.diff`.
+- Remove packs you don't need from the matrix.
+- Set a monthly spend limit at [console.anthropic.com](https://console.anthropic.com) → Settings → Billing.

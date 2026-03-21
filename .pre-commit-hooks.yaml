@@ -1,9 +1,29 @@
+# greybeard pre-commit hooks
+#
+# IMPORTANT: Always pin to a specific release tag in your .pre-commit-config.yaml.
+# Using `rev: main` risks breaking all developers' commits if a bad commit lands on main.
+#
+# Recommended configuration:
+#
+# repos:
+#   - repo: https://github.com/btotharye/greybeard
+#     rev: v0.7.0  # pin to a release tag — never use 'main' in production teams
+#     hooks:
+#       - id: greybeard-diff
+#         stages: [commit]
+#
+# Kill switch: if greybeard is blocking commits unexpectedly, set `enabled: false`
+# in your .greybeard-precommit.yaml to disable all hooks without removing the config:
+#
+#   enabled: false
+
 - id: greybeard-diff
   name: Greybeard Code Review
   description: Run greybeard Staff-level review on staged changes
   entry: greybeard-precommit diff
   language: python
   stages: [commit]
+  types: [python, javascript, typescript, yaml, json, markdown]
   always_run: true
   require_serial: true
 

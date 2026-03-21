@@ -1,0 +1,228 @@
+name: Greybeard Code Review
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [labeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  greybeard-review:
+    name: Staff-Level Code Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: |
+      (github.event_name == 'pull_request' &&
+       github.event.label.name == 'greybeard-review' &&
+       github.event.pull_request.draft == false) ||
+      github.event_name == 'workflow_dispatch'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        pack: ["staff-core", "oncall-future-you", "security-reviewer"]
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Checkout base branch for diff
+        run: |
+          git fetch origin ${{ github.base_ref }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Install greybeard
+        run: |
+          uv tool install "greybeard[anthropic]"
+
+      - name: Configure Anthropic backend
+        run: |
+          greybeard config set llm.backend anthropic
+          greybeard config set llm.model claude-haiku-4-5-20251001
+
+      - name: Validate API key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not set. Go to Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+
+      - name: Generate git diff
+        id: diff
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+          ORIG_SIZE=$(wc -c < /tmp/pr.diff)
+          echo "orig_size=$ORIG_SIZE" >> $GITHUB_OUTPUT
+          # Hard skip if the raw diff exceeds 1MB — prevents runaway API cost from
+          # accidentally large PRs or force-push storms.
+          if [ "$ORIG_SIZE" -gt 1048576 ]; then
+            echo "too_large=true" >> $GITHUB_OUTPUT
+            echo "::warning::Diff is ${ORIG_SIZE} bytes (> 1MB). Greybeard review skipped to avoid excessive API cost. Reduce the diff or increase the limit in the workflow."
+          else
+            echo "too_large=false" >> $GITHUB_OUTPUT
+            # Truncate to ~200KB (~50k tokens at avg 4 chars/token) — safe for all Anthropic models
+            truncate -s 200k /tmp/pr.diff
+          fi
+
+      - name: Analyze with Greybeard
+        id: review
+        if: steps.diff.outputs.too_large != 'true'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Explicit 8-minute timeout — well within the 15-minute job limit.
+          # If the LLM is slow or the diff is large, this exits with code 124
+          # (timeout), which triggers the "Review unavailable" path below.
+          REVIEW_OUTPUT=$(timeout 8m greybeard analyze \
+            --pack "${{ matrix.pack }}" \
+            --mode review \
+            --format markdown < /tmp/pr.diff 2>&1)
+          EXIT_CODE=$?
+          echo "$REVIEW_OUTPUT" > /tmp/review_${{ matrix.pack }}.md
+          exit $EXIT_CODE
+
+      - name: Check for blocking issues
+        id: risk-check
+        env:
+          RISK_THRESHOLD: ${{ vars.GREYBEARD_RISK_THRESHOLD || 'high' }}
+        run: |
+          REVIEW_FILE="/tmp/review_${{ matrix.pack }}.md"
+          if [ "$RISK_THRESHOLD" = "high" ]; then
+            BLOCK_PATTERNS="production incident|data loss|security vulnerability|cascading failure"
+          elif [ "$RISK_THRESHOLD" = "medium" ]; then
+            BLOCK_PATTERNS="production incident|data loss|security vulnerability|cascading failure|operational overhead"
+          else
+            BLOCK_PATTERNS="risk|concern|careful|consider"
+          fi
+          BLOCKING_FOUND=0
+          if grep -iE "$BLOCK_PATTERNS" "$REVIEW_FILE" > /dev/null 2>&1; then
+            BLOCKING_FOUND=1
+          fi
+          echo "blocking=$BLOCKING_FOUND" >> $GITHUB_OUTPUT
+
+      - name: Post review as PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const pack = '${{ matrix.pack }}';
+            const reviewFile = `/tmp/review_${pack}.md`;
+            const icons = {
+              'staff-core': '🧙',
+              'oncall-future-you': '📟',
+              'security-reviewer': '🔒'
+            };
+            const icon = icons[pack] || '📋';
+            // Unique hidden marker used for idempotent comment matching.
+            // Avoids false matches if user text happens to contain the pack name.
+            const marker = `<!-- greybeard-bot:${pack} -->`;
+            const tooLarge = '${{ steps.diff.outputs.too_large }}' === 'true';
+            if (tooLarge) {
+              const sizeBody = marker + `\n## ${icon} Greybeard Review: ${pack}\n\n` +
+                `⏭️ **Review skipped — diff too large** (> 1 MB).\n\n` +
+                `Reduce the scope of this PR or raise the size limit in the workflow.\n\n` +
+                `---\n_[Greybeard](https://github.com/btotharye/greybeard) · \`${{ github.sha }}\`_`;
+              const { data: allComments } = await github.rest.issues.listComments({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number
+              });
+              const existingSize = allComments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
+              if (existingSize) {
+                await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existingSize.id, body: sizeBody });
+              } else {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body: sizeBody });
+              }
+              return;
+            }
+            const reviewFailed = '${{ steps.review.outcome }}' === 'failure' || '${{ steps.review.outcome }}' === 'skipped';
+            if (reviewFailed || !fs.existsSync(reviewFile)) {
+              const errBody = marker + `\n## ${icon} Greybeard Review: ${pack}\n\n` +
+                `⚠️ **Review unavailable** — greybeard could not complete this review.\n\n` +
+                `Check the [Actions log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.\n\n` +
+                `---\n_[Greybeard](https://github.com/btotharye/greybeard) · \`${{ github.sha }}\`_`;
+              const { data: allComments } = await github.rest.issues.listComments({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number
+              });
+              const existing = allComments.find(c => c.user.type === 'Bot' && c.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body: errBody });
+              } else {
+                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body: errBody });
+              }
+              return;
+            }
+            const reviewContent = fs.readFileSync(reviewFile, 'utf8');
+            const blocking = '${{ steps.risk-check.outputs.blocking }}' === '1';
+            let truncated = reviewContent;
+            if (truncated.length > 60000) {
+              truncated = truncated.substring(0, 60000) + '\n\n... _(truncated)_';
+            }
+            const blockingBadge = blocking ? '⚠️ **BLOCKING ISSUES DETECTED**\n\n' : '';
+            const comment = marker + `\n${blockingBadge}## ${icon} Greybeard Review: ${pack}\n\n${truncated}\n\n---\n_[Greybeard](https://github.com/btotharye/greybeard) · \`${{ github.sha }}\`_`;
+            const { data: allComments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            const existingComment = allComments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes(marker)
+            );
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+      - name: Set PR status check
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const reviewFailed = '${{ steps.review.outcome }}' === 'failure';
+            const blocking = '${{ steps.risk-check.outputs.blocking }}' === '1';
+            const pack = '${{ matrix.pack }}';
+            const conclusion = reviewFailed ? 'neutral' : (blocking ? 'failure' : 'success');
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: `Greybeard: ${pack}`,
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: conclusion,
+              output: {
+                title: reviewFailed ? `Review Unavailable (${pack})` : `Staff Review (${pack})`,
+                summary: reviewFailed
+                  ? 'Greybeard could not complete the review — check the Actions log for details'
+                  : (blocking ? 'Blocking issues detected' : 'No blocking issues'),
+                text: reviewFailed
+                  ? 'The greybeard analysis step failed. This may be a transient API error or misconfigured pack. The PR is not blocked.'
+                  : `Greybeard analysis complete for ${pack} perspective.`
+              }
+            });

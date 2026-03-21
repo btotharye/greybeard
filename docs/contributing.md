@@ -78,6 +78,45 @@ make pre-commit-install
 # - git push: pytest tests
 ```
 
+---
+
+## Architecture: Entry Points and the Core Analyzer
+
+greybeard exposes the same review logic through four surfaces:
+
+| Surface                   | Entry point file          | When to use                        |
+| ------------------------- | ------------------------- | ---------------------------------- |
+| CLI (`greybeard analyze`) | `greybeard/cli.py`        | Interactive use, piping diffs      |
+| GitHub Actions            | `.github/workflows/…`     | Automated PR review                |
+| Pre-commit hook           | `greybeard/precommit.py`  | Staged-change review before commit |
+| MCP server                | `greybeard/mcp_server.py` | Editor / agent integration         |
+
+All four call through to `run_review()` in `greybeard/modes.py`, which delegates to
+`greybeard/analyzer.py`. This means:
+
+- **A bug in the analyzer affects all four surfaces.** If you fix an analysis bug, run
+  the test suite for every surface (`test_analyzer.py`, `test_precommit.py`,
+  `test_github_action.py`, `test_mcp_server.py`).
+- **Error handling and credential loading differ per surface.** The CLI lets the user
+  retry; the GitHub Actions workflow sets a `neutral` check and posts a comment; the
+  pre-commit hook exits non-zero to block the commit; the MCP server returns an error
+  response. Keep surface-specific behaviour in the surface layer — don't push it into
+  the core analyzer.
+- **Timeouts are surface-specific.** If you add timeout logic, add it in the calling
+  surface, not in `run_review()`.
+
+### Where to make changes
+
+| Change type                   | Where to edit                |
+| ----------------------------- | ---------------------------- |
+| Review logic / prompt         | `greybeard/analyzer.py`      |
+| Output formatting             | `greybeard/formatters.py`    |
+| Pack loading/validation       | `greybeard/packs.py`         |
+| CLI flags                     | `greybeard/cli.py`           |
+| GitHub Actions error handling | `greybeard/github_action.py` |
+| Pre-commit gating logic       | `greybeard/precommit.py`     |
+| MCP tool definitions          | `greybeard/mcp_server.py`    |
+
 You can also run hooks manually:
 
 ```bash
@@ -162,11 +201,11 @@ from greybeard.interactive import InteractiveSession
 def test_followup_question():
     session = InteractiveSession(mode="review", pack=sample_pack, config=sample_config)
     session.run_initial_analysis("test input")
-    
+
     # Mock user input
     with patch('greybeard.interactive.Prompt.ask', return_value="What are the risks?"):
         response = session.ask_followup("What are the risks?")
-    
+
     assert response  # response is non-empty
     assert len(session.get_conversation_history()) == 2  # user + assistant
 ```

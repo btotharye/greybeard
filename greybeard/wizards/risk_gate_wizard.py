@@ -127,7 +127,7 @@ def _prompt_list(
     suggestion_list: list[str] | None = None,
 ) -> list[str]:
     """Prompt for a list of items, one per line, blank to stop.
-    
+
     Args:
         prompt: Main prompt text
         hint: Additional hint text
@@ -153,9 +153,7 @@ def _prompt_list(
         value = click.prompt(prompt_text, default="", show_default=False).strip()
         if not value:
             if len(items) < min_items:
-                console.print(
-                    f"[yellow]Please enter at least {min_items} item(s).[/yellow]"
-                )
+                console.print(f"[yellow]Please enter at least {min_items} item(s).[/yellow]")
                 continue
             break
         err = _validate_glob_pattern(value)
@@ -177,9 +175,7 @@ def _select_packs(available_packs: list[str]) -> list[str]:
         return []
 
     console.print("\n[bold]Select packs for this risk gate[/bold]")
-    console.print(
-        "[dim]Packs will be run in order. Multiple packs merge findings.[/dim]"
-    )
+    console.print("[dim]Packs will be run in order. Multiple packs merge findings.[/dim]")
 
     # Show table of available packs
     table = Table(title="Available Packs")
@@ -190,9 +186,7 @@ def _select_packs(available_packs: list[str]) -> list[str]:
     console.print(table)
 
     selected: list[str] = []
-    console.print(
-        "\n[dim](Enter pack IDs or names, one per line. Blank line when done.)[/dim]"
-    )
+    console.print("\n[dim](Enter pack IDs or names, one per line. Blank line when done.)[/dim]")
 
     while True:
         idx = len(selected) + 1
@@ -302,7 +296,7 @@ def _select_template() -> str | None:
 
 def run_risk_gate_wizard(output_file: str | None = None) -> Path:
     """Run the interactive risk gate wizard.
-    
+
     Returns the Path to the created/updated config file.
     """
     output_file = output_file or ".greybeard-precommit.yaml"
@@ -358,9 +352,7 @@ def run_risk_gate_wizard(output_file: str | None = None) -> Path:
     # Configure base settings
     console.print(Rule("[bold]Base Configuration[/bold]", style="purple"))
 
-    config.enabled = click.confirm(
-        "\nEnable pre-commit hook integration?", default=config.enabled
-    )
+    config.enabled = click.confirm("\nEnable pre-commit hook integration?", default=config.enabled)
 
     if not config.enabled:
         console.print("[yellow]Pre-commit integration is disabled. Risk gates won't run.[/yellow]")
@@ -387,8 +379,7 @@ def run_risk_gate_wizard(output_file: str | None = None) -> Path:
     # Configure risk gates
     console.print(Rule("[bold]Risk Gates Configuration[/bold]", style="purple"))
     console.print(
-        "\n[dim]Risk gates define which files require which packs and "
-        "when to fail commits.[/dim]"
+        "\n[dim]Risk gates define which files require which packs and when to fail commits.[/dim]"
     )
 
     while True:
@@ -452,13 +443,17 @@ def run_risk_gate_wizard(output_file: str | None = None) -> Path:
         )
 
         # Create/update risk gate
-        new_gate = type("RiskGate", (), {
-            "name": gate_name,
-            "patterns": gate_patterns,
-            "fail_on_concerns": gate_severity,
-            "required_packs": gate_packs,
-            "skip_if_branch": skip_branches,
-        })()
+        new_gate = type(
+            "RiskGate",
+            (),
+            {
+                "name": gate_name,
+                "patterns": gate_patterns,
+                "fail_on_concerns": gate_severity,
+                "required_packs": gate_packs,
+                "skip_if_branch": skip_branches,
+            },
+        )()
 
         # Check for duplicates
         existing_idx = None

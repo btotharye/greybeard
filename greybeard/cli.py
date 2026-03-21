@@ -1135,7 +1135,7 @@ cli.add_command(slo_check, "slo-check")
 )
 def risk_gate_wizard(output: str) -> None:
     """🧙 Interactive wizard for risk gate configuration.
-    
+
     Build .greybeard-precommit.yaml with risk gates for pre-commit reviews.
     Configure which files require which packs and when to block commits.
     """

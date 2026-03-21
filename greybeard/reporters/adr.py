@@ -109,8 +109,6 @@ class ADRReporter:
             # Check for markdown heading
             if line.startswith("# "):
                 return line[2:].strip()
-            # Check for underlined heading (===)
-            continue
         # Fallback: use first 60 chars of review as title
         first_sentence = self.review_text.split("\n")[0].strip()
         if len(first_sentence) > 60:

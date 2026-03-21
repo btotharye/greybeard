@@ -1,0 +1,28 @@
+# greybeard pre-commit hooks
+# Add to your .pre-commit-config.yaml:
+#
+# repos:
+#   - repo: https://github.com/btotharye/greybeard
+#     rev: v0.7.0  # use a release version or main
+#     hooks:
+#       - id: greybeard-diff
+#         stages: [commit]
+
+- id: greybeard-diff
+  name: Greybeard Code Review
+  description: Run greybeard Staff-level review on staged changes
+  entry: greybeard-precommit diff
+  language: python
+  stages: [commit]
+  types: [python, javascript, typescript, yaml, json, markdown]
+  always_run: true
+  require_serial: true
+
+- id: greybeard-check
+  name: Greybeard Risk Check
+  description: Verify staged changes against configurable risk gates
+  entry: greybeard-precommit check
+  language: python
+  stages: [commit]
+  always_run: true
+  require_serial: true

@@ -511,3 +511,24 @@ def _md_inline_to_jira(text: str) -> str:
     text = text.replace("JIRA_BI_START", "*_").replace("JIRA_BI_END", "_*")
     text = text.replace("JIRA_B_START", "*").replace("JIRA_B_END", "*")
     return text
+
+
+# ---------------------------------------------------------------------------
+# PDF
+# ---------------------------------------------------------------------------
+
+
+def convert_to_pdf(markdown: str, meta: ReviewMetadata, output_path: str) -> str:
+    """Convert a Markdown review to a professional PDF report.
+
+    Args:
+        markdown: The markdown review content
+        meta: ReviewMetadata with context
+        output_path: Where to save the PDF file
+
+    Returns:
+        Path to the generated PDF file
+    """
+    from greybeard.reporters.pdf import to_pdf
+
+    return to_pdf(markdown, meta, output_path)

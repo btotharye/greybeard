@@ -189,5 +189,19 @@ def edit(editor: str | None) -> None:
         sys.exit(1)
 
 
+@cli.command()
+@click.option(
+    "--output",
+    "-o",
+    default=".greybeard-precommit.yaml",
+    help="Output config file (default: .greybeard-precommit.yaml)",
+)
+def wizard(output: str) -> None:
+    """🧙 Interactive wizard for risk gate configuration."""
+    from .wizards.risk_gate_wizard import run_risk_gate_wizard
+
+    run_risk_gate_wizard(output_file=output)
+
+
 if __name__ == "__main__":
     cli()

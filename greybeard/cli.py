@@ -1119,3 +1119,26 @@ def adr_list(repo) -> None:
 # ---------------------------------------------------------------------------
 
 cli.add_command(slo_check, "slo-check")
+
+
+# ---------------------------------------------------------------------------
+# risk-gate-wizard
+# ---------------------------------------------------------------------------
+
+
+@cli.command(name="risk-gate-wizard")
+@click.option(
+    "--output",
+    "-o",
+    default=".greybeard-precommit.yaml",
+    help="Output config file (default: .greybeard-precommit.yaml)",
+)
+def risk_gate_wizard(output: str) -> None:
+    """🧙 Interactive wizard for risk gate configuration.
+
+    Build .greybeard-precommit.yaml with risk gates for pre-commit reviews.
+    Configure which files require which packs and when to block commits.
+    """
+    from .wizards.risk_gate_wizard import run_risk_gate_wizard
+
+    run_risk_gate_wizard(output_file=output)

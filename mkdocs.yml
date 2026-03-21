@@ -66,6 +66,8 @@ nav:
       - Interactive Mode: guides/interactive-mode.md
       - Creating Agents: guides/creating_agents.md
       - ADR Generator: guides/adr-generator.md
+      - SLO Agent: guides/slo-agent.md
+      - Risk Gate Wizard: guides/risk-gate-wizard.md
   - Reference:
       - CLI Reference: reference/cli.md
       - Pack Schema: reference/pack-schema.md

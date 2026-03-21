@@ -458,6 +458,22 @@ class TestMdToHtmlBody:
         assert "<li>item one</li>" in result
         assert "<li>nested item</li>" in result
 
+    def test_blank_line_between_list_items_is_next_list_true(self):
+        """Blank line between list items: is_next_list lookahead stays True, list stays open."""
+        md = "- alpha\n\n- beta\n\n- gamma"
+        result = _md_to_html_body(md)
+        # All items should be rendered as list items
+        assert "<li>alpha</li>" in result
+        assert "<li>beta</li>" in result
+        assert "<li>gamma</li>" in result
+
+    def test_multiple_blank_lines_between_list_items(self):
+        """Multiple consecutive blank lines between list items covered by look-ahead loop."""
+        md = "- first\n\n\n- second after two blanks"
+        result = _md_to_html_body(md)
+        assert "<li>first</li>" in result
+        assert "<li>second after two blanks</li>" in result
+
 
 # ---------------------------------------------------------------------------
 # Jira output

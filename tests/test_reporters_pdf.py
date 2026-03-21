@@ -198,6 +198,19 @@ class TestBuildFindingsSection:
         story = reporter._build_findings_section()
         assert isinstance(story, list)
 
+    def test_findings_with_communication_language(self, meta):
+        """Communication language section is rendered when present."""
+        markdown = (
+            "## Summary\n\nHigh risk change.\n\n"
+            "## Suggested Communication Language\n\n"
+            "Heads up team, this is a risky deploy — rollback plan is ready."
+        )
+        reporter = PDFReporter(markdown, meta)
+        story = reporter._build_findings_section()
+        assert isinstance(story, list)
+        # Should contain more elements when comm section is present
+        assert len(story) > 2
+
 
 # ---------------------------------------------------------------------------
 # PDFReporter._build_metadata_footer

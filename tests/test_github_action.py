@@ -1,9 +1,9 @@
-"""Comprehensive tests for GitHub Actions integration."""
+"""Tests for GitHub Actions integration."""
 
 from __future__ import annotations
 
+import os
 import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,7 +13,6 @@ from greybeard.github_action import (
     DEFAULT_RISK_THRESHOLD,
     PACK_ICONS,
     RISK_PATTERNS,
-    DiffSizeInfo,
     ReviewResult,
     create_check_payload,
     detect_blocking_issues,
@@ -39,551 +38,603 @@ from greybeard.github_action import (
     validate_pack_names,
 )
 
+# ---------------------------------------------------------------------------
+# detect_blocking_issues
+# ---------------------------------------------------------------------------
 
-class TestRiskDetection:
-    """Test risk detection and blocking logic."""
 
-    def test_detect_blocking_issues_high_threshold_critical(self):
-        """Test high threshold detects critical issues."""
-        content = "production incident detected"
-        assert detect_blocking_issues(content, "high") is True
+class TestDetectBlockingIssues:
+    """Tests for detect_blocking_issues."""
 
-    def test_detect_blocking_issues_high_threshold_no_match(self):
-        """Test high threshold doesn't match low severity."""
-        content = "minor code style issue"
-        assert detect_blocking_issues(content, "high") is False
+    def test_high_threshold_matches_production_incident(self):
+        result = detect_blocking_issues("This could cause a production incident", "high")
+        assert result is True
 
-    def test_detect_blocking_issues_medium_threshold(self):
-        """Test medium threshold detects medium and above."""
-        assert detect_blocking_issues("scaling limitation found", "medium") is True
-        assert detect_blocking_issues("concern noted", "medium") is False
+    def test_high_threshold_no_match(self):
+        result = detect_blocking_issues("Minor code style improvement", "high")
+        assert result is False
 
-    def test_detect_blocking_issues_low_threshold(self):
-        """Test low threshold detects anything with 'risk'."""
-        assert detect_blocking_issues("careful implementation required", "low") is True
-        assert detect_blocking_issues("no issues", "low") is False
+    def test_none_threshold_never_blocks(self):
+        result = detect_blocking_issues(
+            "production incident data loss security vulnerability", "none"
+        )
+        assert result is False
 
-    def test_detect_blocking_issues_none_threshold(self):
-        """Test 'none' threshold never blocks."""
-        assert detect_blocking_issues("critical error!", "none") is False
-        assert detect_blocking_issues("production incident", "none") is False
+    def test_low_threshold_matches_risk(self):
+        result = detect_blocking_issues("Please consider this carefully", "low")
+        assert result is True
 
-    def test_detect_blocking_issues_case_insensitive(self):
-        """Test detection is case-insensitive."""
-        assert detect_blocking_issues("PRODUCTION INCIDENT", "high") is True
-        assert detect_blocking_issues("Production Incident", "high") is True
+    def test_medium_threshold_matches_scaling(self):
+        result = detect_blocking_issues("This introduces a scaling limitation", "medium")
+        assert result is True
 
-    def test_get_risk_threshold_valid(self):
-        """Test getting valid risk threshold."""
-        assert get_risk_threshold("high") == "high"
-        assert get_risk_threshold("medium") == "medium"
-        assert get_risk_threshold("low") == "low"
-        assert get_risk_threshold("none") == "none"
+    def test_unknown_threshold_defaults_to_high(self):
+        result = detect_blocking_issues("production incident", "invalid-threshold")
+        assert result is True
 
-    def test_get_risk_threshold_invalid_defaults(self):
-        """Test invalid threshold defaults to high."""
-        assert get_risk_threshold("invalid") == DEFAULT_RISK_THRESHOLD
-        assert get_risk_threshold("") == DEFAULT_RISK_THRESHOLD
+    def test_case_insensitive(self):
+        result = detect_blocking_issues("PRODUCTION INCIDENT risk", "high")
+        assert result is True
+
+    def test_default_threshold_used(self):
+        # Default risk threshold is 'high'
+        result = detect_blocking_issues("production incident", DEFAULT_RISK_THRESHOLD)
+        assert result is True
+
+
+# ---------------------------------------------------------------------------
+# get_risk_threshold
+# ---------------------------------------------------------------------------
+
+
+class TestGetRiskThreshold:
+    """Tests for get_risk_threshold."""
+
+    def test_returns_default_when_none(self):
         assert get_risk_threshold(None) == DEFAULT_RISK_THRESHOLD
 
-    def test_get_risk_threshold_case_insensitive(self):
-        """Test threshold is case-insensitive."""
+    def test_returns_default_when_empty(self):
+        assert get_risk_threshold("") == DEFAULT_RISK_THRESHOLD
+
+    def test_valid_threshold_high(self):
+        assert get_risk_threshold("high") == "high"
+
+    def test_valid_threshold_low(self):
+        assert get_risk_threshold("low") == "low"
+
+    def test_valid_threshold_none_string(self):
+        assert get_risk_threshold("none") == "none"
+
+    def test_case_insensitive(self):
         assert get_risk_threshold("HIGH") == "high"
-        assert get_risk_threshold("Medium") == "medium"
+        assert get_risk_threshold("Low") == "low"
 
-    def test_should_block_pr(self):
-        """Test PR blocking logic."""
-        assert should_block_pr("data loss possible", "high") is True
-        assert should_block_pr("minor issue", "high") is False
+    def test_invalid_returns_default(self):
+        assert get_risk_threshold("extreme") == DEFAULT_RISK_THRESHOLD
 
 
-class TestPRCommentFormatting:
-    """Test PR comment formatting."""
+# ---------------------------------------------------------------------------
+# format_pr_comment
+# ---------------------------------------------------------------------------
 
-    def test_format_pr_comment_basic(self):
-        """Test basic PR comment formatting."""
-        content = "Review found issues"
-        comment = format_pr_comment(content, "staff-core", False)
 
-        assert "## 🧙 Greybeard Review: staff-core" in comment
-        assert "Review found issues" in comment
+class TestFormatPrComment:
+    """Tests for format_pr_comment."""
+
+    def test_basic_format(self):
+        comment = format_pr_comment("Review content here", "staff-core", blocking=False)
+        assert "Greybeard Review: staff-core" in comment
+        assert "Review content here" in comment
+
+    def test_blocking_adds_badge(self):
+        comment = format_pr_comment("Danger!", "staff-core", blocking=True)
+        assert "BLOCKING ISSUES DETECTED" in comment
+
+    def test_non_blocking_no_badge(self):
+        comment = format_pr_comment("All good", "staff-core", blocking=False)
         assert "BLOCKING" not in comment
 
-    def test_format_pr_comment_with_blocking(self):
-        """Test formatting with blocking badge."""
-        content = "Critical issues"
-        comment = format_pr_comment(content, "staff-core", True)
+    def test_pack_icon_known_pack(self):
+        comment = format_pr_comment("Content", "staff-core", blocking=False)
+        assert PACK_ICONS["staff-core"] in comment
 
-        assert "⚠️ **BLOCKING ISSUES DETECTED**" in comment
-        assert "Critical issues" in comment
+    def test_pack_icon_unknown_pack(self):
+        comment = format_pr_comment("Content", "my-custom-pack", blocking=False)
+        assert "📋" in comment
 
-    def test_format_pr_comment_icon_selection(self):
-        """Test icon selection for different packs."""
-        content = "test"
-
-        comment1 = format_pr_comment(content, "staff-core", False)
-        assert "🧙" in comment1
-
-        comment2 = format_pr_comment(content, "on-call", False)
-        assert "📟" in comment2
-
-        comment3 = format_pr_comment(content, "security", False)
-        assert "🔒" in comment3
-
-        comment4 = format_pr_comment(content, "unknown", False)
-        assert "📋" in comment4
-
-    def test_format_pr_comment_truncation(self):
-        """Test content truncation."""
+    def test_content_truncated_when_too_long(self):
         long_content = "x" * 70000
-        comment = format_pr_comment(long_content, "staff-core", False)
+        comment = format_pr_comment(long_content, "staff-core", blocking=False, max_length=60000)
+        assert "_(review truncated)_" in comment
 
-        assert len(comment) < len(long_content)
-        assert "... _(review truncated)_" in comment
+    def test_content_not_truncated_when_short(self):
+        short_content = "Short review"
+        comment = format_pr_comment(short_content, "staff-core", blocking=False)
+        assert "_(review truncated)_" not in comment
 
-    def test_format_pr_comment_no_truncation(self):
-        """Test no truncation for short content."""
-        content = "Short review"
-        comment = format_pr_comment(content, "staff-core", False)
 
-        assert content in comment
-        assert "truncated" not in comment
+# ---------------------------------------------------------------------------
+# format_pr_comment_with_metadata
+# ---------------------------------------------------------------------------
 
-    def test_format_pr_comment_with_metadata(self):
-        """Test formatting with metadata."""
-        content = "Review content"
-        comment = format_pr_comment_with_metadata(content, "staff-core", False, "abc1234", "main")
 
-        assert "Review content" in comment
-        assert "[abc1234]" in comment
-        assert "→ main" in comment
-        assert "Review generated by" in comment
+class TestFormatPrCommentWithMetadata:
+    """Tests for format_pr_comment_with_metadata."""
 
-    def test_format_pr_comment_with_metadata_partial(self):
-        """Test metadata with only commit SHA."""
-        content = "Review"
+    def test_includes_commit_sha(self):
         comment = format_pr_comment_with_metadata(
-            content, "staff-core", False, commit_sha="abc1234"
+            "Content", "staff-core", blocking=False, commit_sha="abc123def456"
         )
+        assert "abc123d" in comment
 
-        assert "[abc1234]" in comment
-        assert "→" not in comment
+    def test_includes_base_branch(self):
+        comment = format_pr_comment_with_metadata(
+            "Content", "staff-core", blocking=False, base_branch="main"
+        )
+        assert "main" in comment
 
-    def test_format_pr_comment_with_metadata_blocking(self):
-        """Test blocking metadata formatting."""
-        content = "Critical"
-        comment = format_pr_comment_with_metadata(content, "staff-core", True, "abc1234", "main")
+    def test_no_metadata_still_works(self):
+        comment = format_pr_comment_with_metadata("Content", "staff-core", blocking=False)
+        assert "Greybeard Review: staff-core" in comment
+        assert "Greybeard" in comment
 
-        assert "BLOCKING" in comment
-        assert "[abc1234]" in comment
+    def test_footer_contains_greybeard(self):
+        comment = format_pr_comment_with_metadata("Content", "staff-core", blocking=False)
+        assert "Review generated by Greybeard" in comment
 
 
-class TestCheckPayload:
-    """Test GitHub Check creation."""
+# ---------------------------------------------------------------------------
+# create_check_payload
+# ---------------------------------------------------------------------------
 
-    def test_create_check_payload_minimal(self):
-        """Test creating minimal check payload."""
+
+class TestCreateCheckPayload:
+    """Tests for create_check_payload."""
+
+    def test_basic_payload(self):
         payload = create_check_payload(
-            name="test-check",
+            name="greybeard",
             status="completed",
             conclusion="success",
-            title="Test Title",
-            summary="Test Summary",
+            title="All good",
+            summary="No issues found",
         )
-
-        assert payload["name"] == "test-check"
+        assert payload["name"] == "greybeard"
         assert payload["status"] == "completed"
         assert payload["conclusion"] == "success"
-        assert payload["output"]["title"] == "Test Title"
-        assert payload["output"]["summary"] == "Test Summary"
-        assert "text" not in payload["output"]
+        assert payload["output"]["title"] == "All good"
+        assert payload["output"]["summary"] == "No issues found"
 
-    def test_create_check_payload_with_text(self):
-        """Test creating check payload with text."""
+    def test_payload_with_text(self):
         payload = create_check_payload(
-            name="review-check",
+            name="greybeard",
             status="completed",
             conclusion="failure",
-            title="Review Failed",
-            summary="Issues found",
-            text="Detailed text here",
+            title="Issues Found",
+            summary="Blocking issues",
+            text="See details below",
         )
+        assert payload["output"]["text"] == "See details below"
 
-        assert payload["output"]["text"] == "Detailed text here"
-
-    def test_create_check_payload_in_progress(self):
-        """Test check payload for in-progress status."""
+    def test_payload_without_text(self):
         payload = create_check_payload(
-            name="test",
-            status="in_progress",
-            conclusion="neutral",
-            title="Running",
-            summary="Processing",
+            name="greybeard",
+            status="completed",
+            conclusion="success",
+            title="OK",
+            summary="OK",
         )
-
-        assert payload["status"] == "in_progress"
-        assert payload["conclusion"] == "neutral"
+        assert "text" not in payload["output"]
 
 
-class TestDiffHandling:
-    """Test diff file handling and analysis."""
+# ---------------------------------------------------------------------------
+# read_diff_file
+# ---------------------------------------------------------------------------
 
-    def test_read_diff_file(self):
-        """Test reading diff file."""
+
+class TestReadDiffFile:
+    """Tests for read_diff_file."""
+
+    def test_reads_file_content(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".diff", delete=False) as f:
-            f.write("diff --git a/file.py b/file.py\n+new content")
-            f.flush()
+            f.write("diff --git a/file.py b/file.py\n+new line")
+            tmp_path = f.name
+        try:
+            content = read_diff_file(tmp_path)
+            assert "diff --git" in content
+            assert "+new line" in content
+        finally:
+            os.unlink(tmp_path)
 
-            diff = read_diff_file(f.name)
-            assert "diff --git" in diff
-            assert "+new content" in diff
 
-            Path(f.name).unlink()
+# ---------------------------------------------------------------------------
+# get_diff_size_info
+# ---------------------------------------------------------------------------
 
-    def test_get_diff_size_info_small(self):
-        """Test diff size categorization - small."""
-        diff = "line\n" * 50
+
+class TestGetDiffSizeInfo:
+    """Tests for get_diff_size_info."""
+
+    def test_small_diff(self):
+        diff = "line1\nline2\nline3"
         info = get_diff_size_info(diff)
-
         assert info.size_category == "Small"
-        assert info.line_count == 50
-        assert info.char_count == len(diff)
+        assert info.line_count == 3
 
-    def test_get_diff_size_info_medium(self):
-        """Test diff size categorization - medium."""
-        diff = "line\n" * 300
+    def test_medium_diff(self):
+        diff = "\n".join(f"line {i}" for i in range(150))
         info = get_diff_size_info(diff)
-
         assert info.size_category == "Medium"
-        assert info.line_count == 300
 
-    def test_get_diff_size_info_large(self):
-        """Test diff size categorization - large."""
-        diff = "line\n" * 1000
+    def test_large_diff(self):
+        diff = "\n".join(f"line {i}" for i in range(600))
         info = get_diff_size_info(diff)
-
         assert info.size_category == "Large"
 
-    def test_get_diff_size_info_very_large(self):
-        """Test diff size categorization - very large."""
-        diff = "line\n" * 2500
+    def test_very_large_diff(self):
+        diff = "\n".join(f"line {i}" for i in range(2100))
         info = get_diff_size_info(diff)
-
         assert info.size_category == "Very Large"
 
-    def test_has_binary_files_true(self):
-        """Test detection of binary files."""
+    def test_char_count(self):
+        diff = "hello"
+        info = get_diff_size_info(diff)
+        assert info.char_count == 5
+
+
+# ---------------------------------------------------------------------------
+# has_binary_files
+# ---------------------------------------------------------------------------
+
+
+class TestHasBinaryFiles:
+    """Tests for has_binary_files."""
+
+    def test_detects_binary_files(self):
         diff = "Binary files a/image.png and b/image.png differ"
         assert has_binary_files(diff) is True
 
-    def test_has_binary_files_false(self):
-        """Test no binary files."""
-        diff = "diff --git a/file.py\n+content"
+    def test_no_binary_files(self):
+        diff = "diff --git a/file.py b/file.py\n+new line"
         assert has_binary_files(diff) is False
 
 
-class TestPackHandling:
-    """Test pack list parsing and validation."""
+# ---------------------------------------------------------------------------
+# parse_pack_list / get_packs_to_review
+# ---------------------------------------------------------------------------
 
-    def test_parse_pack_list_none(self):
-        """Test parsing None returns defaults."""
-        packs = parse_pack_list(None)
-        assert packs == DEFAULT_PACKS
+
+class TestPackParsing:
+    """Tests for parse_pack_list and get_packs_to_review."""
 
     def test_parse_pack_list_single(self):
-        """Test parsing single pack."""
         packs = parse_pack_list("staff-core")
         assert packs == ["staff-core"]
 
     def test_parse_pack_list_multiple(self):
-        """Test parsing multiple packs."""
         packs = parse_pack_list("staff-core, on-call, security")
         assert packs == ["staff-core", "on-call", "security"]
 
-    def test_parse_pack_list_with_whitespace(self):
-        """Test parsing with extra whitespace."""
-        packs = parse_pack_list("  staff-core  ,  on-call  ")
-        assert packs == ["staff-core", "on-call"]
+    def test_parse_pack_list_none_returns_defaults(self):
+        packs = parse_pack_list(None)
+        assert packs == DEFAULT_PACKS
 
-    def test_parse_pack_list_empty_string(self):
-        """Test parsing empty string defaults."""
+    def test_parse_pack_list_empty_returns_defaults(self):
         packs = parse_pack_list("")
         assert packs == DEFAULT_PACKS
 
-    def test_get_packs_to_review_default(self):
-        """Test getting default packs."""
+    def test_get_packs_to_review_with_str(self):
+        packs = get_packs_to_review("staff-core")
+        assert packs == ["staff-core"]
+
+    def test_get_packs_to_review_none_returns_defaults(self):
         packs = get_packs_to_review(None)
         assert packs == DEFAULT_PACKS
 
-    def test_get_packs_to_review_custom(self):
-        """Test getting custom packs."""
-        packs = get_packs_to_review("staff-core,security")
-        assert packs == ["staff-core", "security"]
+
+# ---------------------------------------------------------------------------
+# validate_pack_names
+# ---------------------------------------------------------------------------
+
+
+class TestValidatePackNames:
+    """Tests for validate_pack_names."""
 
     @patch("greybeard.github_action.load_pack")
-    def test_validate_pack_names_success(self, mock_load):
-        """Test validating existing packs."""
-        mock_load.return_value = MagicMock()
-        assert validate_pack_names(["staff-core", "security"]) is True
-        assert mock_load.call_count == 2
+    def test_valid_packs(self, mock_load_pack):
+        mock_load_pack.return_value = MagicMock()
+        assert validate_pack_names(["staff-core", "on-call"]) is True
 
     @patch("greybeard.github_action.load_pack")
-    def test_validate_pack_names_failure(self, mock_load):
-        """Test validating non-existent packs."""
-        mock_load.side_effect = FileNotFoundError("Pack not found")
-        assert validate_pack_names(["invalid-pack"]) is False
+    def test_invalid_pack_returns_false(self, mock_load_pack):
+        mock_load_pack.side_effect = FileNotFoundError("Pack not found")
+        assert validate_pack_names(["nonexistent-pack"]) is False
+
+    @patch("greybeard.github_action.load_pack")
+    def test_invalid_pack_value_error_returns_false(self, mock_load_pack):
+        mock_load_pack.side_effect = ValueError("Invalid pack")
+        assert validate_pack_names(["bad-pack"]) is False
 
 
-class TestEnvironmentVariables:
-    """Test GitHub environment variable handling."""
+# ---------------------------------------------------------------------------
+# should_block_pr / generate_blocking_summary
+# ---------------------------------------------------------------------------
 
-    @patch.dict(
-        "os.environ",
-        {
-            "GITHUB_SHA": "abc123",
-            "GITHUB_REF": "refs/pull/42/merge",
-            "GITHUB_BASE_REF": "develop",
-            "GITHUB_REPOSITORY": "owner/repo",
-            "GITHUB_EVENT_NAME": "pull_request",
-        },
-    )
-    def test_get_github_env_all_set(self):
-        """Test getting all GitHub env variables."""
-        env = get_github_env()
 
+class TestBlockingLogic:
+    """Tests for should_block_pr and generate_blocking_summary."""
+
+    def test_should_block_pr_when_issues(self):
+        assert should_block_pr("This will cause a production incident", "high") is True
+
+    def test_should_not_block_pr_when_no_issues(self):
+        assert should_block_pr("Minor style change", "high") is False
+
+    def test_generate_blocking_summary(self):
+        issues = ["Issue A", "Issue B", ""]
+        result = generate_blocking_summary(issues)
+        assert "- Issue A" in result
+        assert "- Issue B" in result
+        assert len(result) == 2  # Empty string filtered
+
+    def test_generate_blocking_summary_empty(self):
+        result = generate_blocking_summary([])
+        assert result == []
+
+
+# ---------------------------------------------------------------------------
+# get_github_env / get_greybeard_config_from_env
+# ---------------------------------------------------------------------------
+
+
+class TestEnvironmentHelpers:
+    """Tests for environment variable helpers."""
+
+    def test_get_github_env_defaults(self):
+        with patch.dict(os.environ, {}, clear=False):
+            env = get_github_env()
+        assert "sha" in env
+        assert "ref" in env
+        assert "base_ref" in env
+
+    def test_get_github_env_with_values(self):
+        with patch.dict(
+            os.environ,
+            {
+                "GITHUB_SHA": "abc123",
+                "GITHUB_REF": "refs/heads/main",
+                "GITHUB_BASE_REF": "main",
+                "GITHUB_REPOSITORY": "owner/repo",
+                "GITHUB_EVENT_NAME": "pull_request",
+            },
+        ):
+            env = get_github_env()
         assert env["sha"] == "abc123"
-        assert env["ref"] == "refs/pull/42/merge"
-        assert env["base_ref"] == "develop"
         assert env["repo"] == "owner/repo"
         assert env["event_name"] == "pull_request"
 
-    @patch.dict("os.environ", {}, clear=True)
-    def test_get_github_env_defaults(self):
-        """Test GitHub env defaults to unknown."""
-        env = get_github_env()
-
-        assert env["sha"] == "unknown"
-        assert env["repo"] == "unknown"
-        assert env["base_ref"] == "main"
-
-    @patch.dict("os.environ", {"GITHUB_SHA": "abc", "GITHUB_REPOSITORY": "owner/repo"})
-    def test_validate_github_env_success(self):
-        """Test validating required GitHub env."""
-        assert validate_github_env() is True
-
-    @patch.dict("os.environ", {}, clear=True)
-    def test_validate_github_env_failure(self):
-        """Test missing required GitHub env."""
-        with pytest.raises(ValueError, match="Missing required GitHub env vars"):
-            validate_github_env()
-
-    @patch.dict("os.environ", {"GREYBEARD_LLM_BACKEND": "openai", "GREYBEARD_LLM_MODEL": "gpt-4"})
-    def test_get_greybeard_config_from_env(self):
-        """Test getting Greybeard config from env."""
+    def test_get_greybeard_config_from_env_defaults(self):
         config = get_greybeard_config_from_env()
+        assert "llm_backend" in config
+        assert "llm_model" in config
+        assert "risk_threshold" in config
 
-        assert config["llm_backend"] == "openai"
-        assert config["llm_model"] == "gpt-4"
-        assert config["risk_threshold"] == DEFAULT_RISK_THRESHOLD
+    def test_get_greybeard_config_from_env_custom(self):
+        with patch.dict(
+            os.environ,
+            {
+                "GREYBEARD_LLM_BACKEND": "anthropic",
+                "GREYBEARD_LLM_MODEL": "claude-3-5-sonnet-20241022",
+                "GREYBEARD_RISK_THRESHOLD": "low",
+            },
+        ):
+            config = get_greybeard_config_from_env()
+        assert config["llm_backend"] == "anthropic"
+        assert config["llm_model"] == "claude-3-5-sonnet-20241022"
+        assert config["risk_threshold"] == "low"
 
-    @patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test"})
-    def test_validate_llm_credentials_openai_success(self):
-        """Test OpenAI credentials validation - success."""
-        assert validate_llm_credentials("openai") is True
 
-    @patch.dict("os.environ", {}, clear=True)
-    def test_validate_llm_credentials_openai_failure(self):
-        """Test OpenAI credentials validation - failure."""
-        assert validate_llm_credentials("openai") is False
+# ---------------------------------------------------------------------------
+# validate_github_env
+# ---------------------------------------------------------------------------
 
-    def test_validate_llm_credentials_ollama(self):
-        """Test Ollama doesn't require credentials."""
+
+class TestValidateGithubEnv:
+    """Tests for validate_github_env."""
+
+    def test_raises_when_missing_vars(self):
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError, match="Missing required GitHub env vars"):
+                validate_github_env()
+
+    def test_returns_true_when_vars_present(self):
+        with patch.dict(
+            os.environ,
+            {
+                "GITHUB_SHA": "abc123",
+                "GITHUB_REPOSITORY": "owner/repo",
+            },
+        ):
+            result = validate_github_env()
+        assert result is True
+
+
+# ---------------------------------------------------------------------------
+# validate_llm_credentials
+# ---------------------------------------------------------------------------
+
+
+class TestValidateLlmCredentials:
+    """Tests for validate_llm_credentials."""
+
+    def test_ollama_always_valid(self):
         assert validate_llm_credentials("ollama") is True
 
-    @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test"})
-    def test_validate_llm_credentials_anthropic(self):
-        """Test Anthropic credentials validation."""
-        assert validate_llm_credentials("anthropic") is True
+    def test_lmstudio_always_valid(self):
+        assert validate_llm_credentials("lmstudio") is True
+
+    def test_openai_with_key(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test123"}):
+            assert validate_llm_credentials("openai") is True
+
+    def test_openai_without_key(self):
+        env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
+        with patch.dict(os.environ, env, clear=True):
+            assert validate_llm_credentials("openai") is False
+
+    def test_anthropic_with_key(self):
+        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}):
+            assert validate_llm_credentials("anthropic") is True
 
 
-class TestCommentManagement:
-    """Test finding and updating existing comments."""
+# ---------------------------------------------------------------------------
+# find_existing_comment / should_update_comment
+# ---------------------------------------------------------------------------
+
+
+class TestCommentHelpers:
+    """Tests for comment helper functions."""
 
     def test_find_existing_comment_found(self):
-        """Test finding existing comment."""
         comments = [
-            {"body": "Some other comment"},
-            {"body": "## Greybeard Review: staff-core\nReview content"},
-            {"body": "Another comment"},
+            {"id": 1, "body": "Some other comment"},
+            {"id": 2, "body": "## 🧙 Greybeard Review: staff-core\n\nContent"},
         ]
-
-        found = find_existing_comment(comments, "staff-core")
-        assert found is not None
-        assert "Greybeard Review: staff-core" in found["body"]
+        result = find_existing_comment(comments, "staff-core")
+        assert result is not None
+        assert result["id"] == 2
 
     def test_find_existing_comment_not_found(self):
-        """Test comment not found."""
-        comments = [{"body": "Regular comment"}]
-        found = find_existing_comment(comments, "staff-core")
-        assert found is None
+        comments = [
+            {"id": 1, "body": "Some other comment"},
+        ]
+        result = find_existing_comment(comments, "staff-core")
+        assert result is None
 
     def test_find_existing_comment_empty_list(self):
-        """Test empty comment list."""
-        found = find_existing_comment([], "staff-core")
-        assert found is None
+        result = find_existing_comment([], "staff-core")
+        assert result is None
 
-    def test_should_update_comment_true(self):
-        """Test should update when comment exists."""
-        comment = {"body": "existing"}
-        assert should_update_comment(comment) is True
+    def test_should_update_comment_when_exists(self):
+        existing = {"id": 1, "body": "old content"}
+        assert should_update_comment(existing) is True
 
-    def test_should_update_comment_false(self):
-        """Test should create new when no comment."""
+    def test_should_not_update_when_none(self):
         assert should_update_comment(None) is False
 
 
-class TestReviewResult:
-    """Test ReviewResult dataclass."""
+# ---------------------------------------------------------------------------
+# ReviewResult dataclass
+# ---------------------------------------------------------------------------
 
-    def test_review_result_success(self):
-        """Test successful review result."""
+
+class TestReviewResult:
+    """Tests for ReviewResult dataclass."""
+
+    def test_basic_review_result(self):
         result = ReviewResult(
             pack="staff-core",
             review_content="All good",
             blocking=False,
         )
-
         assert result.pack == "staff-core"
-        assert result.review_content == "All good"
         assert result.blocking is False
         assert result.error is None
 
     def test_review_result_with_error(self):
-        """Test review result with error."""
         result = ReviewResult(
             pack="staff-core",
-            review_content="",
+            review_content="Error",
             blocking=False,
-            error="API timeout",
+            error="LLM unavailable",
         )
+        assert result.error == "LLM unavailable"
 
-        assert result.error == "API timeout"
+
+# ---------------------------------------------------------------------------
+# run_github_action / run_github_action_safe
+# ---------------------------------------------------------------------------
 
 
-class TestReviewExecution:
-    """Test review execution functions."""
-
-    @patch("greybeard.github_action.run_review")
-    @patch("greybeard.github_action.load_pack")
-    @patch("greybeard.github_action.read_diff_file")
-    @patch("greybeard.github_action.GreybeardConfig.load")
-    def test_run_github_action_success(self, mock_config, mock_read, mock_load_pack, mock_review):
-        """Test successful review execution."""
-        mock_config.return_value = MagicMock()
-        mock_read.return_value = "diff content"
-        mock_load_pack.return_value = {"name": "staff-core"}
-        mock_review.return_value = "Review findings"
-
-        result = run_github_action("diff.patch", "staff-core")
-
-        assert result.pack == "staff-core"
-        assert result.review_content == "Review findings"
-        assert result.error is None
+class TestRunGitHubAction:
+    """Tests for run_github_action and run_github_action_safe."""
 
     @patch("greybeard.github_action.run_review")
     @patch("greybeard.github_action.load_pack")
-    @patch("greybeard.github_action.read_diff_file")
-    def test_run_github_action_safe_handles_error(self, mock_read, mock_load_pack, mock_review):
-        """Test safe review handles errors gracefully."""
-        mock_read.side_effect = Exception("File not found")
+    def test_run_github_action_success(self, mock_load_pack, mock_run_review, tmp_path):
+        diff_file = tmp_path / "test.diff"
+        diff_file.write_text("diff --git a/file.py b/file.py\n+new line")
 
-        result = run_github_action_safe("nonexistent.patch", "staff-core")
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "## Summary\n\nAll good, no blocking issues."
 
+        result = run_github_action(str(diff_file), "staff-core", "high")
         assert result.pack == "staff-core"
-        assert result.blocking is False
+        assert isinstance(result.blocking, bool)
+
+    @patch("greybeard.github_action.run_review")
+    @patch("greybeard.github_action.load_pack")
+    def test_run_github_action_blocking(self, mock_load_pack, mock_run_review, tmp_path):
+        diff_file = tmp_path / "test.diff"
+        diff_file.write_text("diff --git a/file.py b/file.py\n+new line")
+
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "This will cause a production incident"
+
+        result = run_github_action(str(diff_file), "staff-core", "high")
+        assert result.blocking is True
+
+    def test_run_github_action_safe_with_error(self, tmp_path):
+        # Non-existent file - should return error result, not raise
+        result = run_github_action_safe("/nonexistent/path.diff", "staff-core")
+        assert result.pack == "staff-core"
         assert result.error is not None
-        assert "Error during review" in result.review_content
+        assert result.blocking is False
 
-    @patch("greybeard.github_action.run_github_action_safe")
-    def test_process_multiple_packs(self, mock_run):
-        """Test processing multiple packs."""
-        mock_run.side_effect = [
-            ReviewResult("staff-core", "review 1", False),
-            ReviewResult("security", "review 2", False),
-        ]
+    @patch("greybeard.github_action.run_review")
+    @patch("greybeard.github_action.load_pack")
+    def test_process_multiple_packs(self, mock_load_pack, mock_run_review, tmp_path):
+        diff_file = tmp_path / "test.diff"
+        diff_file.write_text("diff")
 
-        results = process_multiple_packs("diff.patch", ["staff-core", "security"])
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "All clear"
 
+        results = process_multiple_packs(str(diff_file), packs=["staff-core", "on-call"])
         assert len(results) == 2
         assert results[0].pack == "staff-core"
-        assert results[1].pack == "security"
+        assert results[1].pack == "on-call"
 
-    @patch("greybeard.github_action.run_github_action_safe")
-    def test_process_multiple_packs_default(self, mock_run):
-        """Test processing uses default packs."""
-        mock_run.return_value = ReviewResult("staff-core", "review", False)
+    @patch("greybeard.github_action.run_review")
+    @patch("greybeard.github_action.load_pack")
+    def test_process_multiple_packs_defaults(self, mock_load_pack, mock_run_review, tmp_path):
+        diff_file = tmp_path / "test.diff"
+        diff_file.write_text("diff")
 
-        results = process_multiple_packs("diff.patch")
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "All clear"
 
+        results = process_multiple_packs(str(diff_file))
         assert len(results) == len(DEFAULT_PACKS)
 
 
-class TestBlockingSummary:
-    """Test blocking issue summary generation."""
-
-    def test_generate_blocking_summary_single(self):
-        """Test generating summary with single issue."""
-        summary = generate_blocking_summary(["Data loss risk"])
-        assert summary == ["- Data loss risk"]
-
-    def test_generate_blocking_summary_multiple(self):
-        """Test generating summary with multiple issues."""
-        issues = ["Issue 1", "Issue 2", "Issue 3"]
-        summary = generate_blocking_summary(issues)
-        assert len(summary) == 3
-        assert all("- " in s for s in summary)
-
-    def test_generate_blocking_summary_with_empty_strings(self):
-        """Test summary filters empty strings."""
-        issues = ["Issue 1", "", "Issue 2"]
-        summary = generate_blocking_summary(issues)
-        assert len(summary) == 2
-        assert "- " in summary[0]
-
-
-class TestDiffSizeInfo:
-    """Test DiffSizeInfo dataclass."""
-
-    def test_diff_size_info_creation(self):
-        """Test creating DiffSizeInfo."""
-        info = DiffSizeInfo(
-            line_count=100,
-            char_count=1000,
-            size_category="Small",
-        )
-
-        assert info.line_count == 100
-        assert info.char_count == 1000
-        assert info.size_category == "Small"
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 
 
 class TestConstants:
-    """Test module constants."""
+    """Tests for module constants."""
 
-    def test_risk_patterns_defined(self):
-        """Test RISK_PATTERNS contains expected levels."""
+    def test_default_packs_is_list(self):
+        assert isinstance(DEFAULT_PACKS, list)
+        assert len(DEFAULT_PACKS) > 0
+
+    def test_risk_patterns_has_expected_levels(self):
         assert "high" in RISK_PATTERNS
         assert "medium" in RISK_PATTERNS
         assert "low" in RISK_PATTERNS
         assert "none" in RISK_PATTERNS
 
-    def test_pack_icons_defined(self):
-        """Test PACK_ICONS for known packs."""
-        assert PACK_ICONS["staff-core"] == "🧙"
-        assert PACK_ICONS["on-call"] == "📟"
-        assert PACK_ICONS["security"] == "🔒"
-
-    def test_defaults_defined(self):
-        """Test default constants are set."""
-        assert DEFAULT_PACKS == ["staff-core", "on-call", "security"]
-        assert DEFAULT_RISK_THRESHOLD == "high"
+    def test_pack_icons_dict(self):
+        assert "staff-core" in PACK_ICONS

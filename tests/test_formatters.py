@@ -18,6 +18,7 @@ from greybeard.formatters import (
     _to_jira,
     _to_json,
     convert,
+    convert_to_pdf,
 )
 
 # ---------------------------------------------------------------------------
@@ -425,6 +426,38 @@ class TestMdToHtmlBody:
         assert "<li>Second concern</li>" in result
         assert "<li>Who owns this?" in result or "<li>Who owns this</li>" in result
 
+    def test_list_followed_by_blank_line_then_paragraph(self):
+        """List followed by blank line then paragraph closes the list correctly."""
+        md = "- item one\n- item two\n\nThis is a paragraph."
+        result = _md_to_html_body(md)
+        assert "<li>item one</li>" in result
+        assert "<li>item two</li>" in result
+        assert "</ul>" in result
+        assert "<p>This is a paragraph.</p>" in result
+
+    def test_ordered_list_followed_by_paragraph(self):
+        """Ordered list followed by blank line then paragraph closes the list."""
+        md = "1. first\n2. second\n\nThis is a paragraph after the list."
+        result = _md_to_html_body(md)
+        assert "<li>first</li>" in result
+        assert "</ol>" in result
+        assert "<p>This is a paragraph after the list.</p>" in result
+
+    def test_blank_line_between_list_items_keeps_list_open(self):
+        """A blank line between list items at same indent level keeps the list open."""
+        md = "- item one\n\n- item two still in same list"
+        result = _md_to_html_body(md)
+        # Both items should be in list items
+        assert "<li>item one</li>" in result
+        assert "<li>item two still in same list</li>" in result
+
+    def test_blank_line_before_deeper_indented_list_item(self):
+        """A blank line between a list item and a deeper-indented list item keeps nesting."""
+        md = "- item one\n\n  - nested item"
+        result = _md_to_html_body(md)
+        assert "<li>item one</li>" in result
+        assert "<li>nested item</li>" in result
+
 
 # ---------------------------------------------------------------------------
 # Jira output
@@ -477,6 +510,12 @@ class TestJiraOutput:
         result = _to_jira(md, meta)
         assert "{code:python}" in result
         assert "{code}" in result
+
+    def test_blockquote_converted(self, meta):
+        """Test that blockquote lines are converted to Jira bq. format."""
+        md = "> This is an important quote."
+        result = _to_jira(md, meta)
+        assert "bq. This is an important quote." in result
 
 
 class TestMdInlineToJira:
@@ -611,3 +650,21 @@ class TestCliFormatFlag:
             runner.invoke(cli, ["analyze", "--format", "json"])
             _, kwargs = mock_review.call_args
             assert kwargs.get("stream") is False or mock_review.call_args[1].get("stream") is False
+
+
+# ---------------------------------------------------------------------------
+# convert_to_pdf
+# ---------------------------------------------------------------------------
+
+
+class TestConvertToPdf:
+    """Tests for convert_to_pdf() function in formatters.py."""
+
+    def test_convert_to_pdf_generates_file(self, meta, tmp_path):
+        """convert_to_pdf should delegate to reporters.pdf.to_pdf and return the path."""
+        output = str(tmp_path / "report.pdf")
+        from pathlib import Path
+
+        result = convert_to_pdf(SAMPLE_MARKDOWN, meta, output)
+        assert result == output
+        assert Path(output).exists()

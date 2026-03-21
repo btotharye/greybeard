@@ -1,0 +1,12 @@
+> """Greybeard agents.
+
+> Each agent solves a specific decision-making problem by implementing
+> the BaseAgent interface and using shared capabilities.
+> """
+
+! from __future__ import annotations
+
+  # Agents will be imported here as they are created
+  # Example: from .reviews import ReviewsAgent
+
+! __all__ = []

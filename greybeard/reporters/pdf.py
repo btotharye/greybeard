@@ -6,7 +6,7 @@ from typing import Any
 
 try:
     from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, StyleSheet1, getSampleStyleSheet
     from reportlab.lib.units import inch
@@ -58,7 +58,7 @@ class PDFReporter:
         base_styles = getSampleStyleSheet()
         self.styles: StyleSheet1 = StyleSheet1()
 
-        for name in base_styles.listStyleNames():
+        for name in base_styles.byName:
             self.styles.add(base_styles[name])
 
         self.styles.add(
@@ -135,7 +135,7 @@ class PDFReporter:
                 [
                     ("BACKGROUND", (0, 0), (0, -1), self.COLOR_LIGHT_BG),
                     ("TEXTCOLOR", (0, 0), (-1, -1), self.COLOR_TEXT),
-                    ("ALIGN", (0, 0), (-1, -1), TA_LEFT),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                     ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("GRID", (0, 0), (-1, -1), 1, self.COLOR_BORDER),
@@ -183,7 +183,7 @@ class PDFReporter:
                     [
                         ("BACKGROUND", (0, 0), (-1, 0), self.COLOR_ACCENT),
                         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                        ("ALIGN", (0, 0), (-1, -1), TA_LEFT),
+                        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                         ("FONTSIZE", (0, 0), (-1, -1), 9),
                         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, self.COLOR_LIGHT_BG]),
                         ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
@@ -222,7 +222,7 @@ class PDFReporter:
                     TableStyle(
                         [
                             ("BACKGROUND", (0, 0), (-1, -1), self.COLOR_LIGHT_BG),
-                            ("ALIGN", (0, 0), (-1, -1), TA_LEFT),
+                            ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                             ("FONTSIZE", (0, 0), (-1, -1), 9),
                             ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
                         ]
@@ -263,7 +263,7 @@ class PDFReporter:
                 [
                     ("BACKGROUND", (0, 0), (0, -1), self.COLOR_LIGHT_BG),
                     ("TEXTCOLOR", (0, 0), (-1, -1), self.COLOR_TEXT),
-                    ("ALIGN", (0, 0), (-1, -1), TA_LEFT),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
                     ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
                 ]

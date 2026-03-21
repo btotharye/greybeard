@@ -19,8 +19,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from greybeard.agents import SLOAgent, SLORecommendation, SLOTarget, ServiceType
-from greybeard.cli_slo import slo_check, _output_json, _output_markdown, _output_table
+from greybeard.agents import ServiceType, SLOAgent, SLORecommendation, SLOTarget
+from greybeard.cli_slo import _output_json, _output_markdown, _output_table, slo_check
 
 
 @pytest.fixture
@@ -524,7 +524,10 @@ class TestOutputFormats:
     def test_output_table_with_long_rationale(self, runner):
         """Test table output truncates long rationales."""
         with patch.object(SLOAgent, "analyze") as mock_analyze:
-            long_rationale = "This is a very long rationale that should be truncated when displayed in the table format to avoid ugly wrapping issues"
+            long_rationale = (
+                "This is a very long rationale that should be truncated "
+                "when displayed in the table format to avoid ugly wrapping issues"
+            )
             mock_rec = MagicMock()
             mock_rec.to_dict.return_value = {
                 "service_type": "saas",
@@ -661,7 +664,7 @@ class TestOutputFormattingFunctions:
         assert "100ms - 500ms" in output
         # Second target should show differently (empty range)
         lines = output.split("\n")
-        latency_section = "\n".join([l for l in lines if "latency" in l.lower()])
+        latency_section = "\n".join([line for line in lines if "latency" in line.lower()])
         assert latency_section
 
     def test_output_table_range_formatting(self, capsys):
@@ -835,7 +838,7 @@ class TestErrorHandling:
 
         try:
             # Should fail due to binary content
-            result = runner.invoke(slo_check, ["--file", file_path])
+            runner.invoke(slo_check, ["--file", file_path])
             # May fail with decode error or succeed with garbage - both acceptable
             # The important thing is it doesn't crash the CLI
             assert True  # If we get here, we didn't crash
@@ -1339,7 +1342,10 @@ class TestStdinHandling:
 
     def test_stdin_with_pipe_input(self, runner):
         """Test reading from piped input."""
-        pipe_data = "#!/usr/bin/env python\n@app.route('/api')\ndef endpoint():\n    return {'status': 'ok'}"
+        pipe_data = (
+            "#!/usr/bin/env python\n@app.route('/api')\n"
+            "def endpoint():\n    return {'status': 'ok'}"
+        )
         with patch.object(SLOAgent, "analyze") as mock_analyze:
             mock_rec = MagicMock()
             mock_rec.to_dict.return_value = {

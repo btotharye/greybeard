@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
 
-OutputFormat = Literal["markdown", "json", "html", "jira"]
-SUPPORTED_FORMATS: list[str] = ["markdown", "json", "html", "jira"]
+OutputFormat = Literal["markdown", "json", "html", "jira", "pdf"]
+SUPPORTED_FORMATS: list[str] = ["markdown", "json", "html", "jira", "pdf"]
 
 # File extension to use when --output is not specified or has no extension
 FORMAT_EXTENSIONS: dict[str, str] = {
@@ -27,6 +27,7 @@ FORMAT_EXTENSIONS: dict[str, str] = {
     "json": ".json",
     "html": ".html",
     "jira": ".txt",
+    "pdf": ".pdf",
 }
 
 

@@ -11,7 +11,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from .agents import SLOAgent
 from .analyzer import run_review
 from .cli_slo import slo_check
 from .config import (

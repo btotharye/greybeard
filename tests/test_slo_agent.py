@@ -6,9 +6,7 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
-
-from greybeard.agents import SLOAgent, ServiceType, SLORecommendation
+from greybeard.agents import ServiceType, SLOAgent, SLORecommendation
 
 
 class TestSLOAgentBasic:
@@ -102,7 +100,11 @@ class TestServiceTypeDetection:
         """
         rec = agent.analyze(code_snippet=code)
         # Async + worker patterns detected, could be batch or background
-        assert rec.service_type in (ServiceType.BACKGROUND_JOBS, ServiceType.BATCH, ServiceType.UNKNOWN)
+        assert rec.service_type in (
+            ServiceType.BACKGROUND_JOBS,
+            ServiceType.BATCH,
+            ServiceType.UNKNOWN,
+        )
 
     def test_detect_critical_infra(self):
         """Test detection of critical infrastructure."""

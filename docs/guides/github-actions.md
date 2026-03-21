@@ -237,7 +237,7 @@ These are already set in the bundled workflow file.
 ### Ollama (self-hosted)
 
 Not suitable for GitHub Actions (requires a running Ollama server), but works well for
-[pre-commit hooks](precommit.md) on developer machines.
+[pre-commit hooks](pre-commit.md) on developer machines.
 
 ---
 

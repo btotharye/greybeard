@@ -13,5 +13,8 @@ venv/
 htmlcov/
 .coverage
 coverage.xml
+# coverage annotate artifacts (*.py,cover files) — never commit these
+*.py,cover
+*.cover
 site/
 review.md

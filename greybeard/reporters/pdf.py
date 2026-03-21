@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 try:
@@ -24,6 +25,23 @@ except ImportError:
     HAS_REPORTLAB = False
 
 from greybeard.formatters import ReviewMetadata, _parse_bullets, _parse_sections
+
+
+def _md_to_rl(text: str) -> str:
+    """Convert basic inline Markdown to ReportLab XML markup."""
+    # Escape XML-significant characters first (but not & inside existing tags)
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    # Strip leading bullet `* ` or `- ` at the start of lines (keep content)
+    text = re.sub(r"^[*\-]\s+", "", text, flags=re.MULTILINE)
+    # Bold (**text** or __text__)
+    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text, flags=re.DOTALL)
+    text = re.sub(r"__(.+?)__", r"<b>\1</b>", text, flags=re.DOTALL)
+    # Italic (*text* or _text_) — must come after bold
+    text = re.sub(r"\*(.+?)\*", r"<i>\1</i>", text, flags=re.DOTALL)
+    text = re.sub(r"(?<!\w)_(.+?)_(?!\w)", r"<i>\1</i>", text, flags=re.DOTALL)
+    # Inline code (`code`) — render in Courier
+    text = re.sub(r"`([^`]+)`", r'<font name="Courier">\1</font>', text)
+    return text
 
 
 def _check_reportlab() -> None:
@@ -107,13 +125,36 @@ class PDFReporter:
             )
         )
 
+        self.styles.add(
+            ParagraphStyle(
+                name="TableCell",
+                parent=base_styles["BodyText"],
+                fontSize=9,
+                textColor=self.COLOR_TEXT,
+                spaceAfter=2,
+                leading=13,
+            )
+        )
+
+        self.styles.add(
+            ParagraphStyle(
+                name="TableHeaderCell",
+                parent=base_styles["BodyText"],
+                fontSize=9,
+                textColor=colors.whitesmoke,
+                fontName="Helvetica-Bold",
+                spaceAfter=2,
+                leading=13,
+            )
+        )
+
     def _build_title_page(self) -> list:
         """Build the title/cover page content."""
         story = []
         story.append(Spacer(self.width, 0.5 * inch))
 
         title = Paragraph(
-            "🧙 <b>greybeard</b> Review Report",
+            "<b>greybeard</b> Review Report",
             self.styles["CustomHeading1"],
         )
         story.append(title)
@@ -154,7 +195,7 @@ class PDFReporter:
         story.append(Paragraph("Risk Summary", self.styles["CustomHeading2"]))
 
         summary = self.sections.get("summary", "No summary available.")
-        story.append(Paragraph(summary, self.styles["CustomBody"]))
+        story.append(Paragraph(_md_to_rl(summary), self.styles["CustomBody"]))
 
         key_risks = self.sections.get("key_risks", "")
         risk_items = _parse_bullets(key_risks)
@@ -163,31 +204,46 @@ class PDFReporter:
             story.append(Spacer(self.width, 0.15 * inch))
             story.append(Paragraph("<b>Identified Risks:</b>", self.styles["CustomBody"]))
 
-            risk_table_data = [["Risk", "Severity"]]
+            cell_style = self.styles["TableCell"]
+            header_style = self.styles["TableHeaderCell"]
+            risk_table_data = [
+                [
+                    Paragraph("Risk", header_style),
+                    Paragraph("Severity", header_style),
+                ]
+            ]
+            _critical_kws = ["no plan", "unknown", "critical", "fail", "loss"]
+            _high_kws = ["risk", "issue", "concern"]
             for risk in risk_items[:10]:
-                severity = (
-                    "🔴 Critical"
-                    if any(
-                        kw in risk.lower()
-                        for kw in ["no plan", "unknown", "critical", "fail", "loss"]
-                    )
-                    else "🟠 High"
-                    if any(kw in risk.lower() for kw in ["risk", "issue", "concern"])
-                    else "🟡 Medium"
+                rl = risk.lower()
+                if any(kw in rl for kw in _critical_kws):
+                    severity = "[CRITICAL]"
+                elif any(kw in rl for kw in _high_kws):
+                    severity = "[HIGH]"
+                else:
+                    severity = "[MEDIUM]"
+
+                risk_table_data.append(
+                    [
+                        Paragraph(_md_to_rl(risk), cell_style),
+                        Paragraph(f"<b>{severity}</b>", cell_style),
+                    ]
                 )
 
-                risk_table_data.append([risk, severity])
-
-            risk_table = Table(risk_table_data, colWidths=[4 * inch, 1.5 * inch])
+            risk_table = Table(risk_table_data, colWidths=[5.0 * inch, 2.0 * inch])
             risk_table.setStyle(
                 TableStyle(
                     [
                         ("BACKGROUND", (0, 0), (-1, 0), self.COLOR_ACCENT),
                         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                         ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
                         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, self.COLOR_LIGHT_BG]),
                         ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
+                        ("TOPPADDING", (0, 0), (-1, -1), 5),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
                     ]
                 )
             )
@@ -203,8 +259,10 @@ class PDFReporter:
 
         tradeoffs = self.sections.get("tradeoffs", "")
         if tradeoffs:
-            story.append(Paragraph("<b>Tradeoffs & Considerations:</b>", self.styles["CustomBody"]))
-            story.append(Paragraph(tradeoffs, self.styles["CustomBody"]))
+            story.append(
+                Paragraph("<b>Tradeoffs &amp; Considerations:</b>", self.styles["CustomBody"])
+            )
+            story.append(Paragraph(_md_to_rl(tradeoffs), self.styles["CustomBody"]))
             story.append(Spacer(self.width, 0.1 * inch))
 
         questions = self.sections.get("questions", "")
@@ -217,15 +275,23 @@ class PDFReporter:
             )
             question_items = _parse_bullets(questions)
             if question_items:
-                question_data = [[f"{i + 1}. {q}"] for i, q in enumerate(question_items[:8])]
-                question_table = Table(question_data, colWidths=[5.5 * inch])
+                cell_style = self.styles["TableCell"]
+                question_data = [
+                    [Paragraph(_md_to_rl(f"{i + 1}. {q}"), cell_style)]
+                    for i, q in enumerate(question_items[:8])
+                ]
+                question_table = Table(question_data, colWidths=[6.5 * inch])
                 question_table.setStyle(
                     TableStyle(
                         [
                             ("BACKGROUND", (0, 0), (-1, -1), self.COLOR_LIGHT_BG),
                             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                            ("FONTSIZE", (0, 0), (-1, -1), 9),
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
                             ("GRID", (0, 0), (-1, -1), 0.5, self.COLOR_BORDER),
+                            ("TOPPADDING", (0, 0), (-1, -1), 5),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
                         ]
                     )
                 )
@@ -238,7 +304,7 @@ class PDFReporter:
             story.append(
                 Paragraph("<b>Suggested Communication Language:</b>", self.styles["CustomBody"])
             )
-            story.append(Paragraph(f"<i>{comm}</i>", self.styles["CustomBody"]))
+            story.append(Paragraph(f"<i>{_md_to_rl(comm)}</i>", self.styles["CustomBody"]))
 
         story.append(Spacer(self.width, 0.2 * inch))
         return story

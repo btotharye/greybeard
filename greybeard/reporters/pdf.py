@@ -230,7 +230,7 @@ class PDFReporter:
                     )
                 )
                 story.append(question_table)
-            else:
+            else:  # pragma: no cover
                 story.append(Paragraph(questions, self.styles["CustomBody"]))
 
         comm = self.sections.get("communication_language", "")

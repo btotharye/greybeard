@@ -231,6 +231,90 @@ Not suitable for GitHub Actions (requires a running Ollama server), but works we
 
 ---
 
+## Reliability & Cost Controls
+
+### Graceful degradation on failures
+
+The workflow uses `continue-on-error: true` on the analyze step. If greybeard fails
+(API error, pack not found, network blip), the job does **not** hard-fail the PR check.
+Instead:
+
+- A `⚠️ Review unavailable` comment is posted with a link to the Actions log
+- The GitHub Check is set to `neutral` (not `failure`) — the PR is **not blocked**
+- The exact error is visible in the Actions run for debugging
+
+This means a transient API outage or a bad pack name won't silently block all PRs or
+silently succeed while posting garbage output.
+
+**What `neutral` means for branch protection:** if you've added `Greybeard: staff-core`
+as a required status check, a `neutral` conclusion still allows merging. Only `failure`
+(blocking issues detected) blocks the merge. Adjust your branch protection rules if you
+want `neutral` to block too.
+
+### Token budget vs byte budget
+
+The diff is truncated at **200KB bytes** before being sent to the LLM. This is intentionally
+conservative:
+
+| Truncation | Approx tokens (code @ 4 chars/token) | Safety margin on Haiku (200k ctx) |
+| ---------- | ------------------------------------ | --------------------------------- |
+| 200KB      | ~50k tokens                          | 4× headroom                       |
+| 400KB      | ~100k tokens                         | 2× headroom (tight)               |
+
+Code diffs are typically dense, but 200KB still covers a very large PR (~2,000–5,000 lines
+of changes). Most meaningful reviews fit well within this.
+
+To adjust:
+
+```yaml
+- name: Generate git diff
+  run: |
+    git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+    truncate -s 100k /tmp/pr.diff   # smaller = cheaper, faster
+```
+
+### Cost monitoring
+
+There is no built-in budget cap in the workflow — that's managed at the Anthropic account level.
+
+**Recommended:** set a monthly spend limit in [console.anthropic.com](https://console.anthropic.com)
+under **Settings → Billing → Usage limits**. This prevents org-wide spikes from large PRs or
+accidental trigger loops.
+
+Rough cost estimates with default Haiku + 200KB truncation (3 packs per run):
+
+| Scenario               | Input tokens (est.) | ~Cost per trigger |
+| ---------------------- | ------------------- | ----------------- |
+| Small PR (< 50 lines)  | ~5k                 | < $0.01           |
+| Medium PR (~200 lines) | ~15k                | ~$0.03            |
+| Large PR (~500 lines)  | ~30k                | ~$0.08            |
+| Max truncated (200KB)  | ~50k                | ~$0.15            |
+
+### Pre-commit hook stability
+
+If you use greybeard's pre-commit hooks, **always pin to a release tag** in your
+`.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/btotharye/greybeard
+    rev: v0.7.0 # ✅ pinned release — safe
+    # rev: main   # ❌ never use main — a bad commit breaks all developers
+```
+
+**Kill switch:** if greybeard is unexpectedly blocking commits, set `enabled: false` in
+`.greybeard-precommit.yaml` to disable all hooks without removing the configuration:
+
+```yaml
+# .greybeard-precommit.yaml
+enabled: false
+```
+
+This is faster than removing hooks from `.pre-commit-config.yaml` and lets you re-enable
+once the issue is resolved.
+
+---
+
 ## Troubleshooting
 
 **The workflow doesn't trigger when I add the label**
@@ -256,9 +340,40 @@ workflow file has the full `permissions` block shown above.
 2. Verify `ANTHROPIC_API_KEY` (or whichever key you're using) is set correctly in Secrets.
 3. Confirm the review file was actually generated: look for the `Analyze with Greybeard` step output.
 
+**"⚠️ Review unavailable" comment appears instead of a real review**
+
+The `Analyze with Greybeard` step failed. The PR check is set to `neutral` (not blocking).
+
+Common causes:
+
+- API key not set or invalid → check `ANTHROPIC_API_KEY` in repo Secrets
+- Anthropic API outage → re-run the workflow once it recovers
+- Model name invalid → verify the model name against [Anthropic's model list](https://docs.anthropic.com/en/docs/about-claude/models/overview)
+- Pack not found → confirm pack names in the matrix match installed packs (`staff-core`, `oncall-future-you`, `security-reviewer`)
+
+**Pre-commit hook is blocking all developers' commits**
+
+If a greybeard release breaks the hook, use the kill switch:
+
+```yaml
+# .greybeard-precommit.yaml
+enabled: false
+```
+
+This disables all greybeard hooks immediately without changing `.pre-commit-config.yaml`.
+To prevent this situation in future, pin to a specific release tag (not `main`):
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/btotharye/greybeard
+    rev: v0.7.0 # pin to a specific release
+```
+
 **Reviews are too expensive**
 
-- Switch to `claude-haiku-4-5-20251001` (default).
+- Switch to `claude-haiku-4-5-20251001` (default — cheapest option).
 - Use label-based triggering (default) instead of auto-triggering on every push.
 - Reduce the diff size limit: `truncate -s 100k /tmp/pr.diff`.
 - Remove packs you don't need from the matrix.
+- Set a monthly spend limit at [console.anthropic.com](https://console.anthropic.com) → Settings → Billing.

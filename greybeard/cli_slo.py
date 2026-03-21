@@ -160,9 +160,7 @@ def _output_table(rec: object) -> None:
 
         for target in rec_dict["targets"]:
             range_str = (
-                f"{target['range'][0]} → {target['range'][1]}"
-                if target["range"][0]
-                else "—"
+                f"{target['range'][0]} → {target['range'][1]}" if target["range"][0] else "—"
             )
             rationale = target["rationale"]
             if len(rationale) > 60:

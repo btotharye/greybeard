@@ -379,7 +379,7 @@ class TestADRRepository:
         # Create a few ADRs
         for i in range(3):
             adr = ADREntry(
-                title=f"Decision {i+1}",
+                title=f"Decision {i + 1}",
                 status="Proposed",
                 context="",
                 decision="",

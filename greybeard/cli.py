@@ -1088,9 +1088,7 @@ def adr_list(repo) -> None:
     adrs = adr_repo.list_adrs()
 
     if not adrs:
-        console.print(
-            f"[dim]No ADRs found in {adr_repo.adr_dir}[/dim]"
-        )
+        console.print(f"[dim]No ADRs found in {adr_repo.adr_dir}[/dim]")
         return
 
     # Create a table

@@ -171,13 +171,11 @@ class ADRReporter:
                 ):
                     current_section = "decision"
                 elif any(
-                    kw in header_text
-                    for kw in ["consequence", "impact", "trade-off", "result"]
+                    kw in header_text for kw in ["consequence", "impact", "trade-off", "result"]
                 ):
                     current_section = "consequences"
                 elif any(
-                    kw in header_text
-                    for kw in ["alternative", "option", "considered", "rejected"]
+                    kw in header_text for kw in ["alternative", "option", "considered", "rejected"]
                 ):
                     current_section = "alternatives"
             else:
@@ -281,10 +279,7 @@ def _generate_fallback_consequences(text: str) -> str:
             for kw in ["impact", "affect", "require", "risk", "trade-off", "pro", "con"]
         ):
             lines.append(line)
-    fallback = (
-        "Positive: Improves decision quality. "
-        "Negative: Requires documentation."
-    )
+    fallback = "Positive: Improves decision quality. Negative: Requires documentation."
     return "\n".join(lines).strip() or fallback
 
 
@@ -305,10 +300,7 @@ def _generate_fallback_alternatives(text: str) -> str:
             ]
         ):
             lines.append(line)
-    return (
-        "\n".join(lines).strip()
-        or "See context and decision sections for full analysis."
-    )
+    return "\n".join(lines).strip() or "See context and decision sections for full analysis."
 
 
 class ADRRepository:
@@ -425,9 +417,7 @@ class ADRRepository:
                 capture_output=True,
             )
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(
-                f"Failed to commit ADR file: {e.stderr.decode('utf-8')}"
-            ) from e
+            raise RuntimeError(f"Failed to commit ADR file: {e.stderr.decode('utf-8')}") from e
 
     def list_adrs(self) -> list[tuple[Path, ADREntry]]:
         """List all ADRs in the repository.

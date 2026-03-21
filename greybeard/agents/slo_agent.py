@@ -100,7 +100,7 @@ class SLOAgent:
         """
         context = context or {}
         signals = self._collect_signals(code_snippet, repo_path, context)
-        
+
         # Prefer explicit service_type parameter, then check context, then detect
         if service_type:
             try:
@@ -312,8 +312,7 @@ class SLOAgent:
                 target="< 5%",
                 range=("< 1%", "< 10%"),
                 rationale=(
-                    "Transient batch failures are tolerable if job is idempotent "
-                    "and retried."
+                    "Transient batch failures are tolerable if job is idempotent and retried."
                 ),
             ),
         ]
@@ -337,8 +336,7 @@ class SLOAgent:
                 target="< 50ms",
                 range=("< 10ms", "< 100ms"),
                 rationale=(
-                    "Gateway/auth latency is multiplied across all requests. "
-                    "Tight SLO required."
+                    "Gateway/auth latency is multiplied across all requests. Tight SLO required."
                 ),
             ),
             SLOTarget(
@@ -346,8 +344,7 @@ class SLOAgent:
                 target="< 0.01%",
                 range=("< 0.001%", "< 0.1%"),
                 rationale=(
-                    "Critical infra errors cascade; very low tolerance. "
-                    "Fix bugs immediately."
+                    "Critical infra errors cascade; very low tolerance. Fix bugs immediately."
                 ),
             ),
         ]
@@ -371,8 +368,7 @@ class SLOAgent:
                 target="< 5 minutes",
                 range=("< 1min", "< 30min"),
                 rationale=(
-                    "Async context; users don't wait synchronously. "
-                    "Focus on eventual consistency."
+                    "Async context; users don't wait synchronously. Focus on eventual consistency."
                 ),
             ),
             SLOTarget(
@@ -380,8 +376,7 @@ class SLOAgent:
                 target="< 1%",
                 range=("< 0.1%", "< 5%"),
                 rationale=(
-                    "Async errors may be retried; reasonable error budget for "
-                    "transient failures."
+                    "Async errors may be retried; reasonable error budget for transient failures."
                 ),
             ),
         ]
@@ -432,14 +427,12 @@ class SLOAgent:
 
         if not code.get("has_error_handling"):
             notes_parts.append(
-                "⚠️  No error handling detected. "
-                "Add try/except and proper error propagation."
+                "⚠️  No error handling detected. Add try/except and proper error propagation."
             )
 
         if not code.get("has_monitoring"):
             notes_parts.append(
-                "📊 No monitoring/logging detected. "
-                "Instrument with metrics and structured logs."
+                "📊 No monitoring/logging detected. Instrument with metrics and structured logs."
             )
 
         if not code.get("has_timeout") and code.get("has_http_calls"):
@@ -466,11 +459,7 @@ class SLOAgent:
                 "Implement exponential backoff + dead letter queue."
             )
 
-        return (
-            "\n".join(notes_parts)
-            if notes_parts
-            else "No immediate concerns detected."
-        )
+        return "\n".join(notes_parts) if notes_parts else "No immediate concerns detected."
 
     def _build_patterns(self) -> dict[str, Any]:
         """Build pattern library for analysis."""

@@ -24,10 +24,7 @@ from .packs import load_pack
 
 # Risk threshold patterns for PR blocking
 RISK_PATTERNS = {
-    "high": (
-        r"production incident|data loss|security vulnerability|"
-        r"cascading failure"
-    ),
+    "high": (r"production incident|data loss|security vulnerability|" r"cascading failure"),
     "medium": (
         r"production incident|data loss|security vulnerability|"
         r"cascading failure|operational overhead|scaling limitation"

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Default Anthropic model changed from `claude-3-5-sonnet-20241022` to `claude-haiku-4-5-20251001`**
+  This is a deliberate cost/speed optimisation for the GitHub Actions workflow (Haiku is ~5×
+  cheaper and ~2× faster for typical diffs). **Review quality will be lower** than with Sonnet.
+  Users who want Sonnet-level reviews should override explicitly:
+  `greybeard config set llm.model claude-sonnet-4-6`
+  or set the model in the workflow: `greybeard config set llm.model claude-sonnet-4-6`.
+
+### Added
+
+- GitHub Actions workflow: explicit 8-minute LLM timeout to prevent silent 15-minute job hangs
+- GitHub Actions workflow: 1 MB diff size guard skips oversized PRs instead of running them
+- GitHub Actions workflow: API key validation step gives a clear error if the secret is missing
+- GitHub Actions workflow: unique `<!-- greybeard-bot:PACK -->` HTML comment marker for
+  idempotent comment updates (prevents false matches on user-created comments)
+- Pre-commit: structured "What to do" guidance on blocked commits
+- Pre-commit: helpful YAML parse error when `.greybeard-precommit.yaml` is malformed
+
+### Fixed
+
+- `PDFReporter.__init__` default arg `pagesize=letter` caused `NameError` at import time
+  when `reportlab` is not installed; changed to `pagesize=None` with deferred assignment
+
 ## [0.3.4] - 2026-03-15
 
 ## Fixed

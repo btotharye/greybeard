@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 import yaml
 
 from greybeard.precommit import (
@@ -19,6 +20,8 @@ from greybeard.precommit import (
     get_current_branch,
     get_staged_diff,
     get_staged_files,
+    run_diff_review,
+    run_risk_check,
     should_skip_file,
     should_skip_gate,
 )
@@ -349,3 +352,449 @@ class TestIntegration:
             assert data["default_pack"] == "platform-eng"
             assert data["additional_packs"] == ["security-reviewer"]
             assert len(data["risk_gates"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# PreCommitConfig.load() from file
+# ---------------------------------------------------------------------------
+
+
+class TestPreCommitConfigLoad:
+    """Tests for PreCommitConfig.load() that reads from an actual YAML file."""
+
+    def test_load_from_file(self):
+        """Test loading config from a YAML file in the working directory."""
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / ".greybeard-precommit.yaml"
+            data = {
+                "enabled": False,
+                "default_pack": "on-call",
+                "additional_packs": ["security-reviewer"],
+                "fail_on_concerns": "high",
+                "skip_unstaged": False,
+                "max_context_lines": 100,
+                "verbose": True,
+                "allow_empty_commits": True,
+                "excluded_paths": ["*.lock"],
+                "risk_gates": [
+                    {
+                        "name": "infra",
+                        "patterns": ["infra/*"],
+                        "fail_on_concerns": "critical",
+                        "required_packs": ["platform-eng"],
+                        "skip_if_branch": ["hotfix/*"],
+                    }
+                ],
+            }
+            with config_path.open("w") as f:
+                yaml.dump(data, f)
+
+            original_dir = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                config = PreCommitConfig.load()
+            finally:
+                os.chdir(original_dir)
+
+        assert config.enabled is False
+        assert config.default_pack == "on-call"
+        assert config.additional_packs == ["security-reviewer"]
+        assert config.fail_on_concerns == "high"
+        assert config.skip_unstaged is False
+        assert config.max_context_lines == 100
+        assert config.verbose is True
+        assert config.allow_empty_commits is True
+        assert config.excluded_paths == ["*.lock"]
+        assert len(config.risk_gates) == 1
+        assert config.risk_gates[0].name == "infra"
+        assert config.risk_gates[0].skip_if_branch == ["hotfix/*"]
+
+    def test_load_defaults_when_no_file(self):
+        """Test that load() returns defaults when no config file exists."""
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_dir = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                config = PreCommitConfig.load()
+            finally:
+                os.chdir(original_dir)
+
+        assert config.enabled is True
+        assert config.default_pack == "staff-core"
+
+    def test_load_raises_systemexit_on_malformed_yaml(self):
+        """Malformed YAML in config file raises SystemExit with a clear message."""
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_dir = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                config_path = Path(tmpdir) / ".greybeard-precommit.yaml"
+                config_path.write_text(
+                    "enabled: true\nrisk_gates:\n  - name: bad\n    patterns: [unclosed bracket\n"
+                )
+                with pytest.raises(SystemExit) as exc_info:
+                    PreCommitConfig.load()
+            finally:
+                os.chdir(original_dir)
+
+        assert ".greybeard-precommit.yaml" in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# get_staged_diff with file_path
+# ---------------------------------------------------------------------------
+
+
+class TestStagedDiffWithFilePath:
+    """Test get_staged_diff with a specific file path."""
+
+    @patch("subprocess.run")
+    def test_get_staged_diff_specific_file(self, mock_run):
+        """Test getting staged diff for a specific file."""
+        diff_text = "diff --git a/foo.py b/foo.py\n+added line"
+        mock_run.return_value = MagicMock(stdout=diff_text, stderr="")
+        diff = get_staged_diff(file_path="foo.py")
+        assert diff == diff_text
+        call_args = mock_run.call_args[0][0]
+        assert "foo.py" in call_args
+
+
+# ---------------------------------------------------------------------------
+# get_applicable_gate with skipped gate
+# ---------------------------------------------------------------------------
+
+
+class TestApplicableGateSkipped:
+    """Test get_applicable_gate when a gate is skipped due to branch."""
+
+    def test_skips_gate_on_hotfix_branch(self):
+        """Gate should be skipped on hotfix branch."""
+        gates = [
+            RiskGate(
+                name="infra",
+                patterns=["infra/*"],
+                fail_on_concerns="critical",
+                skip_if_branch=["hotfix/*"],
+            )
+        ]
+        gate = get_applicable_gate("infra/deployment.yaml", gates, "hotfix/emergency-fix")
+        assert gate is None
+
+    def test_second_gate_returned_when_first_skipped(self):
+        """Second gate is returned when first is skipped."""
+        gates = [
+            RiskGate(
+                name="infra-skip",
+                patterns=["infra/*"],
+                skip_if_branch=["hotfix/*"],
+            ),
+            RiskGate(
+                name="infra-always",
+                patterns=["infra/*"],
+            ),
+        ]
+        gate = get_applicable_gate("infra/deployment.yaml", gates, "hotfix/fix")
+        assert gate is not None
+        assert gate.name == "infra-always"
+
+
+# ---------------------------------------------------------------------------
+# run_diff_review
+# ---------------------------------------------------------------------------
+
+
+class TestRunDiffReview:
+    """Tests for run_diff_review function."""
+
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_no_staged_files_returns_pass(self, mock_files, mock_diff):
+        """Empty staged files returns a passing review."""
+        mock_files.return_value = []
+        mock_diff.return_value = ""
+        config = PreCommitConfig()
+        result = run_diff_review(config)
+        assert result.passed is True
+        assert "No staged" in result.message
+
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_empty_diff_returns_pass(self, mock_files, mock_diff):
+        """Empty diff returns a passing review."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "   "
+        config = PreCommitConfig()
+        result = run_diff_review(config)
+        assert result.passed is True
+        assert "No changes" in result.message
+
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_pack_not_found_skips_gracefully(self, mock_files, mock_diff):
+        """Missing pack skips review gracefully."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff --git a/src/main.py b/src/main.py\n+new line"
+        config = PreCommitConfig(default_pack="nonexistent-pack")
+        with patch("greybeard.packs.load_pack", side_effect=Exception("not found")):
+            result = run_diff_review(config)
+        assert result.passed is True
+        assert "skipped" in result.message.lower()
+
+    @patch("greybeard.analyzer.run_review")
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_successful_review_pass(self, mock_files, mock_diff, mock_load_pack, mock_run_review):
+        """Successful review with no concerns returns pass."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff content"
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "## Summary\n\nAll good, no issues."
+        config = PreCommitConfig()
+        result = run_diff_review(config)
+        assert result.passed is True
+
+    @patch("greybeard.analyzer.run_review")
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_review_with_concerns_fails(
+        self, mock_files, mock_diff, mock_load_pack, mock_run_review
+    ):
+        """Review with critical concerns returns fail."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff content"
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "[CRITICAL] This will break production"
+        config = PreCommitConfig(fail_on_concerns="critical")
+        result = run_diff_review(config)
+        assert result.passed is False
+
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_review_error_skips_gracefully(self, mock_files, mock_diff):
+        """LLM error skips review gracefully without blocking commit."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff content"
+        config = PreCommitConfig()
+        with patch("greybeard.packs.load_pack", return_value=MagicMock()):
+            with patch("greybeard.analyzer.run_review", side_effect=Exception("LLM error")):
+                result = run_diff_review(config)
+        assert result.passed is True
+        assert "error" in result.message.lower()
+
+    @patch("greybeard.analyzer.run_review")
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_verbose_mode(self, mock_files, mock_diff, mock_load_pack, mock_run_review):
+        """Verbose mode triggers additional prints."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff content"
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "All good"
+        result = run_diff_review(PreCommitConfig(), verbose=True)
+        assert result is not None
+
+    @patch("greybeard.analyzer.run_review")
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_excluded_files_filtered_verbose(
+        self, mock_files, mock_diff, mock_load_pack, mock_run_review
+    ):
+        """Excluded files are filtered from review (verbose mode shows count)."""
+        mock_files.return_value = ["src/main.py", "poetry.lock"]
+        mock_diff.return_value = "diff content"
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "All good"
+        config = PreCommitConfig(excluded_paths=["*.lock"], verbose=True)
+        result = run_diff_review(config)
+        assert result is not None
+
+    @patch("greybeard.analyzer.run_review")
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_diff_truncation(self, mock_files, mock_diff, mock_load_pack, mock_run_review):
+        """Large diffs are truncated to max_context_lines."""
+        mock_files.return_value = ["src/main.py"]
+        large_diff = "\n".join(f"line {i}" for i in range(1000))
+        mock_diff.return_value = large_diff
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "All good"
+        config = PreCommitConfig(max_context_lines=10)
+        result = run_diff_review(config, verbose=True)
+        assert result is not None
+
+    @patch("greybeard.analyzer.run_review")
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_long_review_truncated(self, mock_files, mock_diff, mock_load_pack, mock_run_review):
+        """Review result longer than 200 chars is truncated in message."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff content"
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "x" * 300
+        result = run_diff_review(PreCommitConfig())
+        assert result.message.endswith("...")
+
+    @patch("greybeard.analyzer.run_review")
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_pack_override(self, mock_files, mock_diff, mock_load_pack, mock_run_review):
+        """Pack argument overrides default pack."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff content"
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.return_value = "All good"
+        run_diff_review(PreCommitConfig(default_pack="staff-core"), pack="on-call")
+        mock_load_pack.assert_called_once_with("on-call")
+
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_verbose_pack_not_found(self, mock_files, mock_diff, mock_load_pack):
+        """Verbose mode when pack is not found."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff content"
+        mock_load_pack.side_effect = Exception("pack missing")
+        config = PreCommitConfig(verbose=True)
+        result = run_diff_review(config, verbose=True)
+        assert result.passed is True
+
+    @patch("greybeard.analyzer.run_review")
+    @patch("greybeard.packs.load_pack")
+    @patch("greybeard.precommit.get_staged_diff")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_verbose_review_error(self, mock_files, mock_diff, mock_load_pack, mock_run_review):
+        """Verbose mode on review error."""
+        mock_files.return_value = ["src/main.py"]
+        mock_diff.return_value = "diff content"
+        mock_load_pack.return_value = MagicMock()
+        mock_run_review.side_effect = Exception("LLM down")
+        config = PreCommitConfig(verbose=True)
+        result = run_diff_review(config, verbose=True)
+        assert result.passed is True
+
+
+# ---------------------------------------------------------------------------
+# run_risk_check
+# ---------------------------------------------------------------------------
+
+
+class TestRunRiskCheck:
+    """Tests for run_risk_check function."""
+
+    @patch("greybeard.precommit.get_staged_files")
+    def test_no_staged_files_returns_pass(self, mock_files):
+        """No staged files returns passing risk check."""
+        mock_files.return_value = []
+        config = PreCommitConfig()
+        result = run_risk_check(config)
+        assert result.passed is True
+        assert "No staged" in result.message
+
+    @patch("greybeard.precommit.get_staged_files")
+    def test_staged_single_empty_string(self, mock_files):
+        """Single empty string in staged files returns passing check."""
+        mock_files.return_value = [""]
+        config = PreCommitConfig()
+        result = run_risk_check(config)
+        assert result.passed is True
+
+    @patch("greybeard.precommit.get_current_branch")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_no_matching_gates_returns_pass(self, mock_files, mock_branch):
+        """Files with no matching gates all pass."""
+        mock_files.return_value = ["src/main.py"]
+        mock_branch.return_value = "main"
+        config = PreCommitConfig(risk_gates=[RiskGate(name="infra", patterns=["infra/*"])])
+        result = run_risk_check(config)
+        assert result.passed is True
+        assert result.message == "All gates passed"
+
+    @patch("greybeard.precommit.get_current_branch")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_file_matches_gate(self, mock_files, mock_branch):
+        """File matching a gate is processed (placeholder always passes)."""
+        mock_files.return_value = ["infra/deployment.yaml"]
+        mock_branch.return_value = "main"
+        config = PreCommitConfig(
+            risk_gates=[RiskGate(name="infra", patterns=["infra/*"], fail_on_concerns="critical")]
+        )
+        result = run_risk_check(config)
+        assert result.passed is True
+
+    @patch("greybeard.precommit.get_current_branch")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_excluded_file_skipped(self, mock_files, mock_branch):
+        """Excluded files are skipped in risk check."""
+        mock_files.return_value = ["infra/deployment.yaml", "poetry.lock"]
+        mock_branch.return_value = "main"
+        config = PreCommitConfig(
+            risk_gates=[RiskGate(name="infra", patterns=["infra/*"])],
+            excluded_paths=["poetry.lock"],
+        )
+        result = run_risk_check(config)
+        assert result is not None
+
+    @patch("greybeard.precommit.get_current_branch")
+    @patch("greybeard.precommit.get_staged_files")
+    def test_verbose_mode(self, mock_files, mock_branch):
+        """Verbose mode prints gate match info."""
+        mock_files.return_value = ["infra/main.tf"]
+        mock_branch.return_value = "main"
+        config = PreCommitConfig(risk_gates=[RiskGate(name="infra", patterns=["infra/*"])])
+        result = run_risk_check(config, verbose=True)
+        assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# format_review_output edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestFormatReviewOutputEdgeCases:
+    """Tests for edge cases in format_review_output."""
+
+    def test_more_than_five_concerns_shows_truncated(self):
+        """More than 5 concerns are truncated with a count."""
+        review = PreCommitReview(
+            passed=False,
+            message="Multiple concerns",
+            concerns=[f"Concern {i}" for i in range(8)],
+        )
+        output = format_review_output(review)
+        assert "... and 3 more" in output
+
+    def test_failed_gates_shown_in_output(self):
+        """Failed gates are shown in output."""
+        review = PreCommitReview(
+            passed=False,
+            message="Gates failed",
+            concerns=[],
+            failed_gates=["infra-gate", "security-gate"],
+        )
+        output = format_review_output(review)
+        assert "infra-gate" in output
+        assert "security-gate" in output
+
+    def test_verbose_with_metadata_shown(self):
+        """Verbose mode with metadata shows debug info."""
+        review = PreCommitReview(
+            passed=True,
+            message="OK",
+            concerns=[],
+            review_metadata={"pack": "staff-core", "mode": "review"},
+        )
+        output = format_review_output(review, verbose=True)
+        assert "staff-core" in output

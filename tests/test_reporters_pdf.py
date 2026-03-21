@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 from unittest.mock import patch
 
@@ -9,6 +10,11 @@ import pytest
 
 from greybeard.formatters import ReviewMetadata
 from greybeard.reporters.pdf import PDFReporter, _check_reportlab, to_pdf
+
+pytestmark = pytest.mark.skipif(
+    importlib.util.find_spec("reportlab") is None,
+    reason="reportlab not installed",
+)
 
 # ---------------------------------------------------------------------------
 # Sample data

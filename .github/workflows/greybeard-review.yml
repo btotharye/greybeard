@@ -3,7 +3,8 @@ name: Greybeard Code Review
 on:
   pull_request:
     branches: [main, develop]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [labeled]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,7 +16,11 @@ jobs:
     name: Staff-Level Code Review
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event.pull_request.draft == false
+    if: |
+      (github.event_name == 'pull_request' &&
+       github.event.label.name == 'greybeard-review' &&
+       github.event.pull_request.draft == false) ||
+      github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false

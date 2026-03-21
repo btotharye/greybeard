@@ -662,6 +662,7 @@ class TestConvertToPdf:
 
     def test_convert_to_pdf_generates_file(self, meta, tmp_path):
         """convert_to_pdf should delegate to reporters.pdf.to_pdf and return the path."""
+        pytest.importorskip("reportlab", reason="reportlab not installed")
         output = str(tmp_path / "report.pdf")
         from pathlib import Path
 

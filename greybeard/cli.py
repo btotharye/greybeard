@@ -1115,6 +1115,100 @@ def adr_list(repo) -> None:
 
 
 # ---------------------------------------------------------------------------
+# batch-analyze
+# ---------------------------------------------------------------------------
+
+
+@cli.command(name="batch-analyze")
+@click.argument(
+    "reviews",
+    nargs=-1,
+    required=True,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+)
+@click.option(
+    "--format",
+    "-f",
+    "output_format",
+    default="html",
+    type=click.Choice(["html", "markdown", "json"], case_sensitive=False),
+    help="Output format (default: html).",
+)
+@click.option(
+    "--output",
+    "-o",
+    default=None,
+    help="Output file path (default: batch-analysis.{format}).",
+)
+def batch_analyze(reviews: tuple[str, ...], output_format: str, output: str | None) -> None:
+    """Analyze and aggregate multiple reviews.
+
+    Combines multiple review outputs, deduplicates findings,
+    detects patterns and trends, and generates a dashboard.
+
+    \b
+    Examples:
+      greybeard batch-analyze review1.txt review2.txt review3.txt
+      greybeard batch-analyze *.txt --format html --output report.html
+      greybeard batch-analyze review*.txt --format markdown
+    """
+    from .batch_analyzer import BatchAnalyzer
+    from .reporters.dashboard import DashboardReporter
+
+    if not reviews:
+        console.print("[red]Error:[/red] At least one review file required.")
+        sys.exit(1)
+
+    # Load all reviews
+    analyzer = BatchAnalyzer()
+    console.print(f"[dim]Loading {len(reviews)} review(s)...[/dim]")
+
+    for review_path in reviews:
+        try:
+            content = Path(review_path).read_text()
+            analyzer.add_review(str(review_path), content)
+            console.print(f"  [green]✓[/green] {Path(review_path).name}")
+        except (FileNotFoundError, IOError) as e:
+            console.print(f"  [red]✗[/red] {Path(review_path).name}: {e}")
+            sys.exit(1)
+
+    # Analyze
+    console.print("[dim]Analyzing and aggregating findings...[/dim]")
+    aggregated = analyzer.analyze()
+
+    # Generate report
+    console.print(f"[dim]Generating {output_format} report...[/dim]")
+
+    output_path = output or f"batch-analysis.{output_format}"
+
+    if output_format == "html":
+        reporter = DashboardReporter(aggregated)
+        reporter.save_html(output_path)
+    elif output_format == "markdown":
+        analyzer.export_markdown(output_path)
+    elif output_format == "json":
+        analyzer.export_json(output_path)
+
+    console.print()
+    console.print(
+        Panel(
+            f"[bold green]Analysis Complete![/bold green]\n\n"
+            f"[dim]Reports:[/dim]\n"
+            f"  • [cyan]{output_path}[/cyan]\n"
+            f"[dim]Summary:[/dim]\n"
+            f"  • Reviews: {aggregated.total_reviews}\n"
+            f"  • Total findings: {aggregated.total_findings}\n"
+            f"  • Critical: [red]{aggregated.critical_count}[/red] | "
+            f"High: [yellow]{aggregated.high_count}[/yellow] | "
+            f"Medium: [bold yellow]{aggregated.medium_count}[/bold yellow]\n"
+            f"  • Recurring: {len(aggregated.recurring_findings)}",
+            title="📊 Batch Analysis Results",
+            border_style="green",
+        )
+    )
+
+
+# ---------------------------------------------------------------------------
 # slo-check
 # ---------------------------------------------------------------------------
 

@@ -6,7 +6,6 @@ the BaseAgent interface and using shared capabilities.
 
 from __future__ import annotations
 
-# Agents will be imported here as they are created
-# Example: from .reviews import ReviewsAgent
+from .slo_agent import ServiceType, SLOAgent, SLORecommendation, SLOTarget
 
-__all__ = []
+__all__ = ["SLOAgent", "SLORecommendation", "SLOTarget", "ServiceType"]

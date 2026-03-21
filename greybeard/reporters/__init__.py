@@ -2,4 +2,4 @@
 
 from __future__ import annotations
 
-__all__ = ["pdf"]
+__all__ = ["adr", "pdf"]

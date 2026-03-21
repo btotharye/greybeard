@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 import click
 from dotenv import load_dotenv
@@ -11,6 +12,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from .analyzer import run_review
+from .cli_slo import slo_check
 from .config import (
     CONFIG_FILE,
     KNOWN_BACKENDS,
@@ -976,3 +978,144 @@ def mcp() -> None:
     from .mcp_server import serve
 
     serve()
+
+
+# ---------------------------------------------------------------------------
+# adr-save (ADR generation from review)
+# ---------------------------------------------------------------------------
+
+
+@cli.command(name="adr-save")
+@click.option(
+    "--title",
+    "-t",
+    required=True,
+    help="ADR title (e.g., 'Use PostgreSQL for persistence').",
+)
+@click.option(
+    "--status",
+    "-s",
+    type=click.Choice(["Proposed", "Accepted", "Deprecated", "Superseded"]),
+    default="Proposed",
+    show_default=True,
+    help="ADR status.",
+)
+@click.option(
+    "--authors",
+    "-a",
+    multiple=True,
+    help="ADR author names (can be used multiple times).",
+)
+@click.option(
+    "--repo",
+    "-r",
+    default=None,
+    type=click.Path(exists=True, file_okay=False),
+    help="Path to target git repository (default: current directory).",
+)
+@click.option(
+    "--commit",
+    is_flag=True,
+    help="Auto-commit the ADR file to git.",
+)
+def adr_save(title, status, authors, repo, commit) -> None:
+    """Save a review as an Architecture Decision Record (ADR).
+
+    Reads the previous greybeard review from stdin and converts it to
+    a structured ADR with title, status, context, decision, consequences,
+    and alternatives.
+
+    \b
+    Examples:
+      greybeard analyze | greybeard adr-save --title "Use PostgreSQL"
+      greybeard analyze | greybeard adr-save --title "Migrate to gRPC" --status Accepted --commit
+      greybeard analyze | greybeard adr-save -t "Cache strategy" -a "alice" -a "bob"
+    """
+    from .reporters.adr import ADRReporter, ADRRepository
+
+    review_text = _read_stdin_if_available()
+    if not review_text:
+        console.print(
+            "[yellow]No review text provided.[/yellow] Pipe in a greybeard review output."
+        )
+        console.print("Example: greybeard analyze | greybeard adr-save --title '...'")
+        sys.exit(1)
+
+    # Generate ADR
+    reporter = ADRReporter(review_text, title=title)
+    adr = reporter.generate_adr(
+        status=status,  # type: ignore[arg-type]
+        authors=list(authors) if authors else None,
+    )
+
+    # Save to repository
+    repo_path = repo or Path.cwd()
+    adr_repo = ADRRepository(repo_path)
+
+    try:
+        filepath = adr_repo.save_adr(adr, auto_commit=commit)
+        console.print(f"[green]✓[/green] ADR saved to [bold]{filepath}[/bold]")
+        if commit:
+            console.print("[green]✓[/green] ADR committed to git")
+    except RuntimeError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        sys.exit(1)
+
+
+@cli.command(name="adr-list")
+@click.option(
+    "--repo",
+    "-r",
+    default=None,
+    type=click.Path(exists=True, file_okay=False),
+    help="Path to git repository (default: current directory).",
+)
+def adr_list(repo) -> None:
+    """List all Architecture Decision Records in a repository.
+
+    Shows title, status, and date for each ADR in docs/adr/.
+
+    \b
+    Examples:
+      greybeard adr-list
+      greybeard adr-list --repo /path/to/project
+    """
+    from .reporters.adr import ADRRepository
+
+    repo_path = repo or Path.cwd()
+    adr_repo = ADRRepository(repo_path)
+
+    adrs = adr_repo.list_adrs()
+
+    if not adrs:
+        console.print(f"[dim]No ADRs found in {adr_repo.adr_dir}[/dim]")
+        return
+
+    # Create a table
+    table = Table(title="Architecture Decision Records")
+    table.add_column("Number", style="cyan")
+    table.add_column("Title", style="white")
+    table.add_column("Status", style="magenta")
+    table.add_column("Date", style="dim")
+
+    for filepath, adr in adrs:
+        # Extract number from filename
+        filename = filepath.stem
+        num = filename.split("-")[0] if "-" in filename else "?"
+        status_color = {
+            "Proposed": "yellow",
+            "Accepted": "green",
+            "Deprecated": "red",
+            "Superseded": "dim",
+        }.get(adr.status, "white")
+        status_text = f"[{status_color}]{adr.status}[/{status_color}]"
+        table.add_row(num, adr.title, status_text, adr.date or "")
+
+    console.print(table)
+
+
+# ---------------------------------------------------------------------------
+# slo-check
+# ---------------------------------------------------------------------------
+
+cli.add_command(slo_check, "slo-check")

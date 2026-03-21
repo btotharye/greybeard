@@ -42,7 +42,7 @@ jobs:
 
       - name: Install greybeard
         run: |
-          uv pip install greybeard
+          uv pip install --system greybeard
 
       - name: Generate git diff
         id: diff

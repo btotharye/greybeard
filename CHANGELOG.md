@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-03-21
+
+### Fixed
+
+- **PDF report formatting**: text in risk and question table cells now wraps correctly
+  instead of overflowing/truncating — cells use `Paragraph` objects instead of plain strings
+- **PDF markdown rendering**: `**bold**`, `*italic*`, and `` `code` `` in LLM output are
+  now converted to ReportLab XML before rendering, eliminating literal `**` in the PDF
+- **PDF table header**: "Risk" / "Severity" header row now renders as white bold text on
+  the purple background (added dedicated `TableHeaderCell` style — `Paragraph` objects
+  ignore a table's `TEXTCOLOR` command)
+- **PDF severity labels**: replaced emoji severity indicators (`🔴🟠🟡`) which rendered
+  as `■` boxes in Helvetica with plain text `[CRITICAL]` / `[HIGH]` / `[MEDIUM]`
+- **PDF bullet stripping**: leading `* ` and `- ` bullet prefixes are now stripped from
+  risk cell content before rendering
+- **Test isolation**: `test_call_openai_compat_import_error` and
+  `test_call_anthropic_import_error` were defeating their own `sys.modules` mocks by
+  manually deleting the `None` sentinel, causing live API calls and spurious 401 failures
+
 ## [0.4.0] - 2026-03-21
 
 ### Added

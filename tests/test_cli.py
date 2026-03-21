@@ -173,6 +173,31 @@ class TestAnalyzeCommand:
         assert result.exit_code == 1
         assert "No input provided" in result.output
 
+    @patch("greybeard.cli.run_review")
+    @patch("greybeard.cli._read_stdin_if_available")
+    def test_analyze_pdf_format_requires_output(self, mock_stdin, mock_review, runner, mock_config):
+        """PDF format without --output prints error and exits 1."""
+        mock_stdin.return_value = "some diff"
+        mock_review.return_value = "Review output"
+
+        result = runner.invoke(cli, ["analyze", "--format", "pdf"])
+        assert result.exit_code == 1
+        assert "PDF export requires --output" in result.output
+
+    @patch("greybeard.cli.run_review")
+    @patch("greybeard.cli._read_stdin_if_available")
+    def test_analyze_pdf_format_with_output(self, mock_stdin, mock_review, runner, mock_config):
+        """PDF format with --output calls convert_to_pdf and exits 0."""
+        mock_stdin.return_value = "some diff"
+        mock_review.return_value = "Review output"
+
+        with patch("greybeard.formatters.convert_to_pdf", return_value="/tmp/report.pdf"):
+            result = runner.invoke(
+                cli, ["analyze", "--format", "pdf", "--output", "/tmp/report.pdf"]
+            )
+        assert result.exit_code == 0
+        assert "PDF report saved to" in result.output
+
 
 class TestSelfCheckCommand:
     """Test Self Check Command."""

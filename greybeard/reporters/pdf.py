@@ -37,15 +37,14 @@ def _check_reportlab() -> None:
 class PDFReporter:
     """Generate professional PDF reports for greybeard reviews."""
 
-    COLOR_HEADER = colors.HexColor("#2C3E50")
-    COLOR_ACCENT = colors.HexColor("#9B59B6")
-    COLOR_LIGHT_BG = colors.HexColor("#ECF0F1")
-    COLOR_BORDER = colors.HexColor("#BDC3C7")
-    COLOR_TEXT = colors.HexColor("#2C3E50")
-
     def __init__(self, markdown: str, meta: ReviewMetadata, pagesize: Any = letter):
         """Initialize the PDF reporter."""
         _check_reportlab()
+        self.COLOR_HEADER = colors.HexColor("#2C3E50")
+        self.COLOR_ACCENT = colors.HexColor("#9B59B6")
+        self.COLOR_LIGHT_BG = colors.HexColor("#ECF0F1")
+        self.COLOR_BORDER = colors.HexColor("#BDC3C7")
+        self.COLOR_TEXT = colors.HexColor("#2C3E50")
         self.markdown = markdown
         self.meta = meta
         self.pagesize = pagesize

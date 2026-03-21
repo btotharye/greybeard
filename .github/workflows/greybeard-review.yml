@@ -53,10 +53,10 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          REVIEW_OUTPUT=$(cat /tmp/pr.diff | greybeard analyze \
+          REVIEW_OUTPUT=$(greybeard analyze \
             --pack "${{ matrix.pack }}" \
             --mode review \
-            --format markdown 2>&1)
+            --format markdown < /tmp/pr.diff 2>&1) || true
           echo "$REVIEW_OUTPUT" > /tmp/review_${{ matrix.pack }}.md
 
       - name: Check for blocking issues

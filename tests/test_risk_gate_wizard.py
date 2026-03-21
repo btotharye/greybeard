@@ -1144,3 +1144,379 @@ class TestErrorHandling:
         assert loaded["verbose"] is True
         assert loaded["skip_unstaged"] is True
         assert len(loaded["excluded_paths"]) == 3
+
+
+# ---------------------------------------------------------------------------
+# Full wizard integration tests with aggressive mocking
+# ---------------------------------------------------------------------------
+
+
+class TestWizardRunIntegration:
+    """Integration tests for run_risk_gate_wizard() focusing on uncovered code paths."""
+
+    def test_run_wizard_minimal_no_file(self, tmp_path):
+        """Test wizard with minimal config, file doesn't exist."""
+        output_file = tmp_path / "test.yaml"
+
+        with patch("click.confirm") as mock_confirm:
+            with patch("greybeard.wizards.risk_gate_wizard.click.prompt") as mock_prompt:
+                with patch(
+                    "greybeard.wizards.risk_gate_wizard._list_available_packs",
+                    return_value=["staff-core"],
+                ):
+                    with patch(
+                        "greybeard.wizards.risk_gate_wizard._validate_repo_structure",
+                        return_value={
+                            "has_git": True,
+                            "has_pyproject": True,
+                            "has_precommit": True,
+                            "has_github_workflows": True,
+                        },
+                    ):
+                        with patch(
+                            "greybeard.wizards.risk_gate_wizard._prompt_list",
+                            return_value=[],
+                        ):
+                            # File doesn't exist, so no "Load existing?"
+                            mock_confirm.side_effect = [
+                                True,  # Enable
+                                False,  # Skip unstaged
+                                False,  # Add gate
+                                True,  # Save
+                            ]
+                            mock_prompt.return_value = "staff-core"
+
+                            from greybeard.wizards.risk_gate_wizard import run_risk_gate_wizard
+
+                            result = run_risk_gate_wizard(str(output_file))
+                            assert result == output_file
+                            assert output_file.exists()
+
+    def test_run_wizard_disabled_integration(self, tmp_path):
+        """Test disabling pre-commit integration."""
+        output_file = tmp_path / "config.yaml"
+
+        with patch("click.confirm") as mock_confirm:
+            with patch("greybeard.wizards.risk_gate_wizard.click.prompt") as mock_prompt:
+                with patch(
+                    "greybeard.wizards.risk_gate_wizard._list_available_packs",
+                    return_value=["staff-core"],
+                ):
+                    with patch(
+                        "greybeard.wizards.risk_gate_wizard._validate_repo_structure",
+                        return_value={
+                            "has_git": True,
+                            "has_pyproject": True,
+                            "has_precommit": True,
+                            "has_github_workflows": True,
+                        },
+                    ):
+                        with patch(
+                            "greybeard.wizards.risk_gate_wizard._prompt_list",
+                            return_value=[],
+                        ):
+                            mock_confirm.side_effect = [
+                                False,  # Enable? (NO)
+                                False,  # Skip unstaged
+                                False,  # Add gate
+                                True,  # Save
+                            ]
+                            mock_prompt.return_value = "staff-core"
+
+                            from greybeard.wizards.risk_gate_wizard import run_risk_gate_wizard
+
+                            result = run_risk_gate_wizard(str(output_file))
+                            with output_file.open() as f:
+                                config = yaml.safe_load(f)
+                            assert config["enabled"] is False
+
+    def test_run_wizard_add_single_gate_template(self, tmp_path):
+        """Test adding one gate from template."""
+        output_file = tmp_path / "config.yaml"
+
+        with patch("click.confirm") as mock_confirm:
+            with patch("greybeard.wizards.risk_gate_wizard.click.prompt") as mock_prompt:
+                with patch(
+                    "greybeard.wizards.risk_gate_wizard._list_available_packs",
+                    return_value=["staff-core", "security"],
+                ):
+                    with patch(
+                        "greybeard.wizards.risk_gate_wizard._validate_repo_structure",
+                        return_value={
+                            "has_git": True,
+                            "has_pyproject": True,
+                            "has_precommit": True,
+                            "has_github_workflows": True,
+                        },
+                    ):
+                        with patch(
+                            "greybeard.wizards.risk_gate_wizard._prompt_list",
+                            return_value=[],
+                        ):
+                            with patch(
+                                "greybeard.wizards.risk_gate_wizard._select_template",
+                                return_value="critical",
+                            ):
+                                mock_confirm.side_effect = [
+                                    True,  # Enable
+                                    False,  # Skip unstaged
+                                    True,  # Add gate?
+                                    False,  # Customize template?
+                                    False,  # Add another?
+                                    True,  # Save
+                                ]
+                                mock_prompt.return_value = "staff-core"
+
+                                from greybeard.wizards.risk_gate_wizard import run_risk_gate_wizard
+
+                                result = run_risk_gate_wizard(str(output_file))
+                                with output_file.open() as f:
+                                    config = yaml.safe_load(f)
+                                assert len(config["risk_gates"]) == 1
+                                assert config["risk_gates"][0]["name"] == "critical"
+
+    def test_run_wizard_add_custom_gate_with_patterns(self, tmp_path):
+        """Test adding custom gate with patterns and branch skip."""
+        output_file = tmp_path / "config.yaml"
+
+        with patch("click.confirm") as mock_confirm:
+            with patch("greybeard.wizards.risk_gate_wizard.click.prompt") as mock_prompt:
+                with patch(
+                    "greybeard.wizards.risk_gate_wizard._list_available_packs",
+                    return_value=["staff-core"],
+                ):
+                    with patch(
+                        "greybeard.wizards.risk_gate_wizard._validate_repo_structure",
+                        return_value={
+                            "has_git": True,
+                            "has_pyproject": True,
+                            "has_precommit": True,
+                            "has_github_workflows": True,
+                        },
+                    ):
+                        with patch(
+                            "greybeard.wizards.risk_gate_wizard._prompt_list"
+                        ) as mock_list:
+                            with patch(
+                                "greybeard.wizards.risk_gate_wizard._select_template",
+                                return_value=None,  # Custom
+                            ):
+                                with patch(
+                                    "greybeard.wizards.risk_gate_wizard._select_packs",
+                                    return_value=["staff-core"],
+                                ):
+                                    with patch(
+                                        "greybeard.wizards.risk_gate_wizard._select_severity_threshold",
+                                        return_value="high",
+                                    ):
+                                        mock_list.side_effect = [
+                                            [],  # Excluded
+                                            ["src/**/*.py"],  # Patterns
+                                            ["hotfix/*", "emergency/*"],  # Skip branches
+                                        ]
+                                        mock_confirm.side_effect = [
+                                            True,  # Enable
+                                            False,  # Skip unstaged
+                                            True,  # Add gate?
+                                            False,  # Add another?
+                                            True,  # Save
+                                        ]
+                                        mock_prompt.return_value = "staff-core"
+
+                                        from greybeard.wizards.risk_gate_wizard import run_risk_gate_wizard
+
+                                        result = run_risk_gate_wizard(str(output_file))
+                                        with output_file.open() as f:
+                                            config = yaml.safe_load(f)
+                                        assert len(config["risk_gates"]) == 1
+                                        gate = config["risk_gates"][0]
+                                        assert "src/**/*.py" in gate["patterns"]
+                                        assert "hotfix/*" in gate["skip_if_branch"]
+
+    def test_run_wizard_customize_template_to_custom(self, tmp_path):
+        """Test selecting template then customizing it (force custom flow)."""
+        output_file = tmp_path / "config.yaml"
+
+        with patch("click.confirm") as mock_confirm:
+            with patch("greybeard.wizards.risk_gate_wizard.click.prompt") as mock_prompt:
+                with patch(
+                    "greybeard.wizards.risk_gate_wizard._list_available_packs",
+                    return_value=["staff-core"],
+                ):
+                    with patch(
+                        "greybeard.wizards.risk_gate_wizard._validate_repo_structure",
+                        return_value={
+                            "has_git": True,
+                            "has_pyproject": True,
+                            "has_precommit": True,
+                            "has_github_workflows": True,
+                        },
+                    ):
+                        with patch(
+                            "greybeard.wizards.risk_gate_wizard._prompt_list"
+                        ) as mock_list:
+                            with patch(
+                                "greybeard.wizards.risk_gate_wizard._select_template",
+                                return_value="critical",
+                            ):
+                                with patch(
+                                    "greybeard.wizards.risk_gate_wizard._select_packs",
+                                    return_value=["staff-core"],
+                                ):
+                                    with patch(
+                                        "greybeard.wizards.risk_gate_wizard._select_severity_threshold",
+                                        return_value="medium",
+                                    ):
+                                        mock_list.side_effect = [
+                                            [],  # Excluded
+                                            ["custom/patterns"],  # Override template patterns
+                                            [],  # Skip branches
+                                        ]
+                                        # Load, enable, skip unstaged, add gate,
+                                        # customize=YES (forces custom flow), add another=no, save
+                                        mock_confirm.side_effect = [
+                                            True,  # Enable
+                                            False,  # Skip unstaged
+                                            True,  # Add gate?
+                                            True,  # Customize template? (YES)
+                                            False,  # Add another?
+                                            True,  # Save
+                                        ]
+                                        mock_prompt.return_value = "staff-core"
+
+                                        from greybeard.wizards.risk_gate_wizard import run_risk_gate_wizard
+
+                                        result = run_risk_gate_wizard(str(output_file))
+                                        # Gate is created through custom flow
+                                        with output_file.open() as f:
+                                            config = yaml.safe_load(f)
+                                        assert len(config["risk_gates"]) == 1
+
+    def test_run_wizard_multiple_gates_sequential(self, tmp_path):
+        """Test adding multiple gates one after another."""
+        output_file = tmp_path / "config.yaml"
+
+        with patch("click.confirm") as mock_confirm:
+            with patch("greybeard.wizards.risk_gate_wizard.click.prompt") as mock_prompt:
+                with patch(
+                    "greybeard.wizards.risk_gate_wizard._list_available_packs",
+                    return_value=["staff-core"],
+                ):
+                    with patch(
+                        "greybeard.wizards.risk_gate_wizard._validate_repo_structure",
+                        return_value={
+                            "has_git": True,
+                            "has_pyproject": True,
+                            "has_precommit": True,
+                            "has_github_workflows": True,
+                        },
+                    ):
+                        with patch(
+                            "greybeard.wizards.risk_gate_wizard._prompt_list",
+                            return_value=[],
+                        ):
+                            with patch(
+                                "greybeard.wizards.risk_gate_wizard._select_template"
+                            ) as mock_template:
+                                mock_template.side_effect = ["critical", "high"]
+
+                                mock_confirm.side_effect = [
+                                    True,  # Enable
+                                    False,  # Skip unstaged
+                                    True,  # Add gate 1?
+                                    False,  # Customize gate 1?
+                                    True,  # Add gate 2?
+                                    False,  # Customize gate 2?
+                                    False,  # Add another?
+                                    True,  # Save
+                                ]
+                                mock_prompt.return_value = "staff-core"
+
+                                from greybeard.wizards.risk_gate_wizard import run_risk_gate_wizard
+
+                                result = run_risk_gate_wizard(str(output_file))
+                                with output_file.open() as f:
+                                    config = yaml.safe_load(f)
+                                assert len(config["risk_gates"]) == 2
+                                assert config["risk_gates"][0]["name"] == "critical"
+                                assert config["risk_gates"][1]["name"] == "high"
+
+    def test_run_wizard_excluded_paths(self, tmp_path):
+        """Test setting excluded paths."""
+        output_file = tmp_path / "config.yaml"
+
+        with patch("click.confirm") as mock_confirm:
+            with patch("greybeard.wizards.risk_gate_wizard.click.prompt") as mock_prompt:
+                with patch(
+                    "greybeard.wizards.risk_gate_wizard._list_available_packs",
+                    return_value=["staff-core"],
+                ):
+                    with patch(
+                        "greybeard.wizards.risk_gate_wizard._validate_repo_structure",
+                        return_value={
+                            "has_git": True,
+                            "has_pyproject": True,
+                            "has_precommit": True,
+                            "has_github_workflows": True,
+                        },
+                    ):
+                        with patch(
+                            "greybeard.wizards.risk_gate_wizard._prompt_list"
+                        ) as mock_list:
+                            mock_list.return_value = [".venv/*", "build/*"]
+
+                            mock_confirm.side_effect = [
+                                True,  # Enable
+                                False,  # Skip unstaged
+                                False,  # Add gate
+                                True,  # Save
+                            ]
+                            mock_prompt.return_value = "staff-core"
+
+                            from greybeard.wizards.risk_gate_wizard import run_risk_gate_wizard
+
+                            result = run_risk_gate_wizard(str(output_file))
+                            with output_file.open() as f:
+                                config = yaml.safe_load(f)
+                            assert len(config["excluded_paths"]) == 2
+                            assert ".venv/*" in config["excluded_paths"]
+
+    def test_run_wizard_skip_unstaged_true(self, tmp_path):
+        """Test enabling skip_unstaged changes."""
+        output_file = tmp_path / "config.yaml"
+
+        with patch("click.confirm") as mock_confirm:
+            with patch("greybeard.wizards.risk_gate_wizard.click.prompt") as mock_prompt:
+                with patch(
+                    "greybeard.wizards.risk_gate_wizard._list_available_packs",
+                    return_value=["staff-core"],
+                ):
+                    with patch(
+                        "greybeard.wizards.risk_gate_wizard._validate_repo_structure",
+                        return_value={
+                            "has_git": True,
+                            "has_pyproject": True,
+                            "has_precommit": True,
+                            "has_github_workflows": True,
+                        },
+                    ):
+                        with patch(
+                            "greybeard.wizards.risk_gate_wizard._prompt_list",
+                            return_value=[],
+                        ):
+                            mock_confirm.side_effect = [
+                                True,  # Enable
+                                True,  # Skip unstaged? (YES)
+                                False,  # Add gate
+                                True,  # Save
+                            ]
+                            mock_prompt.return_value = "staff-core"
+
+                            from greybeard.wizards.risk_gate_wizard import run_risk_gate_wizard
+
+                            result = run_risk_gate_wizard(str(output_file))
+                            with output_file.open() as f:
+                                config = yaml.safe_load(f)
+                            assert config["skip_unstaged"] is True
+
+

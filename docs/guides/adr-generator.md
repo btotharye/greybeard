@@ -471,5 +471,5 @@ greybeard analyze < design.md | \
 ## See Also
 
 - [ADR Format Standard](https://adr.github.io/)
-- [greybeard Analyze Guide](./getting-started.md)
-- [Decision History](./history.md)
+- [greybeard Quick Start](../getting-started/quickstart.md)
+- [Creating Agents](./creating_agents.md)

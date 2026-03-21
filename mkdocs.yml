@@ -65,6 +65,7 @@ nav:
       - Saving Output: guides/output.md
       - Interactive Mode: guides/interactive-mode.md
       - Creating Agents: guides/creating_agents.md
+      - ADR Generator: guides/adr-generator.md
   - Reference:
       - CLI Reference: reference/cli.md
       - Pack Schema: reference/pack-schema.md

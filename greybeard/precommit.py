@@ -214,9 +214,7 @@ def should_skip_file(file_path: str, excluded_patterns: list[str]) -> bool:
     return False
 
 
-def get_applicable_gate(
-    file_path: str, gates: list[RiskGate], branch: str
-) -> RiskGate | None:
+def get_applicable_gate(file_path: str, gates: list[RiskGate], branch: str) -> RiskGate | None:
     """Find the first applicable risk gate for a file."""
     import fnmatch
 
@@ -236,12 +234,8 @@ def extract_diff_context(diff_text: str, max_lines: int = 500) -> str:
         return diff_text
 
     # Keep the header and first N lines of the diff
-    header_lines = [
-        line for line in lines[:10] if line.startswith("diff --git")
-    ]
-    content_lines = [
-        line for line in lines if not line.startswith("diff --git")
-    ]
+    header_lines = [line for line in lines[:10] if line.startswith("diff --git")]
+    content_lines = [line for line in lines if not line.startswith("diff --git")]
 
     allowed_content = content_lines[: max_lines - len(header_lines)]
     return "\n".join(header_lines + allowed_content) + "\n[... truncated ...]"
@@ -278,9 +272,7 @@ class PreCommitReview:
         )
 
 
-def analyze_review_output(
-    review_text: str, concern_level_threshold: str
-) -> tuple[bool, list[str]]:
+def analyze_review_output(review_text: str, concern_level_threshold: str) -> tuple[bool, list[str]]:
     """Parse greybeard review output to extract concerns and determine pass/fail.
 
     Args:
@@ -305,10 +297,7 @@ def analyze_review_output(
         lower_line = line.lower()
         for level_name, level_val in SEVERITY_ORDER.items():
             if level_val <= threshold_val:
-                if (
-                    f"[{level_name}]" in lower_line
-                    or f"**{level_name}**" in lower_line
-                ):
+                if f"[{level_name}]" in lower_line or f"**{level_name}**" in lower_line:
                     concerns.append(line.strip())
 
     passed = len(concerns) == 0
@@ -334,17 +323,13 @@ def run_diff_review(
 
     if not staged_files or (len(staged_files) == 1 and staged_files[0] == ""):
         if not config.allow_empty_commits:
-            return PreCommitReview(
-                passed=True, message="No staged changes to review", concerns=[]
-            )
+            return PreCommitReview(passed=True, message="No staged changes to review", concerns=[])
 
     if verbose or config.verbose:
         console.print(f"[dim]Staged files: {staged_files}[/dim]")
 
     # Filter excluded files
-    filtered_files = [
-        f for f in staged_files if not should_skip_file(f, config.excluded_paths)
-    ]
+    filtered_files = [f for f in staged_files if not should_skip_file(f, config.excluded_paths)]
     excluded_count = len(staged_files) - len(filtered_files)
     if excluded_count > 0 and (verbose or config.verbose):
         console.print(f"[dim]Excluded {excluded_count} file(s) from review[/dim]")
@@ -352,9 +337,7 @@ def run_diff_review(
     # Get diff
     diff_text = get_staged_diff()
     if not diff_text.strip():
-        return PreCommitReview(
-            passed=True, message="No changes to review", concerns=[]
-        )
+        return PreCommitReview(passed=True, message="No changes to review", concerns=[])
 
     # Truncate if needed
     if len(diff_text.split("\n")) > config.max_context_lines:
@@ -376,27 +359,21 @@ def run_diff_review(
             loaded_pack = load_pack(pack_name)
         except Exception as e:
             if verbose or config.verbose:
-                console.print(
-                    f"[yellow]⚠️  Could not load pack {pack_name}: {e}[/yellow]"
-                )
+                console.print(f"[yellow]⚠️  Could not load pack {pack_name}: {e}[/yellow]")
             return PreCommitReview(
                 passed=True,
                 message=f"Review skipped: pack '{pack_name}' not found",
                 concerns=[],
             )
 
-        request = ReviewRequest(
-            input_text=diff_text, mode="review", pack=loaded_pack
-        )
+        request = ReviewRequest(input_text=diff_text, mode="review", pack=loaded_pack)
 
         review_result = run_review(request)
         passed, concerns = analyze_review_output(review_result, config.fail_on_concerns)
 
         return PreCommitReview(
             passed=passed,
-            message=review_result[:200] + "..."
-            if len(review_result) > 200
-            else review_result,
+            message=review_result[:200] + "..." if len(review_result) > 200 else review_result,
             concerns=concerns,
             review_metadata={"pack": pack_name, "mode": "review"},
         )
@@ -457,9 +434,7 @@ def run_risk_check(config: PreCommitConfig, verbose: bool = False) -> PreCommitR
 
     passed = len(failed_gates) == 0
     message = (
-        f"Risk check: {len(failed_gates)} gate(s) failed"
-        if failed_gates
-        else "All gates passed"
+        f"Risk check: {len(failed_gates)} gate(s) failed" if failed_gates else "All gates passed"
     )
     return PreCommitReview(
         passed=passed,

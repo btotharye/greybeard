@@ -145,6 +145,113 @@ The patterns are Python regexes matched against the current branch name.
 
 ---
 
+## False Positives and Alert Fatigue
+
+The most common misconfiguration is a gate set to `fail_on_concerns: low` with broad file
+patterns. This blocks commits for innocuous reasons — a `TODO: reduce risk` comment, a
+variable named `concern_level`, or a docstring mentioning "security considerations".
+
+### Calibrate thresholds correctly
+
+`fail_on_concerns` maps directly to the concern level in the LLM's review output:
+
+| Level      | Blocks on…                                     | When to use                       |
+| ---------- | ---------------------------------------------- | --------------------------------- |
+| `critical` | Critical concerns only                         | Hotfix branches, legacy codebases |
+| `high`     | High and critical concerns (**recommended**)   | Most application code             |
+| `medium`   | Medium, high, and critical                     | Sensitive paths (infra, auth)     |
+| `low`      | Everything — **very noisy, avoid for commits** | Reporting only, not commit gating |
+| `none`     | Never blocks                                   | Docs, generated files             |
+
+Start with `fail_on_concerns: high` at the repo level. Raise it to `medium` only for
+specific high-risk gates. Never set `low` on a gate that applies to generic source files.
+
+### Exclude noisy paths
+
+```yaml
+# .greybeard-precommit.yaml
+excluded_paths:
+  - "vendor/**"
+  - "third_party/**"
+  - "**/*_generated.go"
+  - "**/*.pb.py" # protobuf generated code
+  - "migrations/**" # if your team reviews these separately
+```
+
+### Mark doc-only and test paths as non-blocking
+
+```yaml
+risk_gates:
+  - name: docs-and-tests
+    patterns:
+      - "docs/**"
+      - "*.md"
+      - "tests/**"
+      - "**/*_test.py"
+    fail_on_concerns: none # informational only — never blocks
+```
+
+### Skip a single commit (not the whole repo)
+
+If a commit is safe but a gate is incorrectly flagging it, use the pre-commit framework's
+built-in per-commit skip. This does not change any config and leaves no persistent trace:
+
+```bash
+SKIP=greybeard-precommit-diff git commit -m "feat: my safe change"
+```
+
+This should be used sparingly and not as a routine workaround. If you're reaching for
+`SKIP=` regularly, the gate threshold is wrong — fix the config instead.
+
+### Track false positive rate
+
+If developers are routinely using `SKIP=` or complaining about blocked commits:
+
+1. Run `greybeard-precommit diff --verbose` on recent false-positive commits to see
+   exactly what triggered the gate.
+2. Adjust the gate's `fail_on_concerns` up, or narrow its `patterns`.
+3. Record the change in the YAML comments (see [Ownership Model](#ownership-model)).
+4. PR the gate change with the owner as a required reviewer.
+
+---
+
+## Reading the Output
+
+When a commit is blocked, greybeard prints:
+
+```
+✗ Review failed — commit blocked
+
+<brief summary from the LLM>
+
+Concerns:
+  • [HIGH] Authentication tokens stored without expiry
+  • [HIGH] Missing input validation on user_id parameter
+
+Failed gates: auth-and-secrets
+
+What to do:
+  1. Address the concerns above and re-commit.
+  2. Run greybeard-precommit diff --verbose to see the full review.
+  3. If this is a false positive, open a PR to adjust the gate in
+     .greybeard-precommit.yaml.
+  4. To skip this commit only (use sparingly):
+     SKIP=greybeard-precommit-diff git commit -m '...'
+  5. To disable all greybeard hooks immediately, set enabled: false
+     in .greybeard-precommit.yaml.
+```
+
+**Interpreting the concerns list:**
+
+- Concerns are extracted directly from the LLM's structured output — they reflect the
+  reviewer's reasoning, not just keyword matches.
+- The list shows up to 5 concerns. Run `--verbose` to see all of them and the full
+  review text.
+- `Failed gates:` tells you which gate triggered, so you know exactly which rule to
+  look at in `.greybeard-precommit.yaml`.
+
+---
+
 ## Ownership Model
 
 `.greybeard-precommit.yaml` is **platform/infra team configuration**, not personal tooling.
@@ -271,6 +378,20 @@ uv tool install "greybeard[anthropic]"
 
 Check your glob patterns with `greybeard-precommit config show`.
 Patterns use standard Python `fnmatch`/`glob` syntax — `**` requires Python 3.5+ glob.
+
+**Commit blocked — what do I do?**
+
+Read the `Concerns:` section in the output — it lists the specific issues found.
+Run `greybeard-precommit diff --verbose` for the full review. If the block is correct,
+fix the code. If it's a false positive, use `SKIP=greybeard-precommit-diff` for this
+commit and open a PR to tune the gate threshold.
+
+**Gate is blocking on a word like "risk" or "concern" in a comment**
+
+This is a false positive. The LLM-based reviewer evaluates the actual code change, not
+individual keywords — but gates with broad file patterns and low thresholds can still
+produce noise. Raise `fail_on_concerns` to `high` or `critical` for the triggering gate,
+or add the file to `excluded_paths`. See [False Positives](#false-positives-and-alert-fatigue).
 
 **Commit blocked unexpectedly after a greybeard update**
 

@@ -273,6 +273,29 @@ To adjust:
     truncate -s 100k /tmp/pr.diff   # smaller = cheaper, faster
 ```
 
+### Expected latency
+
+The 15-minute job timeout is generous for typical PRs. Actual latency depends on diff
+size and model:
+
+| Diff size                 | Haiku (~2s/1k tokens) | Sonnet (~4s/1k tokens) | Typical wall-clock                      |
+| ------------------------- | --------------------- | ---------------------- | --------------------------------------- |
+| Small (< 50 lines)        | < 5s                  | < 10s                  | 15–30s total (install + auth + analyze) |
+| Medium (~200 lines)       | ~10s                  | ~20s                   | 30–60s                                  |
+| Large (~500 lines)        | ~20s                  | ~40s                   | 60–90s                                  |
+| Max (200KB / ~50k tokens) | ~90s                  | ~3 min                 | 4–5 min                                 |
+
+The workflow wraps `greybeard analyze` in an explicit **8-minute timeout** (`timeout 8m`).
+If the LLM is slow or the API is degraded, the step exits with code 124, which triggers
+the same `neutral` check + `⚠️ Review unavailable` comment used for other failures — the
+job does not hang for 15 minutes and does not silently succeed.
+
+If you see frequent timeouts:
+
+- Reduce the diff cap: `truncate -s 100k /tmp/pr.diff`
+- Switch from Sonnet to Haiku for speed
+- Check [status.anthropic.com](https://status.anthropic.com) for API slowdowns
+
 ### Cost monitoring
 
 There is no built-in budget cap in the workflow — that's managed at the Anthropic account level.
@@ -369,6 +392,20 @@ repos:
   - repo: https://github.com/btotharye/greybeard
     rev: v0.7.0 # pin to a specific release
 ```
+
+**Job timed out — no review posted**
+
+The 8-minute per-step timeout fired, which means the LLM took longer than expected.
+This sets the check to `neutral` and posts a `⚠️ Review unavailable` comment — the PR
+is not blocked.
+
+Common causes and fixes:
+
+- **Large diff**: reduce with `truncate -s 100k /tmp/pr.diff`
+- **Slow model**: switch from `claude-sonnet-4-6` to `claude-haiku-4-5-20251001`
+- **API degradation**: check [status.anthropic.com](https://status.anthropic.com); re-run once resolved
+- **Persistent timeouts**: increase the timeout in the workflow by changing `timeout 8m` to `timeout 12m`
+  (must stay under the 15-minute job limit)
 
 **Reviews are too expensive**
 

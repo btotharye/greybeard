@@ -66,7 +66,10 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          REVIEW_OUTPUT=$(greybeard analyze \
+          # Explicit 8-minute timeout — well within the 15-minute job limit.
+          # If the LLM is slow or the diff is large, this exits with code 124
+          # (timeout), which triggers the "Review unavailable" path below.
+          REVIEW_OUTPUT=$(timeout 8m greybeard analyze \
             --pack "${{ matrix.pack }}" \
             --mode review \
             --format markdown < /tmp/pr.diff 2>&1)

@@ -465,6 +465,19 @@ def format_review_output(review: PreCommitReview, verbose: bool = False) -> str:
     if review.failed_gates:
         lines.append(f"\n[red]Failed gates:[/red] {', '.join(review.failed_gates)}")
 
+    if not review.passed:
+        lines.append(
+            "\n[dim]What to do:[/dim]\n"
+            "  1. Address the concerns above and re-commit.\n"
+            "  2. Run [bold]greybeard-precommit diff --verbose[/bold] to see the full review.\n"
+            "  3. If this is a false positive, open a PR to adjust the gate in "
+            "[bold].greybeard-precommit.yaml[/bold].\n"
+            "  4. To skip [italic]this commit only[/italic] (use sparingly):\n"
+            "     [bold]SKIP=greybeard-precommit-diff git commit -m '...'[/bold]\n"
+            "  5. To disable all greybeard hooks immediately, set "
+            "[bold]enabled: false[/bold] in [bold].greybeard-precommit.yaml[/bold]."
+        )
+
     if verbose and review.review_metadata:
         lines.append(f"\n[dim]Metadata: {review.review_metadata}[/dim]")
 

@@ -631,9 +631,7 @@ class TestCliFormatFlag:
                 assert result.exit_code == 0, f"format={fmt} failed: {result.output}"
 
             # PDF requires --output
-            result = runner.invoke(
-                cli, ["analyze", "--format", "pdf", "--output", "/tmp/test.pdf"]
-            )
+            result = runner.invoke(cli, ["analyze", "--format", "pdf", "--output", "/tmp/test.pdf"])
             # Mock doesn't have convert_to_pdf, so this will fail, but that's OK
             # We're just testing the CLI accepts the format with output path
 

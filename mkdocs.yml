@@ -59,6 +59,7 @@ nav:
   - Guides:
       - LLM Backends: guides/backends.md
       - Content Packs: guides/packs.md
+      - GitHub Actions: guides/github-actions.md
       - MCP Integration: guides/mcp.md
       - Saving Output: guides/output.md
       - Interactive Mode: guides/interactive-mode.md

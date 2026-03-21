@@ -1,0 +1,264 @@
+# GitHub Actions Integration
+
+greybeard can run as a GitHub Actions workflow, posting staff-level PR review comments across
+three parallel perspectives: engineering quality, operational risk, and security.
+
+---
+
+## How It Works
+
+The workflow triggers when you add the `greybeard-review` label to a PR (or manually from the
+Actions tab). It runs three jobs in parallel — one per review pack — each posting its own comment
+to the PR.
+
+```
+Label added → workflow triggers → 3 jobs run in parallel
+                                   ├── staff-core        → 🧙 PR comment
+                                   ├── oncall-future-you → 📟 PR comment
+                                   └── security-reviewer → 🔒 PR comment
+                                        ↓
+                               GitHub Check status set (pass/fail)
+```
+
+---
+
+## Setup
+
+### 1. Copy the workflow file
+
+```bash
+mkdir -p .github/workflows
+curl -L https://raw.githubusercontent.com/btotharye/greybeard/main/.github/workflows/greybeard-review.yml \
+  -o .github/workflows/greybeard-review.yml
+```
+
+### 2. Add your API key as a Secret
+
+Go to your repo → **Settings → Secrets and variables → Actions → New repository secret**.
+
+| Secret name         | Value                                                                |
+| ------------------- | -------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY` | Your key from [console.anthropic.com](https://console.anthropic.com) |
+
+`GITHUB_TOKEN` is provided automatically — no setup needed.
+
+### 3. Create the trigger label
+
+Go to your repo → **Issues → Labels → New label**:
+
+- **Name:** `greybeard-review`
+- **Color:** `#6f42c1` (purple) or any colour you like
+
+### 4. Trigger your first review
+
+Open a PR (or find an existing one) and add the `greybeard-review` label. The workflow will
+appear under the **Actions** tab within seconds.
+
+---
+
+## Trigger Modes
+
+The bundled workflow supports two trigger modes:
+
+### Label-based (default — recommended)
+
+Only runs when you explicitly add the `greybeard-review` label to a PR.
+
+```yaml
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+```
+
+**Pros:** Full cost control. No surprise charges from routine pushes.
+**Cons:** You have to remember to add the label.
+
+### Automatic (every PR push)
+
+To run on every push to an open PR, change the trigger:
+
+```yaml
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+```
+
+**Pros:** Never miss a review.
+**Cons:** Costs money on every push. For a busy repo with frequent commits, this adds up.
+
+### Manual dispatch only
+
+To disable automatic triggering entirely and only allow manual runs from the Actions tab:
+
+```yaml
+on:
+  workflow_dispatch:
+```
+
+---
+
+## Cost Management
+
+### Model selection
+
+The workflow uses **Claude Haiku** by default — the fastest and most cost-effective option.
+
+| Model                                  | Input / Output (per MTok) | ~Cost per 3-pack review |
+| -------------------------------------- | ------------------------- | ----------------------- |
+| `claude-haiku-4-5-20251001` ✅ default | $1 / $5                   | ~$0.05–0.20             |
+| `claude-sonnet-4-6`                    | $3 / $15                  | ~$0.30–1.00             |
+| `claude-opus-4-6`                      | $5 / $25                  | ~$0.50–2.00+            |
+
+To switch models, update the **Configure Anthropic backend** step in the workflow:
+
+```yaml
+- name: Configure Anthropic backend
+  run: |
+    greybeard config set llm.backend anthropic
+    greybeard config set llm.model claude-sonnet-4-6
+```
+
+### Diff size
+
+The workflow truncates the diff to 400KB before sending it to the LLM. For very large PRs
+this means the review covers the most important (earliest) changes. To change the limit:
+
+```yaml
+- name: Generate git diff
+  run: |
+    git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+    truncate -s 200k /tmp/pr.diff   # smaller = cheaper/faster
+```
+
+---
+
+## Review Packs
+
+The default workflow runs three packs in parallel:
+
+| Pack                | Perspective         | What it flags                                            |
+| ------------------- | ------------------- | -------------------------------------------------------- |
+| `staff-core`        | Engineering quality | Architecture, readability, test coverage, coupling       |
+| `oncall-future-you` | Operational risk    | Missing runbooks, alerting, rollback plan, 3am scenarios |
+| `security-reviewer` | Security            | Auth gaps, injection risks, secrets exposure, data leaks |
+
+To run only specific packs, edit the matrix:
+
+```yaml
+strategy:
+  matrix:
+    pack: ["staff-core"] # just one pack
+```
+
+---
+
+## PR Comments
+
+Each pack posts its own comment. On re-runs the comment is **updated**, not duplicated.
+
+The comment format:
+
+```
+## 🧙 Greybeard Review: staff-core
+
+### Summary
+...
+
+### Key Risks
+...
+
+---
+_Review generated by Greybeard on `abc1234`_
+```
+
+If blocking issues are detected, the comment is prefixed with:
+
+```
+⚠️ **BLOCKING ISSUES DETECTED**
+```
+
+---
+
+## GitHub Check Status
+
+The workflow sets a GitHub Check for each pack. You can add these as required status checks
+for branch protection:
+
+1. Go to **Settings → Branches → Branch protection rules**
+2. Enable **Require status checks to pass before merging**
+3. Search for `Greybeard: staff-core`, `Greybeard: oncall-future-you`, `Greybeard: security-reviewer`
+
+When blocking issues are detected, the check fails (red ✗) and will block merging if required.
+
+---
+
+## Permissions
+
+The workflow needs these permissions:
+
+```yaml
+permissions:
+  contents: read # checkout the PR branch
+  pull-requests: write # post/update comments
+  checks: write # set check status
+```
+
+These are already set in the bundled workflow file.
+
+---
+
+## Using a Different LLM Backend
+
+### OpenAI
+
+```yaml
+- name: Configure backend
+  run: |
+    greybeard config set llm.backend openai
+    greybeard config set llm.model gpt-4o-mini   # cheaper option
+
+- name: Analyze with Greybeard
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+### Ollama (self-hosted)
+
+Not suitable for GitHub Actions (requires a running Ollama server), but works well for
+[pre-commit hooks](precommit.md) on developer machines.
+
+---
+
+## Troubleshooting
+
+**The workflow doesn't trigger when I add the label**
+
+- The label name must be exactly `greybeard-review` (case-sensitive).
+- Label-triggered workflows only fire when the workflow file is on the **default branch**.
+  If you're testing from a feature branch, use `workflow_dispatch` instead.
+
+**`404 - model not found`**
+
+The Anthropic model name in your workflow is outdated. Check
+[Anthropic's model overview](https://docs.anthropic.com/en/docs/about-claude/models/overview)
+for current model names. Use `claude-haiku-4-5-20251001` or `claude-sonnet-4-6`.
+
+**`403 Resource not accessible by integration`**
+
+The workflow is missing `checks: write` or `pull-requests: write` permissions. Make sure your
+workflow file has the full `permissions` block shown above.
+
+**Review comments aren't appearing**
+
+1. Check the Actions log for the failing step.
+2. Verify `ANTHROPIC_API_KEY` (or whichever key you're using) is set correctly in Secrets.
+3. Confirm the review file was actually generated: look for the `Analyze with Greybeard` step output.
+
+**Reviews are too expensive**
+
+- Switch to `claude-haiku-4-5-20251001` (default).
+- Use label-based triggering (default) instead of auto-triggering on every push.
+- Reduce the diff size limit: `truncate -s 100k /tmp/pr.diff`.
+- Remove packs you don't need from the matrix.

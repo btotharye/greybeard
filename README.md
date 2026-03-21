@@ -54,12 +54,12 @@ This is a **thinking partner**. It models how Staff and Principal engineers reas
 
 ### Modes
 
-| Mode | Purpose |
-|------|---------|
-| **review** | Fast, direct Staff-level assessment (default) |
-| **mentor** | Explain reasoning and thought process behind concerns |
-| **coach** | Help phrase constructive feedback for a specific audience |
-| **self-check** | Review your own thinking before sharing with others |
+| Mode           | Purpose                                                   |
+| -------------- | --------------------------------------------------------- |
+| **review**     | Fast, direct Staff-level assessment (default)             |
+| **mentor**     | Explain reasoning and thought process behind concerns     |
+| **coach**      | Help phrase constructive feedback for a specific audience |
+| **self-check** | Review your own thinking before sharing with others       |
 
 ### Interactive Mode
 
@@ -244,18 +244,18 @@ Content packs define the perspective, tone, and heuristics used during review. T
 
 ### Built-in Packs
 
-| Pack | Perspective | Focus |
-|------|-------------|-------|
-| `staff-core` | Staff Engineer | Ops, ownership, long-term cost |
-| `oncall-future-you` | On-call engineer, 3am | Failure modes, pager noise, recovery |
-| `mentor-mode` | Experienced mentor | Teaching, reasoning, growth |
-| `solutions-architect` | Solutions Architect | Entity modeling, boundaries, fit-for-purpose |
-| `platform-eng` | Platform Engineer | DX, abstractions, tool maturity, scaling |
-| `security-reviewer` | AppSec Engineer | Auth, injection, secrets, overprivileged access |
-| `startup-pragmatist` | Pragmatic Engineer | Complexity vs stage, reversibility, scope |
-| `incident-postmortem` | SRE / On-call | Blameless analysis, root cause, action items |
-| `idp-readiness` | Platform Engineering | IDP maturity, automation vs process |
-| `data-migrations` | Migration Expert | Lock safety, zero-downtime, rollback, performance |
+| Pack                  | Perspective           | Focus                                             |
+| --------------------- | --------------------- | ------------------------------------------------- |
+| `staff-core`          | Staff Engineer        | Ops, ownership, long-term cost                    |
+| `oncall-future-you`   | On-call engineer, 3am | Failure modes, pager noise, recovery              |
+| `mentor-mode`         | Experienced mentor    | Teaching, reasoning, growth                       |
+| `solutions-architect` | Solutions Architect   | Entity modeling, boundaries, fit-for-purpose      |
+| `platform-eng`        | Platform Engineer     | DX, abstractions, tool maturity, scaling          |
+| `security-reviewer`   | AppSec Engineer       | Auth, injection, secrets, overprivileged access   |
+| `startup-pragmatist`  | Pragmatic Engineer    | Complexity vs stage, reversibility, scope         |
+| `incident-postmortem` | SRE / On-call         | Blameless analysis, root cause, action items      |
+| `idp-readiness`       | Platform Engineering  | IDP maturity, automation vs process               |
+| `data-migrations`     | Migration Expert      | Lock safety, zero-downtime, rollback, performance |
 
 ### Testing Packs
 
@@ -334,12 +334,12 @@ See [Packs Guide](docs/guides/packs.md) for detailed pack creation and best prac
 
 greybeard works with any LLM backend. Configure once with `greybeard init`:
 
-| Backend | How | What You Need |
-|---------|-----|---------------|
-| `openai` | OpenAI API | `OPENAI_API_KEY` |
+| Backend     | How           | What You Need                                      |
+| ----------- | ------------- | -------------------------------------------------- |
+| `openai`    | OpenAI API    | `OPENAI_API_KEY`                                   |
 | `anthropic` | Anthropic API | `ANTHROPIC_API_KEY` + `greybeard[anthropic]` extra |
-| `ollama` | Local (free) | [Ollama](https://ollama.ai) running locally |
-| `lmstudio` | Local (free) | [LM Studio](https://lmstudio.ai) server running |
+| `ollama`    | Local (free)  | [Ollama](https://ollama.ai) running locally        |
+| `lmstudio`  | Local (free)  | [LM Studio](https://lmstudio.ai) server running    |
 
 ### Configure Your Backend
 
@@ -367,11 +367,13 @@ Run greybeard as an MCP server in Claude Desktop, Cursor, Zed, or other MCP-comp
 ### Claude Desktop
 
 1. Install greybeard:
+
 ```bash
 uv pip install greybeard
 ```
 
 2. Get the greybeard path:
+
 ```bash
 which greybeard
 ```
@@ -382,6 +384,7 @@ which greybeard
    - **Linux:** `~/.config/Claude/claude_desktop_config.json`
 
 Add:
+
 ```json
 {
   "mcpServers": {
@@ -413,103 +416,112 @@ See [MCP Integration Guide](docs/guides/mcp.md) for detailed setup and workflow 
 
 ## GitHub Actions Integration
 
-Automatically review pull requests with greybeard using GitHub Actions. Get Staff-engineer-level feedback on every change before merging.
+Automatically review pull requests with greybeard using GitHub Actions. Get Staff-engineer-level feedback on demand — triggered by a label so you control when (and what) it costs.
 
 ### Quick Start
 
 1. Add the workflow file to your repo:
-```bash
-# Create the workflow directory
-mkdir -p .github/workflows
 
-# Copy the greybeard review workflow
+```bash
+mkdir -p .github/workflows
 curl -L https://raw.githubusercontent.com/btotharye/greybeard/main/.github/workflows/greybeard-review.yml \
   -o .github/workflows/greybeard-review.yml
 ```
 
 2. Set up GitHub Secrets:
-   - **`OPENAI_API_KEY`** (or your LLM provider's key)
-   - **`GITHUB_TOKEN`** (auto-provided by GitHub Actions, no setup needed)
+   - **`ANTHROPIC_API_KEY`** — your Anthropic API key (get one at [console.anthropic.com](https://console.anthropic.com))
+   - **`GITHUB_TOKEN`** — auto-provided by GitHub Actions, no setup needed
 
-3. Optional: Configure with GitHub Variables
-   - **`GREYBEARD_PACK`** — Default pack (default: `staff-core`)
-   - **`GREYBEARD_RISK_THRESHOLD`** — When to block PRs: `none`, `low`, `medium`, `high`, `critical` (default: `high`)
+3. Create the `greybeard-review` label in your repo:
+   - Go to your repo → **Issues** → **Labels** → **New label**
+   - Name: `greybeard-review`, color: `#6f42c1` (purple) 🟣
+
+4. To trigger a review: add the `greybeard-review` label to any PR.
+
+> **Manual trigger:** You can also run it on demand from **Actions → Greybeard Code Review → Run workflow**.
+
+### How It Works
+
+The workflow runs three parallel review perspectives when triggered:
+
+| Pack                | Focus                                                  | Icon |
+| ------------------- | ------------------------------------------------------ | ---- |
+| `staff-core`        | Overall engineering quality, architecture, readability | 🧙   |
+| `oncall-future-you` | Operational risk, runbooks, alerting, rollback         | 📟   |
+| `security-reviewer` | Security vulnerabilities, auth, data exposure          | 🔒   |
+
+Each pack posts its own PR comment. Comments are updated (not duplicated) on re-runs.
 
 ### Workflow Features
 
-The workflow:
-- ✅ Reviews PRs automatically on open, update, and ready-for-review
-- ✅ Posts detailed comments with findings
-- ✅ Sets GitHub Check status for branch protection
-- ✅ Supports multiple review perspectives in parallel
-- ✅ Deduplicates comments on PR updates
-- ✅ Works with all LLM backends (OpenAI, Anthropic, Ollama, LM Studio)
+- ✅ **Label-triggered** — only runs when you explicitly ask for it (saves cost)
+- ✅ **Manual dispatch** — run from the Actions tab any time
+- ✅ **Three parallel perspectives** — staff, oncall, security in one run
+- ✅ **PR comments** with findings — updated on re-run, not duplicated
+- ✅ **GitHub Check status** for branch protection rules
+- ✅ **Diff truncation** — automatically stays within LLM token limits
+- ✅ **Blocking issue detection** — marks the check as failed if critical patterns found
+
+### Cost Management
+
+The workflow uses **Claude Haiku** by default — the fastest and cheapest Anthropic model (~$0.05–0.20 per full 3-pack review vs ~$1+ for Sonnet).
+
+**Label-based triggering is the main cost control** — reviews only run when you add the label. No surprise charges from every commit push.
+
+| Model                                  | Cost (input/output per MTok) | Best for                                 |
+| -------------------------------------- | ---------------------------- | ---------------------------------------- |
+| `claude-haiku-4-5-20251001` ✅ default | $1 / $5                      | Most PRs — fast, cheap, solid            |
+| `claude-sonnet-4-6`                    | $3 / $15                     | High-stakes PRs needing deeper analysis  |
+| `claude-opus-4-6`                      | $5 / $25                     | Architecture reviews, complex migrations |
+
+To use a more powerful model for a specific repo, update the workflow step:
+
+```yaml
+- name: Configure Anthropic backend
+  run: |
+    greybeard config set llm.backend anthropic
+    greybeard config set llm.model claude-sonnet-4-6   # or claude-opus-4-6
+```
+
+### Required Permissions
+
+The workflow requires these permissions (already set in the bundled workflow file):
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write # post PR comments
+  checks: write # set check status for branch protection
+```
 
 ### Configuration
 
-The default workflow uses:
-- **Pack:** `staff-core` (can override with `GREYBEARD_PACK` variable)
-- **Risk Threshold:** `high` (fails on critical findings)
-- **LLM:** OpenAI GPT-4o (can set `GREYBEARD_LLM_MODEL` variable)
+Optional GitHub Variables (set in repo Settings → Variables):
 
-### Example: Strict Reviews on Infrastructure Changes
-
-Customize the workflow to require staff review on sensitive files:
-
-```yaml
-# .github/workflows/greybeard-review.yml
-name: greybeard Review
-on: [pull_request]
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      checks: write
-    steps:
-      - uses: actions/checkout@v6
-      - uses: btotharye/greybeard-action@main
-        with:
-          pack: "platform-eng"
-          risk-threshold: "critical"  # Only block on critical findings
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-### Advanced Configuration
-
-Use GitHub environment variables for team-specific settings:
-
-```bash
-# View current config
-export OPENAI_API_KEY=sk-...
-greybeard config show
-```
-
-Or pass environment variables to the workflow:
-
-```yaml
-env:
-  GREYBEARD_PACK: "security-reviewer"
-  GREYBEARD_RISK_THRESHOLD: "medium"
-  GREYBEARD_LLM_BACKEND: "anthropic"
-  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-```
+| Variable                   | Default | Description                                      |
+| -------------------------- | ------- | ------------------------------------------------ |
+| `GREYBEARD_RISK_THRESHOLD` | `high`  | Block threshold: `none`, `low`, `medium`, `high` |
 
 ### Troubleshooting
 
-**Q: The workflow isn't posting comments on my PR**
-- Check that `GITHUB_TOKEN` has `pull-requests: write` permissions
-- Verify your LLM API key is set correctly
+**Q: The workflow isn't triggering when I add the label**
 
-**Q: Too many comments / duplicates**
-- The workflow deduplicates by default — check if comments are stale
-- Try re-running the workflow manually
+- Confirm the label name is exactly `greybeard-review` (case-sensitive)
+- Check that the workflow file is on your default branch (label events only trigger from there)
 
-**Q: Want different reviews for different files?**
-- Use **Pre-commit hooks** (below) for file-specific rules
+**Q: `404 - model not found` error**
+
+- The Anthropic model name is wrong. Check [Anthropic's model docs](https://docs.anthropic.com/en/docs/about-claude/models/overview) for current names.
+
+**Q: Review comments aren't appearing**
+
+- Verify `ANTHROPIC_API_KEY` is set in repo Secrets
+- Check the Actions log for API errors
+
+**Q: Want to run for every PR automatically?**
+
+- Change the trigger in the workflow to `types: [opened, synchronize, reopened, ready_for_review]`
+- Be aware this will charge your API key on every push to an open PR
 
 See [GitHub Actions Integration Guide](docs/guides/github-actions.md) for more examples and troubleshooting.
 
@@ -522,11 +534,13 @@ Run greybeard checks before committing—fail on risk gates, require approvals o
 ### Quick Start
 
 1. Install pre-commit:
+
 ```bash
 pip install pre-commit
 ```
 
 2. Add to `.pre-commit-config.yaml`:
+
 ```yaml
 repos:
   - repo: https://github.com/btotharye/greybeard
@@ -537,6 +551,7 @@ repos:
 ```
 
 3. Install hooks:
+
 ```bash
 pre-commit install
 ```
@@ -556,7 +571,7 @@ risk_gates:
     patterns: ["infra/*", "terraform/*"]
     fail_on_concerns: critical
     required_packs: ["platform-eng"]
-    skip_if_branch: ["hotfix/*"]  # Skip on urgent branches
+    skip_if_branch: ["hotfix/*"] # Skip on urgent branches
 
   - name: "auth-changes"
     patterns: ["auth/*", "security/*"]
@@ -591,6 +606,7 @@ class MyAgent(BaseAgent):
 ```
 
 **Available Capabilities:**
+
 - `research` — Gather context from files, directories, git history
 - `interview` — Multi-turn conversations with users
 - `llm` — Unified interface to all LLM backends
@@ -599,6 +615,7 @@ class MyAgent(BaseAgent):
 See [Creating Agents Guide](docs/guides/creating_agents.md) and the [template](examples/custom_agent_template.py).
 
 **Planned Specialized Agents:**
+
 - **Architecture Agent** (v1.1) — Document architectural decisions (ADRs)
 - **SLO Agent** (v1.2) — Analyze systems and recommend SLOs
 - **Tech Debt Agent** (v1.3) — Scan code and prioritize technical debt
@@ -609,19 +626,24 @@ All output is structured Markdown:
 
 ```markdown
 ## Summary
+
 Your decision summary...
 
 ## Key Risks
+
 - Risk 1
 - Risk 2
 
 ## Tradeoffs
+
 ...
 
 ## Questions to Answer Before Proceeding
+
 ...
 
 ## Suggested Communication Language
+
 ...
 
 _Assumptions made: ..._
@@ -652,22 +674,27 @@ uv run pytest
 ### Ways to Contribute
 
 **Content Packs** (easiest, high value)
+
 - Create a perspective your team or community needs
 - See [Packs Guide](docs/guides/packs.md)
 
 **Custom Agents**
+
 - Build specialized tools on top of the framework
 - See [Creating Agents Guide](docs/guides/creating_agents.md)
 
 **Bug Reports & Features**
+
 - [Report a bug](https://github.com/btotharye/greybeard/issues/new?template=bug_report.yml)
 - [Suggest a feature](https://github.com/btotharye/greybeard/issues/new?template=feature_request.yml)
 
 **Code Contributions**
+
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, style
 - Follow [Code of Conduct](CODE_OF_CONDUCT.md)
 
 **Community Packs**
+
 - Build a pack repo and share it
 - Open an issue linking to it—we'll feature it
 

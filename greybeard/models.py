@@ -7,7 +7,7 @@ from typing import Literal
 
 Mode = Literal["review", "mentor", "coach", "self-check"]
 Audience = Literal["team", "peers", "leadership", "customer"]
-OutputFormat = Literal["markdown", "json", "html", "jira"]
+OutputFormat = Literal["markdown", "json", "html", "jira", "pdf"]
 
 
 @dataclass

@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
 
-OutputFormat = Literal["markdown", "json", "html", "jira"]
-SUPPORTED_FORMATS: list[str] = ["markdown", "json", "html", "jira"]
+OutputFormat = Literal["markdown", "json", "html", "jira", "pdf"]
+SUPPORTED_FORMATS: list[str] = ["markdown", "json", "html", "jira", "pdf"]
 
 # File extension to use when --output is not specified or has no extension
 FORMAT_EXTENSIONS: dict[str, str] = {
@@ -27,6 +27,7 @@ FORMAT_EXTENSIONS: dict[str, str] = {
     "json": ".json",
     "html": ".html",
     "jira": ".txt",
+    "pdf": ".pdf",
 }
 
 
@@ -507,3 +508,24 @@ def _md_inline_to_jira(text: str) -> str:
     text = text.replace("JIRA_BI_START", "*_").replace("JIRA_BI_END", "_*")
     text = text.replace("JIRA_B_START", "*").replace("JIRA_B_END", "*")
     return text
+
+
+# ---------------------------------------------------------------------------
+# PDF
+# ---------------------------------------------------------------------------
+
+
+def convert_to_pdf(markdown: str, meta: ReviewMetadata, output_path: str) -> str:
+    """Convert a Markdown review to a professional PDF report.
+
+    Args:
+        markdown: The markdown review content
+        meta: ReviewMetadata with context
+        output_path: Where to save the PDF file
+
+    Returns:
+        Path to the generated PDF file
+    """
+    from greybeard.reporters.pdf import to_pdf
+
+    return to_pdf(markdown, meta, output_path)

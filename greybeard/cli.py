@@ -93,6 +93,20 @@ def _apply_format_and_save(
             _save_output(result, output)
         return
 
+    # PDF format requires special handling
+    if fmt == "pdf":
+        if not output:
+            console.print(
+                "[red]Error:[/red] PDF export requires --output path "
+                "(e.g., --output report.pdf)"
+            )
+            sys.exit(1)
+        from greybeard.formatters import convert_to_pdf
+        pdf_path = convert_to_pdf(result, meta, _resolve_output_path(output, fmt) or output)
+        console.print(f"\n[dim]PDF report saved to {pdf_path}[/dim]")
+        return
+
+
     converted = convert(result, fmt, meta)  # type: ignore[arg-type]
 
     if output:

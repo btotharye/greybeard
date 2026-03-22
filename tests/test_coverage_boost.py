@@ -5,15 +5,11 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 from greybeard.batch_analyzer import (
     AggregatedFindings,
     BatchAnalyzer,
     Finding,
-    ReviewSummary,
 )
 from greybeard.reporters.dashboard import DashboardReporter
 
@@ -26,7 +22,7 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         review_text = "🔴 critical: Database exposed to internet\n🟠 high: No encryption"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         assert any(f.risk_level == "critical" for f in summary.findings)
         assert any(f.risk_level == "high" for f in summary.findings)
 
@@ -35,7 +31,7 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         review_text = "severity: critical - unpatched dependency"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         findings = [f for f in summary.findings if f.risk_level == "critical"]
         assert len(findings) > 0
 
@@ -44,7 +40,7 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         review_text = "note: Consider refactoring for clarity\nℹ️ FYI: Library available"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         info_findings = [f for f in summary.findings if f.risk_level == "info"]
         assert len(info_findings) >= 1
 
@@ -54,7 +50,7 @@ class TestBatchAnalyzerEdgeCases:
         long_title = "critical: " + "x" * 250  # Very long
         review_text = long_title
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         if summary.findings:
             # Title should be truncated to ~200 chars
             assert len(summary.findings[0].title) <= 210
@@ -63,7 +59,7 @@ class TestBatchAnalyzerEdgeCases:
         """Test extraction from empty review text."""
         analyzer = BatchAnalyzer()
         summary = analyzer.add_review("empty.txt", "")
-        
+
         assert len(summary.findings) == 0
 
     def test_extract_findings_no_risk_indicators(self) -> None:
@@ -71,7 +67,7 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         review_text = "This is just regular text about the code without any risk markers"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         # Should have no findings if no patterns match
         assert len(summary.findings) == 0
 
@@ -80,18 +76,16 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         review_text = "CRITICAL: uppercase issue\nMedium: Mixed case\nlow: lowercase"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         risk_levels = {f.risk_level for f in summary.findings}
         assert len(risk_levels) >= 2
 
     def test_calculate_risk_metrics_all_levels(self) -> None:
         """Test risk calculation with all severity levels."""
         analyzer = BatchAnalyzer()
-        review_text = (
-            "critical: one\nhigh: two\nmedium: three\nlow: four\ninfo: five"
-        )
+        review_text = "critical: one\nhigh: two\nmedium: three\nlow: four\ninfo: five"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         assert summary.critical_count == 1
         assert summary.high_count == 1
         assert summary.medium_count == 1
@@ -103,7 +97,7 @@ class TestBatchAnalyzerEdgeCases:
         """Test deduplication with empty list."""
         analyzer = BatchAnalyzer()
         deduplicated = analyzer._deduplicate_findings([])
-        
+
         assert deduplicated == []
 
     def test_deduplicate_single_finding(self) -> None:
@@ -111,7 +105,7 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         finding = Finding("Test", "Desc", "critical")
         deduplicated = analyzer._deduplicate_findings([finding])
-        
+
         assert len(deduplicated) == 1
         assert deduplicated[0].title == "Test"
 
@@ -120,9 +114,9 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         f1 = Finding("SQL Injection", "Vulnerable code", "critical", sources=["a.py"])
         f2 = Finding("SQL Injection", "Same issue", "critical", sources=["b.py"])
-        
+
         deduplicated = analyzer._deduplicate_findings([f1, f2])
-        
+
         # Should merge into one finding
         assert len(deduplicated) == 1
         assert deduplicated[0].frequency == 2
@@ -133,19 +127,19 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         f1 = Finding("Issue", "", "high", sources=["file1.py"])
         f2 = Finding("Issue", "Full description here", "high", sources=["file2.py"])
-        
+
         deduplicated = analyzer._deduplicate_findings([f1, f2])
-        
+
         assert len(deduplicated) == 1
         assert "Full description" in deduplicated[0].description
 
     def test_fuzzy_match_empty_strings(self) -> None:
         """Test fuzzy matching with empty strings."""
         analyzer = BatchAnalyzer()
-        
+
         # Both empty
         assert analyzer._fuzzy_match("", "") is True
-        
+
         # One empty
         assert analyzer._fuzzy_match("", "text") is False
         assert analyzer._fuzzy_match("text", "") is False
@@ -155,10 +149,10 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         text1 = "sql injection risk"
         text2 = "sql injection"
-        
+
         # High threshold - no match
         assert analyzer._fuzzy_match(text1, text2, threshold=0.9) is False
-        
+
         # Low threshold - match
         assert analyzer._fuzzy_match(text1, text2, threshold=0.3) is True
 
@@ -166,7 +160,7 @@ class TestBatchAnalyzerEdgeCases:
         """Test text normalization with special characters."""
         analyzer = BatchAnalyzer()
         result = analyzer._normalize_text("  SQL\n\nInjection  \t  Risk  ")
-        
+
         assert result == "sql injection risk"
         assert "  " not in result
 
@@ -175,14 +169,14 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         long_text = "a " * 100  # Will be much longer than 100
         result = analyzer._normalize_text(long_text)
-        
+
         assert len(result) == 100
 
     def test_build_risk_heatmap_empty_findings(self) -> None:
         """Test heatmap with no findings."""
         analyzer = BatchAnalyzer()
         heatmap = analyzer._build_risk_heatmap([])
-        
+
         assert heatmap == {}
 
     def test_build_risk_heatmap_untagged_findings(self) -> None:
@@ -190,18 +184,17 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         finding = Finding("Issue", "Desc", "critical", tags=[])
         heatmap = analyzer._build_risk_heatmap([finding])
-        
+
         assert heatmap == {}
 
     def test_build_risk_heatmap_multiple_tags(self) -> None:
         """Test heatmap with multiple tags per finding."""
         analyzer = BatchAnalyzer()
         finding = Finding(
-            "Issue", "Desc", "critical", 
-            tags=["security", "performance", "compliance"]
+            "Issue", "Desc", "critical", tags=["security", "performance", "compliance"]
         )
         heatmap = analyzer._build_risk_heatmap([finding])
-        
+
         assert len(heatmap) == 3
         assert all(tag in heatmap for tag in ["security", "performance", "compliance"])
 
@@ -209,11 +202,11 @@ class TestBatchAnalyzerEdgeCases:
         """Test heatmap sorts by risk score."""
         analyzer = BatchAnalyzer()
         f1 = Finding("Issue1", "Desc", "critical", tags=["sec"])  # weight: 10
-        f2 = Finding("Issue2", "Desc", "low", tags=["perf"])      # weight: 1
-        
+        f2 = Finding("Issue2", "Desc", "low", tags=["perf"])  # weight: 1
+
         heatmap = analyzer._build_risk_heatmap([f1, f2])
         keys_list = list(heatmap.keys())
-        
+
         # 'sec' should come first (higher score)
         assert keys_list[0] == "sec"
 
@@ -222,7 +215,7 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         findings = []
         trends = analyzer._detect_trends(findings)
-        
+
         assert trends == []
 
     def test_detect_trends_high_frequency(self) -> None:
@@ -231,9 +224,9 @@ class TestBatchAnalyzerEdgeCases:
         analyzer.add_review("r1.txt", "critical: issue")
         analyzer.add_review("r2.txt", "critical: issue")
         analyzer.add_review("r3.txt", "critical: issue")
-        
+
         aggregated = analyzer.analyze()
-        
+
         # With 3 reviews and high frequency threshold of 50%, should detect consensus
         assert any("consensus" in trend.lower() for trend in aggregated.trends)
 
@@ -243,9 +236,9 @@ class TestBatchAnalyzerEdgeCases:
         f1 = Finding("Critical1", "Desc", "critical")
         f2 = Finding("Critical2", "Desc", "critical")
         f3 = Finding("Low", "Desc", "low")
-        
+
         trends = analyzer._detect_trends([f1, f2, f3])
-        
+
         assert any("critical" in trend.lower() for trend in trends)
 
     def test_detect_trends_with_tags(self) -> None:
@@ -254,9 +247,9 @@ class TestBatchAnalyzerEdgeCases:
         f1 = Finding("Issue1", "Desc", "high", tags=["security"])
         f2 = Finding("Issue2", "Desc", "medium", tags=["security"])
         f3 = Finding("Issue3", "Desc", "medium", tags=["performance"])
-        
+
         trends = analyzer._detect_trends([f1, f2, f3])
-        
+
         # Should detect top risk categories
         assert any("risk categories" in trend.lower() for trend in trends)
 
@@ -265,17 +258,17 @@ class TestBatchAnalyzerEdgeCases:
         analyzer = BatchAnalyzer()
         analyzer.add_review("r1.txt", "high: recurring\nhigh: recurring")
         analyzer.add_review("r2.txt", "high: recurring\nlow: single")
-        
+
         aggregated = analyzer.analyze()
-        
+
         if len(aggregated.findings) > 1:
             # First finding should have higher risk weight or frequency
             first = aggregated.findings[0]
             second = aggregated.findings[1]
-            
+
             first_score = analyzer.RISK_WEIGHTS[first.risk_level] * first.frequency
             second_score = analyzer.RISK_WEIGHTS[second.risk_level] * second.frequency
-            
+
             assert first_score >= second_score
 
     def test_export_json_creates_nested_directories(self) -> None:
@@ -284,10 +277,10 @@ class TestBatchAnalyzerEdgeCases:
             analyzer = BatchAnalyzer()
             analyzer.add_review("test.txt", "critical: issue")
             analyzer.analyze()
-            
+
             nested_path = Path(tmpdir) / "deep" / "nested" / "path" / "output.json"
             analyzer.export_json(nested_path)
-            
+
             assert nested_path.exists()
             assert nested_path.parent.exists()
 
@@ -298,19 +291,19 @@ class TestBatchAnalyzerEdgeCases:
             analyzer.add_review("f1.py", "critical: issue1\nhigh: issue2")
             analyzer.add_review("f2.py", "critical: issue1")
             analyzer.analyze()
-            
+
             output = Path(tmpdir) / "output.json"
             analyzer.export_json(output)
-            
+
             data = json.loads(output.read_text())
-            
+
             assert "metadata" in data
             assert "summary" in data
             assert "findings" in data
             assert "recurring" in data
             assert "trends" in data
             assert "reviews" in data
-            
+
             assert data["metadata"]["total_reviews"] == 2
             assert data["summary"]["critical"] >= 1
 
@@ -321,12 +314,12 @@ class TestBatchAnalyzerEdgeCases:
             analyzer.add_review("f1.py", "critical: sql injection\nhigh: auth")
             analyzer.add_review("f2.py", "critical: sql injection")
             analyzer.analyze()
-            
+
             output = Path(tmpdir) / "output.md"
             analyzer.export_markdown(output)
-            
+
             content = output.read_text()
-            
+
             assert "Batch Review Analysis Report" in content
             assert "Executive Summary" in content
             assert "Total Reviews" in content and "2" in content
@@ -339,12 +332,12 @@ class TestBatchAnalyzerEdgeCases:
             analyzer.add_review("f1.py", "critical: sql injection\n")
             analyzer.add_review("f2.py", "critical: sql injection\n")
             analyzer.analyze()
-            
+
             output = Path(tmpdir) / "output.md"
             analyzer.export_markdown(output)
-            
+
             content = output.read_text()
-            
+
             if analyzer.aggregated.recurring_findings:
                 assert "Recurring Findings" in content
 
@@ -354,12 +347,12 @@ class TestBatchAnalyzerEdgeCases:
             analyzer = BatchAnalyzer()
             analyzer.add_review("f1.py", "critical: issue1\nhigh: issue2\nmedium: issue3")
             analyzer.analyze()
-            
+
             output = Path(tmpdir) / "output.md"
             analyzer.export_markdown(output)
-            
+
             content = output.read_text()
-            
+
             assert "All Findings" in content
             # Should have numbered list
             assert "1." in content
@@ -377,9 +370,9 @@ class TestDashboardReporterEdgeCases:
             risk_level="high",
             sources=["file.py"],
         )
-        
+
         html = reporter._render_finding_item(finding)
-        
+
         assert "Test" in html
         assert "high" in html
         assert "file.py" in html
@@ -394,9 +387,9 @@ class TestDashboardReporterEdgeCases:
             risk_level="critical",
             sources=sources,
         )
-        
+
         html = reporter._render_finding_item(finding)
-        
+
         # Should show first 2 and "+X more"
         assert "file0.py" in html
         assert "file1.py" in html
@@ -411,9 +404,9 @@ class TestDashboardReporterEdgeCases:
             risk_level="medium",
             sources=["single.py"],
         )
-        
+
         html = reporter._render_finding_item(finding)
-        
+
         assert "single.py" in html
         # Should not show "+X more" for single source
         assert "+0 more" not in html
@@ -427,16 +420,16 @@ class TestDashboardReporterEdgeCases:
             risk_level="low",
             sources=[],
         )
-        
+
         html = reporter._render_finding_item(finding)
-        
+
         assert "Test" in html
 
     def test_escape_html_single_quote(self) -> None:
         """Test escaping single quotes."""
         reporter = DashboardReporter(AggregatedFindings())
         escaped = reporter._escape_html("It's a test")
-        
+
         assert "&#39;" in escaped or "&#39;" in escaped
 
     def test_render_html_no_trends(self) -> None:
@@ -449,7 +442,7 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         html = reporter.render_html()
-        
+
         # Should not have trends section
         assert "Detected Trends" not in html
 
@@ -463,7 +456,7 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         html = reporter.render_html()
-        
+
         # Should have heatmap section but it's only rendered if heatmap has data
         # An empty heatmap doesn't get the heatmap_section set, but CSS is still there
         assert "<!DOCTYPE html>" in html
@@ -472,7 +465,7 @@ class TestDashboardReporterEdgeCases:
         """Test rendering HTML with recurring findings."""
         finding1 = Finding("Issue", "Desc", "critical", frequency=2)
         finding2 = Finding("Common", "Desc", "high", frequency=1)
-        
+
         aggregated = AggregatedFindings(
             total_reviews=2,
             total_findings=2,
@@ -483,14 +476,14 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         html = reporter.render_html()
-        
+
         # Should show "No recurring findings" or actual findings
         assert "recurring-findings" in html.lower() or "Recurring" in html
 
     def test_render_html_no_recurring_findings(self) -> None:
         """Test rendering with no recurring findings."""
         finding = Finding("Single", "Desc", "high", frequency=1)
-        
+
         aggregated = AggregatedFindings(
             total_reviews=1,
             total_findings=1,
@@ -500,7 +493,7 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         html = reporter.render_html()
-        
+
         # Should have "No recurring findings" message
         assert "No recurring findings" in html or "recurring-findings" in html
 
@@ -514,7 +507,7 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         scripts = reporter._build_d3_scripts()
-        
+
         assert "heatmap" in scripts.lower()
         assert "risk-distribution" in scripts
 
@@ -528,7 +521,7 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         scripts = reporter._build_d3_scripts()
-        
+
         assert "risk-distribution" in scripts
 
     def test_save_html_path_string(self) -> None:
@@ -540,10 +533,10 @@ class TestDashboardReporterEdgeCases:
                 critical_count=1,
             )
             reporter = DashboardReporter(aggregated)
-            
+
             output_path = str(Path(tmpdir) / "dashboard.html")
             reporter.save_html(output_path)
-            
+
             assert Path(output_path).exists()
 
     def test_save_html_path_object(self) -> None:
@@ -555,10 +548,10 @@ class TestDashboardReporterEdgeCases:
                 critical_count=1,
             )
             reporter = DashboardReporter(aggregated)
-            
+
             output_path = Path(tmpdir) / "dashboard.html"
             reporter.save_html(output_path)
-            
+
             assert output_path.exists()
 
     def test_render_html_timestamp_present(self) -> None:
@@ -570,7 +563,7 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         html = reporter.render_html()
-        
+
         # Should have 'Generated on' with timestamp
         assert "Generated" in html
         assert "-" in html  # ISO format should have dashes
@@ -584,9 +577,10 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         html = reporter.render_html()
-        
+
         # Should have copyright year
         import datetime
+
         year = datetime.datetime.now(datetime.UTC).year
         assert str(year) in html
 
@@ -595,7 +589,7 @@ class TestDashboardReporterEdgeCases:
         reporter = DashboardReporter(AggregatedFindings())
         dangerous = '<script>alert("XSS");</script> & "quotes" \'apostrophe\''
         escaped = reporter._escape_html(dangerous)
-        
+
         # Should not contain dangerous characters
         assert "<script>" not in escaped
         assert "</script>" not in escaped
@@ -612,9 +606,9 @@ class TestDashboardReporterEdgeCases:
             sources=["file.py"],
             frequency=5,
         )
-        
+
         html = reporter._render_finding_item(finding)
-        
+
         assert "5x" in html
 
     def test_render_html_with_all_details(self) -> None:
@@ -635,7 +629,7 @@ class TestDashboardReporterEdgeCases:
             frequency=1,
             tags=["performance", "code-quality"],
         )
-        
+
         aggregated = AggregatedFindings(
             total_reviews=3,
             total_findings=2,
@@ -651,7 +645,7 @@ class TestDashboardReporterEdgeCases:
         )
         reporter = DashboardReporter(aggregated)
         html = reporter.render_html()
-        
+
         assert "Critical Issue" in html
         assert "Medium Issue" in html
         assert "Critical risk concentration" in html or "Critical" in html
@@ -665,48 +659,55 @@ class TestBatchAnalyzerIntegration:
     def test_full_workflow_multiple_files(self) -> None:
         """Test complete workflow with multiple files."""
         analyzer = BatchAnalyzer()
-        
+
         # Add multiple reviews
-        analyzer.add_review("api_auth.py", "Critical: Missing CSRF token validation\nHigh: Weak password hashing")
-        analyzer.add_review("database.py", "Critical: SQL injection in query builder\nMedium: Missing connection pooling")
-        analyzer.add_review("frontend.js", "High: XSS vulnerability in template\nLow: Missing error boundaries")
-        
+        analyzer.add_review(
+            "api_auth.py", "Critical: Missing CSRF token validation\nHigh: Weak password hashing"
+        )
+        analyzer.add_review(
+            "database.py",
+            "Critical: SQL injection in query builder\nMedium: Missing connection pooling",
+        )
+        analyzer.add_review(
+            "frontend.js", "High: XSS vulnerability in template\nLow: Missing error boundaries"
+        )
+
         # Analyze
         aggregated = analyzer.analyze()
-        
+
         # Verify comprehensive results
         assert aggregated.total_reviews == 3
         assert aggregated.total_findings > 0
         assert aggregated.critical_count >= 1
-        
+
         # Export to both formats
         with tempfile.TemporaryDirectory() as tmpdir:
             json_path = Path(tmpdir) / "report.json"
             md_path = Path(tmpdir) / "report.md"
-            
+
             analyzer.export_json(json_path)
             analyzer.export_markdown(md_path)
-            
+
             assert json_path.exists()
             assert md_path.exists()
 
     def test_deduplication_with_similar_issues(self) -> None:
         """Test deduplication handles variations of same issue."""
         analyzer = BatchAnalyzer()
-        
+
         analyzer.add_review("file1.py", "critical: SQL injection vulnerability")
         analyzer.add_review("file2.py", "critical: SQL injection in queries")
         analyzer.add_review("file3.py", "critical: SQL injection")
         analyzer.add_review("file4.py", "high: Missing validation")
-        
+
         aggregated = analyzer.analyze()
-        
+
         # SQL injection issues should be deduplicated
         sql_issues = [f for f in aggregated.findings if "sql" in f.title.lower()]
-        
+
         # Should have fewer distinct SQL issues than reviews that mention them
         assert len(sql_issues) <= 3
-        
+
         # At least one should be marked as recurring
         recurring_sql = [f for f in aggregated.recurring_findings if "sql" in f.title.lower()]
         assert len(recurring_sql) >= 1 or aggregated.critical_count == 0
@@ -721,10 +722,10 @@ class TestDashboardIntegration:
         analyzer.add_review("file1.py", "critical: security issue")
         analyzer.add_review("file2.py", "high: performance issue")
         analyzer.add_review("file3.py", "critical: security issue")
-        
+
         reporter = DashboardReporter(analyzer)
         html = reporter.render_html()
-        
+
         assert "Batch Review Analysis Dashboard" in html
         assert "2" in html  # critical count
         assert "3" in html  # total reviews
@@ -734,21 +735,17 @@ class TestDashboardIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             analyzer = BatchAnalyzer()
             analyzer.add_review(
-                "auth.py",
-                "critical: Missing validation\nHigh: Weak auth\nMedium: Error handling"
+                "auth.py", "critical: Missing validation\nHigh: Weak auth\nMedium: Error handling"
             )
-            analyzer.add_review(
-                "database.py",
-                "critical: Missing validation\nLow: Documentation"
-            )
-            
+            analyzer.add_review("database.py", "critical: Missing validation\nLow: Documentation")
+
             reporter = DashboardReporter(analyzer)
             dashboard_path = Path(tmpdir) / "dashboard.html"
             reporter.save_html(dashboard_path)
-            
+
             assert dashboard_path.exists()
             content = dashboard_path.read_text()
-            
+
             # Verify HTML is complete and valid
             assert content.startswith("<!DOCTYPE html>")
             assert "<html" in content
@@ -763,7 +760,7 @@ class TestRiskWeightScoring:
         """Test risk weights are consistent."""
         analyzer = BatchAnalyzer()
         weights = analyzer.RISK_WEIGHTS
-        
+
         # Verify weights decrease as risk decreases
         assert weights["critical"] > weights["high"]
         assert weights["high"] > weights["medium"]
@@ -776,11 +773,13 @@ class TestRiskWeightScoring:
         analyzer = BatchAnalyzer()
         review_text = "critical: one\nhigh: two\nmedium: three"
         summary = analyzer.add_review("test.txt", review_text)
-        
-        expected_score = analyzer.RISK_WEIGHTS["critical"] * 1 + \
-                        analyzer.RISK_WEIGHTS["high"] * 1 + \
-                        analyzer.RISK_WEIGHTS["medium"] * 1
-        
+
+        expected_score = (
+            analyzer.RISK_WEIGHTS["critical"] * 1
+            + analyzer.RISK_WEIGHTS["high"] * 1
+            + analyzer.RISK_WEIGHTS["medium"] * 1
+        )
+
         assert summary.total_risk_score == expected_score
 
 
@@ -809,9 +808,9 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             recurring_findings=[finding],
             trends=["Critical issues detected"],
         )
-        
+
         data = aggregated.to_dict()
-        
+
         assert data["total_reviews"] == 1
         assert data["total_findings"] == 1
         assert data["critical_count"] == 1
@@ -824,7 +823,7 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
         analyzer = BatchAnalyzer()
         review_text = "critical:\nhigh:"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         # Should still extract findings but with default titles
         findings = [f for f in summary.findings if f.risk_level in ["critical", "high"]]
         assert len(findings) >= 1
@@ -834,7 +833,7 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
         analyzer = BatchAnalyzer()
         analyzer.add_review("test.txt", "info: something")
         aggregated = analyzer.analyze()
-        
+
         assert aggregated.info_count >= 0
 
     def test_export_json_lazy_analyze(self) -> None:
@@ -843,10 +842,10 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             analyzer = BatchAnalyzer()
             analyzer.add_review("test.txt", "critical: issue")
             # Don't call analyze() - export_json should do it
-            
+
             output = Path(tmpdir) / "output.json"
             analyzer.export_json(output)
-            
+
             assert analyzer.aggregated is not None
             assert output.exists()
 
@@ -856,10 +855,10 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             analyzer = BatchAnalyzer()
             analyzer.add_review("test.txt", "high: issue")
             # Don't call analyze() - export_markdown should do it
-            
+
             output = Path(tmpdir) / "output.md"
             analyzer.export_markdown(output)
-            
+
             assert analyzer.aggregated is not None
             assert output.exists()
 
@@ -871,15 +870,15 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             summary = analyzer.add_review("test.py", "critical: issue")
             if summary.findings:
                 summary.findings[0].description = "This is a detailed description"
-            
+
             analyzer.analyze()
-            
+
             output = Path(tmpdir) / "output.md"
             analyzer.export_markdown(output)
-            
+
             content = output.read_text()
             # Should include descriptions if present
-            assert "output.md" in str(output)
+            assert "critical: issue" in content
 
     def test_extract_findings_multiple_risk_levels_same_line(self) -> None:
         """Test extraction when multiple patterns could match."""
@@ -887,7 +886,7 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
         # "high risk critical issue" - which pattern matches first?
         review_text = "high risk critical issue found"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         # Should match at least one pattern
         assert len(summary.findings) >= 0
 
@@ -896,16 +895,16 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
         analyzer = BatchAnalyzer()
         f1 = Finding("alpha bravo", "Desc", "high")
         f2 = Finding("charlie delta", "Desc", "high")
-        
+
         dedup = analyzer._deduplicate_findings([f1, f2])
-        
+
         # Should not merge completely different texts
         assert len(dedup) == 2
 
     def test_risk_heatmap_limit_to_20(self) -> None:
         """Test that risk heatmap limits results to top 20."""
         analyzer = BatchAnalyzer()
-        
+
         # Create many findings with different tags
         findings = [
             Finding(
@@ -916,9 +915,9 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             )
             for i in range(30)
         ]
-        
+
         heatmap = analyzer._build_risk_heatmap(findings)
-        
+
         # Should be limited to 20 entries
         assert len(heatmap) <= 20
 
@@ -930,9 +929,9 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             Finding("Low2", "Desc", "low"),
             Finding("Info", "Desc", "info"),
         ]
-        
+
         trends = analyzer._detect_trends(findings)
-        
+
         # Should still return trends, just not critical ones
         assert isinstance(trends, list)
 
@@ -942,10 +941,10 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             analyzer = BatchAnalyzer()
             analyzer.add_review("test.txt", "")  # Empty, no trends
             analyzer.analyze()
-            
+
             output = Path(tmpdir) / "output.md"
             analyzer.export_markdown(output)
-            
+
             content = output.read_text()
             assert "Batch Review Analysis Report" in content
 
@@ -955,10 +954,10 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             analyzer = BatchAnalyzer()
             analyzer.add_review("test.txt", "critical: unique")  # Only one review, no recurring
             analyzer.analyze()
-            
+
             output = Path(tmpdir) / "output.md"
             analyzer.export_markdown(output)
-            
+
             content = output.read_text()
             # Should not have recurring section if no recurring findings
             if analyzer.aggregated.recurring_findings:
@@ -969,7 +968,7 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
         analyzer = BatchAnalyzer()
         review_text = "critical: one\ncritical: two\nhigh: three"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         # Should have incremented counts
         assert summary.critical_count >= 1
         assert summary.high_count >= 1
@@ -980,7 +979,7 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
         # Just "critical:" with nothing after
         review_text = "critical:"
         summary = analyzer.add_review("test.txt", review_text)
-        
+
         # Should create finding with default title
         critical_findings = [f for f in summary.findings if f.risk_level == "critical"]
         if critical_findings:
@@ -994,15 +993,15 @@ class TestBatchAnalyzerEdgeLinesForCoverage:
             analyzer.add_review("f1.txt", "critical: issue")
             analyzer.add_review("f2.txt", "critical: issue")
             aggregated = analyzer.analyze()
-            
+
             # Verify we have recurring findings
             if aggregated.recurring_findings:
                 for finding in aggregated.recurring_findings:
                     # Description might be empty for some findings
-                    assert hasattr(finding, 'description')
-            
+                    assert hasattr(finding, "description")
+
             output = Path(tmpdir) / "output.md"
             analyzer.export_markdown(output)
-            
+
             content = output.read_text()
             assert "Batch Review Analysis Report" in content

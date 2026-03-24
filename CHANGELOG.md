@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-22
+
+### Added
+
+- **SLO Agent**: new `greybeard slo` command and `SLOAgent` for AI-driven SLO recommendations —
+  analyzes services and suggests appropriate SLO targets, error budgets, and alerting thresholds
+- **Risk Gate Wizard**: interactive `greybeard wizard risk-gate` command for guided pre-commit
+  configuration generation — walks through risk thresholds and generates a `.greybeard-precommit.yaml`
+  tailored to your project
+- **Batch analyzer & dashboard**: `BatchAnalyzer` for running reviews across multiple files/PRs and
+  `greybeard dashboard` command for an aggregated findings view with severity summaries
+- **ADR support**: `greybeard adr` commands (`adr list`, `adr save`) and `reporters.adr` module for
+  generating Architecture Decision Records from review output
+
+### Documentation
+
+- Comprehensive SLO Agent guide covering setup, configuration, and example outputs
+- Risk Gate Wizard guide covering interactive workflow and generated config reference
+
 ## [0.4.1] - 2026-03-21
 
 ### Fixed

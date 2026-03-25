@@ -195,8 +195,20 @@ def cli() -> None:
     is_flag=True,
     help="Start interactive REPL after initial analysis.",
 )
+@click.option(
+    "--backend",
+    default=None,
+    type=click.Choice(KNOWN_BACKENDS),
+    help="Override LLM backend (default from config).",
+)
+@click.option(
+    "--github-token",
+    default=None,
+    envvar="GITHUB_TOKEN",
+    help="GitHub token for Copilot backend (defaults to GITHUB_TOKEN env var).",
+)
 def analyze(
-    mode, pack, repo, context, model, audience, output, fmt, save_decision_name, interactive
+    mode, pack, repo, context, model, audience, output, fmt, save_decision_name, interactive, backend, github_token
 ) -> None:
     r"""Analyze a decision, diff, or document.
 
@@ -212,10 +224,19 @@ def analyze(
       greybeard analyze --repo . --context "mid-sprint auth migration"
       git diff main | greybeard analyze --save-decision "auth-migration-q1"
       git diff main | greybeard analyze --interactive --mode mentor
+      git diff main | greybeard analyze --backend copilot --github-token ghp_XXX
+      git diff main | greybeard analyze --backend copilot  # uses GITHUB_TOKEN env var
     """
     cfg = GreybeardConfig.load()
     mode = mode or cfg.default_mode
     pack_name = pack or cfg.default_pack
+
+    # Apply backend and token overrides
+    if backend:
+        cfg.llm.backend = backend
+    if github_token:
+        import os
+        os.environ["GITHUB_TOKEN"] = github_token
 
     try:
         content_pack = load_pack(pack_name)
@@ -295,16 +316,36 @@ def analyze(
     show_default=True,
     help="Output format.",
 )
-def self_check(context, pack, model, output, fmt) -> None:
+@click.option(
+    "--backend",
+    default=None,
+    type=click.Choice(KNOWN_BACKENDS),
+    help="Override LLM backend (default from config).",
+)
+@click.option(
+    "--github-token",
+    default=None,
+    envvar="GITHUB_TOKEN",
+    help="GitHub token for Copilot backend (defaults to GITHUB_TOKEN env var).",
+)
+def self_check(context, pack, model, output, fmt, backend, github_token) -> None:
     r"""Review your own decision before sharing it.
 
     \b
     Examples:
       greybeard self-check --context "We're adding a DB table per tenant"
       greybeard self-check --context "migration plan" --format json --output check.json
+      greybeard self-check --context "plan" --backend copilot
     """
     cfg = GreybeardConfig.load()
     pack_name = pack or cfg.default_pack
+
+    # Apply backend and token overrides
+    if backend:
+        cfg.llm.backend = backend
+    if github_token:
+        import os
+        os.environ["GITHUB_TOKEN"] = github_token
 
     try:
         content_pack = load_pack(pack_name)
@@ -370,7 +411,19 @@ def self_check(context, pack, model, output, fmt) -> None:
     is_flag=True,
     help="Start interactive REPL after initial analysis.",
 )
-def coach(audience, context, pack, model, output, fmt, interactive) -> None:
+@click.option(
+    "--backend",
+    default=None,
+    type=click.Choice(KNOWN_BACKENDS),
+    help="Override LLM backend (default from config).",
+)
+@click.option(
+    "--github-token",
+    default=None,
+    envvar="GITHUB_TOKEN",
+    help="GitHub token for Copilot backend (defaults to GITHUB_TOKEN env var).",
+)
+def coach(audience, context, pack, model, output, fmt, interactive, backend, github_token) -> None:
     r"""Get help communicating a concern or decision constructively.
 
     \b
@@ -379,8 +432,17 @@ def coach(audience, context, pack, model, output, fmt, interactive) -> None:
       cat concern.md | greybeard coach --audience leadership
       greybeard coach --audience peers --context "concerns" --format jira
       greybeard coach --audience team --context "shipping too fast" --interactive
+      greybeard coach --audience team --context "concern" --backend copilot
     """
     cfg = GreybeardConfig.load()
+
+    # Apply backend and token overrides
+    if backend:
+        cfg.llm.backend = backend
+    if github_token:
+        import os
+        os.environ["GITHUB_TOKEN"] = github_token
+
     try:
         content_pack = load_pack(pack)
     except FileNotFoundError as e:

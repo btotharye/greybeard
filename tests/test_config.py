@@ -137,3 +137,32 @@ class TestGreybeardConfig:
         assert "default_pack" in d
         assert "llm.backend" in d
         assert "llm.model" in d
+
+    def test_copilot_backend_in_known_backends(self):
+        """Test that copilot is a known backend."""
+        from greybeard.config import KNOWN_BACKENDS
+
+        assert "copilot" in KNOWN_BACKENDS
+
+    def test_copilot_default_model(self):
+        """Test that copilot has a default model."""
+        from greybeard.config import DEFAULT_MODELS
+
+        assert "copilot" in DEFAULT_MODELS
+        assert DEFAULT_MODELS["copilot"] == "claude-3-5-sonnet-20241022"
+
+    def test_copilot_api_key_env(self):
+        """Test that copilot uses GITHUB_TOKEN env var."""
+        from greybeard.config import DEFAULT_API_KEY_ENVS
+
+        assert "copilot" in DEFAULT_API_KEY_ENVS
+        assert DEFAULT_API_KEY_ENVS["copilot"] == "GITHUB_TOKEN"
+
+    def test_llm_config_copilot_backend(self, monkeypatch):
+        """Test LLMConfig with copilot backend."""
+        monkeypatch.setenv("GITHUB_TOKEN", "ghp_test123")
+        llm = LLMConfig(backend="copilot")
+        assert llm.backend == "copilot"
+        assert llm.resolved_model() == "claude-3-5-sonnet-20241022"
+        assert llm.resolved_api_key() == "ghp_test123"
+        assert llm.resolved_api_key_env() == "GITHUB_TOKEN"

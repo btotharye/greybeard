@@ -17,7 +17,7 @@ CONFIG_FILE = CONFIG_DIR / "config.yaml"
 PACK_CACHE_DIR = CONFIG_DIR / "packs"
 
 # Backend names we know about
-KNOWN_BACKENDS = ["openai", "anthropic", "ollama", "lmstudio"]
+KNOWN_BACKENDS = ["openai", "anthropic", "ollama", "lmstudio", "copilot"]
 
 # Default models per backend.
 # Anthropic default is claude-haiku-4-5-20251001 (not Sonnet) — a deliberate
@@ -31,6 +31,7 @@ DEFAULT_MODELS: dict[str, str] = {
     "anthropic": "claude-haiku-4-5-20251001",
     "ollama": "llama3.2",
     "lmstudio": "local-model",
+    "copilot": "claude-3-5-sonnet-20241022",
 }
 
 # Default base URLs for local/alternate backends
@@ -45,6 +46,7 @@ DEFAULT_API_KEY_ENVS: dict[str, str] = {
     "anthropic": "ANTHROPIC_API_KEY",
     "ollama": "",  # no key needed
     "lmstudio": "",  # no key needed
+    "copilot": "GITHUB_TOKEN",
 }
 
 

@@ -5,9 +5,11 @@ Supports multiple backends via the greybeard config:
   - anthropic   (claude-3-5-sonnet)
   - ollama      (local, llama3.2 or any model)
   - lmstudio    (local OpenAI-compatible server)
+  - copilot     (GitHub Copilot API, routes to claude/gpt-4)
 
 
 All backends except anthropic are accessed via the OpenAI-compatible API.
+Copilot uses the OpenAI-compatible API endpoint at api.githubcopilot.com.
 Anthropic uses its own SDK.
 """
 
@@ -50,6 +52,8 @@ def run_review(
 
     if llm.backend == "anthropic":
         return _run_anthropic(llm, model, system_prompt, user_message, stream=stream)
+    elif llm.backend == "copilot":
+        return _run_copilot(llm, model, system_prompt, user_message, stream=stream)
     else:
         return _run_openai_compat(llm, model, system_prompt, user_message, stream=stream)
 
@@ -153,6 +157,50 @@ def _run_anthropic(
             messages=[{"role": "user", "content": user_message}],
         )
         return str(resp.content[0].text)
+
+
+def _run_copilot(
+    llm: LLMConfig,
+    model: str,
+    system_prompt: str,
+    user_message: str,
+    stream: bool = True,
+) -> str:
+    """Run via GitHub Copilot API (OpenAI-compatible endpoint)."""
+    try:
+        from openai import OpenAI
+    except ImportError:
+        print("Error: openai package not installed. Run: uv pip install openai", file=sys.stderr)
+        sys.exit(1)
+
+    api_key = llm.resolved_api_key()
+    if not api_key:
+        env_var = llm.resolved_api_key_env()
+        print(
+            f"Error: {env_var} is not set.\n"
+            f"Export it or add it to a .env file, or run: greybeard init",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # GitHub Copilot API endpoint
+    base_url = "https://api.githubcopilot.com/v1"
+
+    client = OpenAI(api_key=api_key, base_url=base_url)
+    messages: list[dict[str, str]] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message},
+    ]
+
+    if stream:
+        return _stream_openai(client, model, messages)
+    else:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=messages,  # type: ignore[arg-type]
+            stream=False,
+        )
+        return resp.choices[0].message.content or ""  # type: ignore[union-attr]
 
 
 def _stream_openai(client: object, model: str, messages: list[dict[str, str]]) -> str:

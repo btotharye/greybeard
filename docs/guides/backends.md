@@ -38,13 +38,13 @@ export ANTHROPIC_API_KEY=sk-ant-...
 greybeard config set llm.backend anthropic
 ```
 
-**Default model:** `claude-3-5-sonnet-20241022`
+**Default model:** `claude-sonnet-4-6`
 
 **Other models:**
 
 ```bash
-greybeard config set llm.model claude-3-5-haiku-20241022   # faster, cheaper
-greybeard config set llm.model claude-3-opus-20240229       # most capable
+greybeard config set llm.model claude-haiku-4-5-20251001    # fastest, cheapest
+greybeard config set llm.model claude-opus-4-6              # most capable
 ```
 
 ---

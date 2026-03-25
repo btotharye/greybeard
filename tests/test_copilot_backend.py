@@ -27,14 +27,14 @@ class TestCopilotBackendInit:
     def test_init_with_default_model(self):
         """Test initialization with default model."""
         backend = CopilotBackend(github_token="ghp_test123")
-        assert backend.default_model == "claude-3-5-sonnet-20241022"
+        assert backend.default_model == "claude-sonnet-4-6"
 
     def test_init_with_custom_model(self):
         """Test initialization with custom model."""
         backend = CopilotBackend(
             github_token="ghp_test123", default_model="claude-opus"
         )
-        assert backend.default_model == "claude-3-opus-20250219"
+        assert backend.default_model == "claude-opus-4-6"
 
     def test_init_no_token(self):
         """Test initialization without token."""
@@ -63,7 +63,7 @@ class TestCopilotBackendModelResolution:
         """Test resolving friendly Claude name."""
         backend = CopilotBackend(github_token="ghp_test123")
         resolved = backend._resolve_model("claude")
-        assert resolved == "claude-3-5-sonnet-20241022"
+        assert resolved == "claude-sonnet-4-6"
 
     def test_resolve_claude_3_5_sonnet(self):
         """Test resolving claude-3.5-sonnet."""
@@ -93,7 +93,7 @@ class TestCopilotBackendModelResolution:
         """Test resolving empty model uses default."""
         backend = CopilotBackend(github_token="ghp_test123")
         resolved = backend._resolve_model("")
-        assert resolved == "claude-3-5-sonnet-20241022"
+        assert resolved == "claude-sonnet-4-6"
 
     def test_resolve_full_model_id(self):
         """Test resolving full model ID directly."""
@@ -132,7 +132,7 @@ class TestCopilotBackendCall:
         )
 
         assert result.content == "Test response"
-        assert result.model == "claude-3-5-sonnet-20241022"
+        assert result.model == "claude-sonnet-4-6"
         assert result.usage["input_tokens"] == 10
         assert result.usage["output_tokens"] == 5
 
@@ -262,7 +262,7 @@ class TestCopilotBackendStreamCall:
 
         # Verify model was resolved and used
         call_kwargs = mock_client.chat.completions.create.call_args[1]
-        assert call_kwargs["model"] == "claude-3-opus-20250219"
+        assert call_kwargs["model"] == "claude-opus-4-6"
 
 
 class TestCopilotBackendInfo:
@@ -274,7 +274,8 @@ class TestCopilotBackendInfo:
         models = backend.get_available_models()
 
         assert isinstance(models, list)
-        assert "claude-3-5-sonnet-20241022" in models
+        assert "claude-sonnet-4-6" in models
+        assert "claude-opus-4-6" in models
         assert "gpt-4" in models
         assert len(models) > 0
 
@@ -299,12 +300,12 @@ class TestCopilotBackendIntegration:
 
         response = BackendResponse(
             content="Test content",
-            model="claude-3-5-sonnet-20241022",
+            model="claude-sonnet-4-6",
             usage={"input_tokens": 10, "output_tokens": 5},
         )
 
         assert response.content == "Test content"
-        assert response.model == "claude-3-5-sonnet-20241022"
+        assert response.model == "claude-sonnet-4-6"
         assert response.usage["input_tokens"] == 10
 
     def test_backend_is_subclass_of_base(self):

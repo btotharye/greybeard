@@ -349,7 +349,7 @@ greybeard init
 
 # Or set directly
 greybeard config set llm.backend anthropic
-greybeard config set llm.model claude-3-5-sonnet
+greybeard config set llm.model claude-sonnet-4-6
 
 greybeard config show   # Verify
 ```

@@ -667,7 +667,7 @@ def config_set(key: str, value: str) -> None:
     \b
     Keys:
       llm.backend      openai | anthropic | ollama | lmstudio
-      llm.model        e.g. gpt-4o, claude-3-5-sonnet-20241022, llama3.2
+      llm.model        e.g. gpt-4o, claude-sonnet-4-6, claude-opus-4-6, llama3.2
       llm.base_url     e.g. http://localhost:11434/v1
       llm.api_key_env  e.g. OPENAI_API_KEY
       default_pack     e.g. staff-core
@@ -727,7 +727,7 @@ def init() -> None:
     console.print("\n[bold]Available LLM backends:[/bold]")
     backend_info = {
         "openai": "OpenAI API (gpt-4o, gpt-4o-mini, etc.) — needs OPENAI_API_KEY",
-        "anthropic": "Anthropic API (claude-3-5-sonnet, etc.) — needs ANTHROPIC_API_KEY",
+        "anthropic": "Anthropic API (claude-sonnet-4-6, claude-opus-4-6, etc.) — needs ANTHROPIC_API_KEY",
         "ollama": "Ollama (local, free) — run `ollama serve` first",
         "lmstudio": "LM Studio (local, free) — run LM Studio server first",
     }

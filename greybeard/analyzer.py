@@ -2,7 +2,7 @@
 
 Supports multiple backends via the greybeard config:
   - openai      (default, gpt-4o)
-  - anthropic   (claude-3-5-sonnet)
+  - anthropic   (claude-sonnet-4-6, claude-opus-4-6)
   - ollama      (local, llama3.2 or any model)
   - lmstudio    (local OpenAI-compatible server)
   - copilot     (GitHub Copilot API, routes to claude/gpt-4)

@@ -28,11 +28,14 @@ class CopilotBackend(Backend):
 
     # Map friendly names to Copilot model IDs
     MODEL_MAPPING = {
-        # Claude models
-        "claude": "claude-3-5-sonnet-20241022",
+        # Claude 4.6 models (latest)
+        "claude": "claude-sonnet-4-6",
+        "claude-opus": "claude-opus-4-6",
+        "claude-sonnet": "claude-sonnet-4-6",
+        # Claude 3.5 models (legacy)
         "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
         "claude-3.5-haiku": "claude-3-5-haiku-20241022",
-        "claude-opus": "claude-3-opus-20250219",
+        "claude-3-opus": "claude-3-opus-20250219",
         # GPT models
         "gpt-4": "gpt-4",
         "gpt-4-turbo": "gpt-4-turbo",
@@ -40,13 +43,13 @@ class CopilotBackend(Backend):
         "gpt-4o-mini": "gpt-4o-mini",
     }
 
-    def __init__(self, github_token: str = "", default_model: str = "claude-3.5-sonnet"):
+    def __init__(self, github_token: str = "", default_model: str = "claude-sonnet"):
         """Initialize Copilot backend.
 
         Args:
             github_token: GitHub token for authentication. If empty, reads from
                 GITHUB_TOKEN env var.
-            default_model: Default model to use. Maps to Claude 3.5 Sonnet by default.
+            default_model: Default model to use. Maps to Claude Sonnet 4.6 by default.
         """
         self.github_token = github_token or os.getenv("GITHUB_TOKEN", "")
         self.default_model = self._resolve_model(default_model)
@@ -188,7 +191,7 @@ class CopilotBackend(Backend):
             Full Copilot model ID
         """
         if not model:
-            return self.MODEL_MAPPING.get("claude-3.5-sonnet", "claude-3-5-sonnet-20241022")
+            return self.MODEL_MAPPING.get("claude-sonnet", "claude-sonnet-4-6")
 
         # Check if it's a known friendly name
         if model in self.MODEL_MAPPING:

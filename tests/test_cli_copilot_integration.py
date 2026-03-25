@@ -269,7 +269,7 @@ class TestBackendEnvVarIntegration:
         """Test --github-token can read from GITHUB_TOKEN env var."""
         config = MagicMock()
         config.llm.backend = "copilot"
-        config.llm.resolved_model.return_value = "claude-3-5-sonnet-20241022"
+        config.llm.resolved_model.return_value = "claude-sonnet-4-6"
         config.default_mode = "review"
         config.default_pack = "staff-core"
         mock_config.load.return_value = config

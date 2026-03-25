@@ -31,7 +31,7 @@ DEFAULT_MODELS: dict[str, str] = {
     "anthropic": "claude-haiku-4-5-20251001",
     "ollama": "llama3.2",
     "lmstudio": "local-model",
-    "copilot": "claude-3-5-sonnet-20241022",
+    "copilot": "claude-sonnet-4-6",
 }
 
 # Default base URLs for local/alternate backends

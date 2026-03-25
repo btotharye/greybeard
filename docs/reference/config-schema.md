@@ -18,7 +18,7 @@ llm:
 
   # Model name. Leave empty to use the backend's default.
   # openai default:         gpt-4o
-  # anthropic default:      claude-3-5-sonnet-20241022
+  # anthropic default:      claude-sonnet-4-6
   # ollama default:         llama3.2
   # lmstudio default:       local-model
   model: ""
@@ -41,12 +41,12 @@ pack_sources: []
 
 ## Default values per backend
 
-| Backend     | Default model                | Default base URL            | API key env         |
-| ----------- | ---------------------------- | --------------------------- | ------------------- |
-| `openai`    | `gpt-4o`                     | (OpenAI default)            | `OPENAI_API_KEY`    |
-| `anthropic` | `claude-3-5-sonnet-20241022` | (Anthropic default)         | `ANTHROPIC_API_KEY` |
-| `ollama`    | `llama3.2`                   | `http://localhost:11434/v1` | (none)              |
-| `lmstudio`  | `local-model`                | `http://localhost:1234/v1`  | (none)              |
+| Backend     | Default model           | Default base URL            | API key env         |
+| ----------- | ----------------------- | --------------------------- | ------------------- |
+| `openai`    | `gpt-4o`                | (OpenAI default)            | `OPENAI_API_KEY`    |
+| `anthropic` | `claude-sonnet-4-6`     | (Anthropic default)         | `ANTHROPIC_API_KEY` |
+| `ollama`    | `llama3.2`              | `http://localhost:11434/v1` | (none)              |
+| `lmstudio`  | `local-model`           | `http://localhost:1234/v1`  | (none)              |
 
 ## Managing config
 

@@ -12,25 +12,19 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
-import sys
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch, mock_open
+from unittest.mock import Mock, patch
 
 import pytest
 
 from greybeard.analyzer import (
     _build_user_message,
     _collect_repo_context,
-    _run_anthropic,
     _run_copilot,
     _run_openai_compat,
     _stream_openai,
     run_review,
-    run_review_async,
 )
-from greybeard.config import GreybeardConfig, LLMConfig
 from greybeard.groq_fallback import (
     COMPLEX_SIGNALS,
     GROQ_DEFAULT_MODEL,
@@ -42,15 +36,11 @@ from greybeard.groq_fallback import (
 from greybeard.history import (
     _clean_phrase,
     _extract_key_questions,
-    _extract_key_risks,
     analyze_trends,
 )
-from greybeard.models import ReviewRequest, ContentPack
+from greybeard.models import ContentPack, ReviewRequest
 from greybeard.packs import (
     FilePacksStorage,
-    load_pack,
-    list_installed_packs,
-    set_storage,
     _fetch_json,
     _find_in_cache,
     _install_github_source,
@@ -59,8 +49,7 @@ from greybeard.packs import (
     _parse_yaml_content,
     _source_slug,
 )
-from greybeard.storage import FileHistoryStorage, FilePacksStorage as StoragePacksStorage
-
+from greybeard.storage import FileHistoryStorage
 
 # ─────────────────────────────────────────────────────────────────────────────
 # GROQ_FALLBACK.PY TESTS (25% → 80%+)
@@ -626,9 +615,7 @@ class TestOpenAICompat:
         llm.resolved_base_url.return_value = None
 
         with patch("builtins.print"):
-            text, in_tok, out_tok = _run_openai_compat(
-                llm, "gpt-4", "system", "user", stream=True
-            )
+            text, in_tok, out_tok = _run_openai_compat(llm, "gpt-4", "system", "user", stream=True)
 
         assert "Hello" in text
 
@@ -650,9 +637,7 @@ class TestOpenAICompat:
         llm.resolved_api_key.return_value = "key"
         llm.resolved_base_url.return_value = "https://api.openai.com/v1"
 
-        text, in_tok, out_tok = _run_openai_compat(
-            llm, "gpt-4", "sys", "user", stream=False
-        )
+        text, in_tok, out_tok = _run_openai_compat(llm, "gpt-4", "sys", "user", stream=False)
 
         assert text == "Response"
         assert in_tok == 10
@@ -774,9 +759,7 @@ class TestCopilotBackend:
         llm.resolved_api_key.return_value = "copilot-key"
 
         with patch("builtins.print"):
-            text, _, _ = _run_copilot(
-                llm, "gpt-4", "system", "user", stream=True
-            )
+            text, _, _ = _run_copilot(llm, "gpt-4", "system", "user", stream=True)
 
         assert "Copilot" in text
         # Verify base_url was set correctly
@@ -800,9 +783,7 @@ class TestCopilotBackend:
         llm = Mock()
         llm.resolved_api_key.return_value = "key"
 
-        text, in_tok, out_tok = _run_copilot(
-            llm, "gpt-4", "s", "u", stream=False
-        )
+        text, in_tok, out_tok = _run_copilot(llm, "gpt-4", "s", "u", stream=False)
 
         assert text == "Copilot output"
         assert in_tok == 15
@@ -1147,24 +1128,34 @@ class TestFileHistoryStorage:
 
         # Write entries directly to file in order
         with history_file.open("w", encoding="utf-8") as f:
-            f.write(json.dumps({
-                "timestamp": "2026-03-25T11:00:00Z",
-                "decision_name": "dec1",
-                "pack": "staff-core",
-                "mode": "review",
-                "summary": "s1",
-                "key_risks": [],
-                "key_questions": [],
-            }) + "\n")
-            f.write(json.dumps({
-                "timestamp": "2026-03-26T12:00:00Z",
-                "decision_name": "dec2",
-                "pack": "mentor",
-                "mode": "mentor",
-                "summary": "s2",
-                "key_risks": [],
-                "key_questions": [],
-            }) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-25T11:00:00Z",
+                        "decision_name": "dec1",
+                        "pack": "staff-core",
+                        "mode": "review",
+                        "summary": "s1",
+                        "key_risks": [],
+                        "key_questions": [],
+                    }
+                )
+                + "\n"
+            )
+            f.write(
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-26T12:00:00Z",
+                        "decision_name": "dec2",
+                        "pack": "mentor",
+                        "mode": "mentor",
+                        "summary": "s2",
+                        "key_risks": [],
+                        "key_questions": [],
+                    }
+                )
+                + "\n"
+            )
 
         entries = storage.load_entries(days=30)
         assert len(entries) == 2
@@ -1177,24 +1168,28 @@ class TestFileHistoryStorage:
         history_file = tmp_path / "history.jsonl"
         storage = FileHistoryStorage(history_file)
 
-        storage.save_entry({
-            "timestamp": "2026-03-25T10:00:00Z",
-            "decision_name": "dec1",
-            "pack": "staff-core",
-            "mode": "review",
-            "summary": "s1",
-            "key_risks": [],
-            "key_questions": [],
-        })
-        storage.save_entry({
-            "timestamp": "2026-03-25T09:00:00Z",
-            "decision_name": "dec2",
-            "pack": "mentor",
-            "mode": "review",
-            "summary": "s2",
-            "key_risks": [],
-            "key_questions": [],
-        })
+        storage.save_entry(
+            {
+                "timestamp": "2026-03-25T10:00:00Z",
+                "decision_name": "dec1",
+                "pack": "staff-core",
+                "mode": "review",
+                "summary": "s1",
+                "key_risks": [],
+                "key_questions": [],
+            }
+        )
+        storage.save_entry(
+            {
+                "timestamp": "2026-03-25T09:00:00Z",
+                "decision_name": "dec2",
+                "pack": "mentor",
+                "mode": "review",
+                "summary": "s2",
+                "key_risks": [],
+                "key_questions": [],
+            }
+        )
 
         entries = storage.load_entries(days=30, pack="staff-core")
         assert len(entries) == 1
@@ -1208,24 +1203,28 @@ class TestFileHistoryStorage:
         now = datetime.now(tz=UTC)
         old = now - timedelta(days=40)
 
-        storage.save_entry({
-            "timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "decision_name": "recent",
-            "pack": "p1",
-            "mode": "review",
-            "summary": "s1",
-            "key_risks": [],
-            "key_questions": [],
-        })
-        storage.save_entry({
-            "timestamp": old.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "decision_name": "old",
-            "pack": "p1",
-            "mode": "review",
-            "summary": "s2",
-            "key_risks": [],
-            "key_questions": [],
-        })
+        storage.save_entry(
+            {
+                "timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "decision_name": "recent",
+                "pack": "p1",
+                "mode": "review",
+                "summary": "s1",
+                "key_risks": [],
+                "key_questions": [],
+            }
+        )
+        storage.save_entry(
+            {
+                "timestamp": old.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "decision_name": "old",
+                "pack": "p1",
+                "mode": "review",
+                "summary": "s2",
+                "key_risks": [],
+                "key_questions": [],
+            }
+        )
 
         entries = storage.load_entries(days=30)
         assert len(entries) == 1
@@ -1239,24 +1238,28 @@ class TestFileHistoryStorage:
         old_ts = "2020-01-01T00:00:00Z"
         new_ts = "2026-03-25T00:00:00Z"
 
-        storage.save_entry({
-            "timestamp": old_ts,
-            "decision_name": "old",
-            "pack": "p",
-            "mode": "review",
-            "summary": "s",
-            "key_risks": [],
-            "key_questions": [],
-        })
-        storage.save_entry({
-            "timestamp": new_ts,
-            "decision_name": "new",
-            "pack": "p",
-            "mode": "review",
-            "summary": "s",
-            "key_risks": [],
-            "key_questions": [],
-        })
+        storage.save_entry(
+            {
+                "timestamp": old_ts,
+                "decision_name": "old",
+                "pack": "p",
+                "mode": "review",
+                "summary": "s",
+                "key_risks": [],
+                "key_questions": [],
+            }
+        )
+        storage.save_entry(
+            {
+                "timestamp": new_ts,
+                "decision_name": "new",
+                "pack": "p",
+                "mode": "review",
+                "summary": "s",
+                "key_risks": [],
+                "key_questions": [],
+            }
+        )
 
         entries = storage.load_entries(days=0)
         assert len(entries) == 2
@@ -1283,7 +1286,7 @@ class TestFileHistoryStorage:
         history_file = tmp_path / "history.jsonl"
         history_file.write_text(
             '{"valid": "entry", "timestamp": "2026-03-25T10:00:00Z"}\n'
-            'not valid json\n'
+            "not valid json\n"
             '{"another": "valid", "timestamp": "2026-03-25T09:00:00Z"}\n'
         )
         storage = FileHistoryStorage(history_file)
@@ -1377,13 +1380,15 @@ class TestAnalyzeTrends:
 
     def test_analyze_trends_single_entry(self):
         """Test analyzing single entry."""
-        history = [{
-            "timestamp": "2026-03-25T10:00:00Z",
-            "decision_name": "d1",
-            "pack": "staff-core",
-            "key_risks": ["risk1"],
-            "key_questions": [],
-        }]
+        history = [
+            {
+                "timestamp": "2026-03-25T10:00:00Z",
+                "decision_name": "d1",
+                "pack": "staff-core",
+                "key_risks": ["risk1"],
+                "key_questions": [],
+            }
+        ]
         result = analyze_trends(history)
         assert result["total_decisions"] == 1
         assert len(result["risk_frequency"]) == 1

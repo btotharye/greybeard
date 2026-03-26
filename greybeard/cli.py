@@ -166,6 +166,12 @@ def cli() -> None:
 @click.option("--context", "-c", default="", help="Additional context notes.")
 @click.option("--model", default=None, help="Override LLM model.")
 @click.option(
+    "--backend",
+    default=None,
+    type=click.Choice(KNOWN_BACKENDS),
+    help="LLM backend: openai, anthropic, copilot, groq, ollama, lmstudio.",
+)
+@click.option(
     "--audience",
     "-a",
     type=click.Choice(AUDIENCES),
@@ -196,7 +202,7 @@ def cli() -> None:
     help="Start interactive REPL after initial analysis.",
 )
 def analyze(
-    mode, pack, repo, context, model, audience, output, fmt, save_decision_name, interactive
+    mode, pack, repo, context, model, backend, audience, output, fmt, save_decision_name, interactive
 ) -> None:
     r"""Analyze a decision, diff, or document.
 
@@ -214,6 +220,11 @@ def analyze(
       git diff main | greybeard analyze --interactive --mode mentor
     """
     cfg = GreybeardConfig.load()
+    
+    # Override backend if provided via --backend flag
+    if backend:
+        cfg.llm.backend = backend
+    
     mode = mode or cfg.default_mode
     pack_name = pack or cfg.default_pack
 
@@ -285,6 +296,12 @@ def analyze(
 )
 @click.option("--pack", "-p", default=None, help="Content pack name or path.")
 @click.option("--model", default=None, help="Override LLM model.")
+@click.option(
+    "--backend",
+    default=None,
+    type=click.Choice(KNOWN_BACKENDS),
+    help="LLM backend: openai, anthropic, copilot, groq, ollama, lmstudio.",
+)
 @click.option("--output", "-o", default=None, help="Save review to a file.")
 @click.option(
     "--format",
@@ -295,7 +312,7 @@ def analyze(
     show_default=True,
     help="Output format.",
 )
-def self_check(context, pack, model, output, fmt) -> None:
+def self_check(context, pack, model, backend, output, fmt) -> None:
     r"""Review your own decision before sharing it.
 
     \b
@@ -304,6 +321,11 @@ def self_check(context, pack, model, output, fmt) -> None:
       greybeard self-check --context "migration plan" --format json --output check.json
     """
     cfg = GreybeardConfig.load()
+    
+    # Override backend if provided via --backend flag
+    if backend:
+        cfg.llm.backend = backend
+    
     pack_name = pack or cfg.default_pack
 
     try:
@@ -354,6 +376,12 @@ def self_check(context, pack, model, output, fmt) -> None:
     "--pack", "-p", default="mentor-mode", show_default=True, help="Content pack name or path."
 )
 @click.option("--model", default=None, help="Override LLM model.")
+@click.option(
+    "--backend",
+    default=None,
+    type=click.Choice(KNOWN_BACKENDS),
+    help="LLM backend: openai, anthropic, copilot, groq, ollama, lmstudio.",
+)
 @click.option("--output", "-o", default=None, help="Save to a file.")
 @click.option(
     "--format",
@@ -370,7 +398,7 @@ def self_check(context, pack, model, output, fmt) -> None:
     is_flag=True,
     help="Start interactive REPL after initial analysis.",
 )
-def coach(audience, context, pack, model, output, fmt, interactive) -> None:
+def coach(audience, context, pack, model, backend, output, fmt, interactive) -> None:
     r"""Get help communicating a concern or decision constructively.
 
     \b
@@ -381,6 +409,11 @@ def coach(audience, context, pack, model, output, fmt, interactive) -> None:
       greybeard coach --audience team --context "shipping too fast" --interactive
     """
     cfg = GreybeardConfig.load()
+    
+    # Override backend if provided via --backend flag
+    if backend:
+        cfg.llm.backend = backend
+    
     try:
         content_pack = load_pack(pack)
     except FileNotFoundError as e:
@@ -604,7 +637,7 @@ def config_set(key: str, value: str) -> None:
 
     \b
     Keys:
-      llm.backend      openai | anthropic | ollama | lmstudio
+      llm.backend      openai | anthropic | copilot | groq | ollama | lmstudio
       llm.model        e.g. gpt-4o, claude-3-5-sonnet-20241022, llama3.2
       llm.base_url     e.g. http://localhost:11434/v1
       llm.api_key_env  e.g. OPENAI_API_KEY
@@ -1140,7 +1173,13 @@ def adr_list(repo) -> None:
     default=None,
     help="Output file path (default: batch-analysis.{format}).",
 )
-def batch_analyze(reviews: tuple[str, ...], output_format: str, output: str | None) -> None:
+@click.option(
+    "--backend",
+    default=None,
+    type=click.Choice(KNOWN_BACKENDS),
+    help="LLM backend: openai, anthropic, copilot, groq, ollama, lmstudio.",
+)
+def batch_analyze(reviews: tuple[str, ...], output_format: str, output: str | None, backend: str | None) -> None:
     """Analyze and aggregate multiple reviews.
 
     Combines multiple review outputs, deduplicates findings,

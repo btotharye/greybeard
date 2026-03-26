@@ -334,12 +334,13 @@ See [Packs Guide](docs/guides/packs.md) for detailed pack creation and best prac
 
 greybeard works with any LLM backend. Configure once with `greybeard init`:
 
-| Backend     | How           | What You Need                                      |
-| ----------- | ------------- | -------------------------------------------------- |
-| `openai`    | OpenAI API    | `OPENAI_API_KEY`                                   |
-| `anthropic` | Anthropic API | `ANTHROPIC_API_KEY` + `greybeard[anthropic]` extra |
-| `ollama`    | Local (free)  | [Ollama](https://ollama.ai) running locally        |
-| `lmstudio`  | Local (free)  | [LM Studio](https://lmstudio.ai) server running    |
+| Backend     | How                   | What You Need                                      |
+| ----------- | --------------------- | -------------------------------------------------- |
+| `openai`    | OpenAI API            | `OPENAI_API_KEY`                                   |
+| `anthropic` | Anthropic API         | `ANTHROPIC_API_KEY` + `greybeard[anthropic]` extra |
+| `copilot`   | GitHub Copilot API    | `GITHUB_TOKEN` (GitHub PAT or CLI token)           |
+| `ollama`    | Local (free)          | [Ollama](https://ollama.ai) running locally        |
+| `lmstudio`  | Local (free)          | [LM Studio](https://lmstudio.ai) server running    |
 
 ### Configure Your Backend
 

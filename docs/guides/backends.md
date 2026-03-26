@@ -49,6 +49,48 @@ greybeard config set llm.model claude-3-opus-20240229       # most capable
 
 ---
 
+## GitHub Copilot
+
+Uses GitHub Copilot's API endpoint at `api.githubcopilot.com/v1`. Requires a GitHub Personal Access Token or GitHub CLI authentication.
+
+**Setup:**
+
+1. Create a Personal Access Token at [github.com/settings/tokens](https://github.com/settings/tokens) with at least `copilot` scope, OR authenticate with GitHub CLI:
+   ```bash
+   gh auth login
+   ```
+
+2. Configure greybeard:
+   ```bash
+   export GITHUB_TOKEN=ghp_...  # Your GitHub token
+   greybeard config set llm.backend copilot
+   ```
+
+3. Verify the configuration:
+   ```bash
+   greybeard config
+   ```
+
+**Default model:** `gpt-4-turbo`
+
+**Other models:** Depends on what models are available through your Copilot subscription:
+```bash
+greybeard config set llm.model gpt-4o          # If available
+greybeard config set llm.model gpt-4          # Older model
+```
+
+**Custom GitHub token env var:**
+If you want to use a different environment variable (e.g., for CI/CD):
+```bash
+export MY_GITHUB_TOKEN=ghp_...
+greybeard config set llm.api_key_env MY_GITHUB_TOKEN
+```
+
+!!! note
+GitHub Copilot API access requires an active Copilot subscription and a GitHub Personal Access Token with appropriate permissions. Check [GitHub's Copilot documentation](https://docs.github.com/en/copilot/about-github-copilot) for current availability.
+
+---
+
 ## Ollama (local, free)
 
 Run any open-source model locally — no API key, no cost, fully offline.

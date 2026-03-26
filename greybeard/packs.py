@@ -8,6 +8,7 @@ Pack sources can be:
   - Raw URL: https://example.com/my-pack.yaml
 
 Installed packs are cached in ~/.greybeard/packs/<source-slug>/<pack-name>.yaml
+Storage is pluggable (see storage.py).
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from typing import TYPE_CHECKING
 import yaml  # type: ignore[import-untyped]
 
 from .models import ContentPack
+from .storage import FilePacksStorage, PacksStorage
 
 if TYPE_CHECKING:
     pass
@@ -30,6 +32,31 @@ PACK_CACHE_DIR = Path.home() / ".greybeard" / "packs"
 # GitHub API base
 GITHUB_API = "https://api.github.com"
 GITHUB_RAW = "https://raw.githubusercontent.com"
+
+# Global storage instance (injectable for testing)
+_storage: PacksStorage | None = None
+
+
+def _get_storage() -> PacksStorage:
+    """Get or create the default storage instance.
+
+    Uses lazy initialization so monkeypatching of PACK_CACHE_DIR works in tests.
+    """
+    global _storage
+    if _storage is None:
+        _storage = FilePacksStorage(PACK_CACHE_DIR)
+    return _storage
+
+
+# ---------------------------------------------------------------------------
+# Global storage management
+# ---------------------------------------------------------------------------
+
+
+def set_storage(storage: PacksStorage) -> None:
+    """Set the packs storage backend (for testing or alternative backends)."""
+    global _storage
+    _storage = storage
 
 
 # ---------------------------------------------------------------------------
@@ -119,26 +146,20 @@ def list_builtin_packs() -> list[str]:
 
 
 def list_installed_packs() -> list[dict]:
-    """List all packs in ~/.greybeard/packs/ with source info."""
-    if not PACK_CACHE_DIR.exists():
-        return []
+    """List all packs in ~/.greybeard/packs/ with source info (via storage)."""
+    storage = _get_storage()
+    installed = storage.list_installed()
+    # Add description by parsing each pack
     results = []
-    for source_dir in sorted(PACK_CACHE_DIR.iterdir()):
-        if not source_dir.is_dir():
-            continue
-        for pack_file in sorted(source_dir.glob("*.yaml")):
-            try:
-                pack = _load_from_file(pack_file)
-                results.append(
-                    {
-                        "name": pack.name,
-                        "source": source_dir.name,
-                        "path": str(pack_file),
-                        "description": pack.description,
-                    }
-                )
-            except Exception:
-                pass
+    for item in installed:
+        try:
+            content = storage.load_pack(item["name"], source_slug=item["source"])
+            if content:
+                pack = _parse_yaml_content(content, stem=item["name"])
+                item["description"] = pack.description
+        except Exception:
+            pass
+        results.append(item)
     return results
 
 
@@ -165,20 +186,8 @@ def install_pack_source(source: str, force: bool = False) -> list[ContentPack]:
 
 
 def remove_pack_source(source_slug: str) -> int:
-    """Remove all packs from a cached source. Returns count removed."""
-    target = PACK_CACHE_DIR / source_slug
-    if not target.exists():
-        # Try to find by partial match
-        matches = [d for d in PACK_CACHE_DIR.iterdir() if source_slug in d.name]
-        if not matches:
-            raise FileNotFoundError(f"No cached source matching: {source_slug}")
-        target = matches[0]
-
-    count = len(list(target.glob("*.yaml")))
-    import shutil
-
-    shutil.rmtree(target)
-    return count
+    """Remove all packs from a cached source (via storage). Returns count removed."""
+    return _get_storage().remove_source(source_slug)
 
 
 # ---------------------------------------------------------------------------
@@ -285,14 +294,16 @@ def _load_url_pack(
     """Download a pack YAML from a URL, optionally caching it."""
     if cache_dir is None and cache:
         slug = _source_slug(url)
-        cache_dir = PACK_CACHE_DIR / slug
+    else:
+        slug = _source_slug(url) if cache else ""
 
-    # Check cache first
-    if cache_dir and not force:
-        stem = Path(url.split("/")[-1]).stem
-        cached_file = cache_dir / f"{stem}.yaml"
-        if cached_file.exists():
-            return _load_from_file(cached_file)
+    # Check cache first (using storage interface)
+    pack_stem = Path(url.split("/")[-1]).stem
+    storage = _get_storage()
+    if cache and not force and slug:
+        cached_content = storage.load_pack(pack_stem, source_slug=slug)
+        if cached_content:
+            return _parse_yaml_content(cached_content, stem=pack_stem)
 
     # Download
     try:
@@ -303,13 +314,11 @@ def _load_url_pack(
         raise FileNotFoundError(f"Could not download pack from {url}: {e}") from e
 
     # Parse first to validate
-    pack = _parse_yaml_content(content, stem=Path(url.split("/")[-1]).stem)
+    pack = _parse_yaml_content(content, stem=pack_stem)
 
-    # Cache it
-    if cache and cache_dir:
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        dest = cache_dir / f"{pack.name}.yaml"
-        dest.write_text(content)
+    # Cache it (using storage interface)
+    if cache and slug:
+        storage.save_pack(pack.name, slug, content)
 
     return pack
 

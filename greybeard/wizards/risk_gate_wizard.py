@@ -407,9 +407,9 @@ def run_risk_gate_wizard(output_file: str | None = None) -> Path:
         if template:
             tmpl = RISK_GATE_TEMPLATES[template]
             gate_name = template
-            gate_patterns = tmpl["patterns"].copy()
-            gate_packs = tmpl["default_packs"].copy()
-            gate_severity = tmpl["fail_on_concerns"]
+            gate_patterns = list(tmpl["patterns"])
+            gate_packs = list(tmpl["default_packs"])
+            gate_severity = str(tmpl["fail_on_concerns"])
 
             console.print(f"\n[green]✓[/green] Using [bold]{template}[/bold] template")
             console.print(f"  Patterns: {', '.join(gate_patterns)}")

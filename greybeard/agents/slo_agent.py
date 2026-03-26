@@ -199,7 +199,7 @@ class SLOAgent:
 
         # Count files
         py_files = list(path.glob("**/*.py"))
-        signals["file_count"] = len(py_files)
+        signals["file_count"] = len(py_files)  # type: ignore[assignment]
 
         # Look for monitoring/observability config
         for f in path.glob("**/*"):

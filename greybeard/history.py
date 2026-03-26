@@ -1,6 +1,7 @@
 """Decision history — save reviews and surface recurring patterns.
 
-Storage: ~/.greybeard/history.jsonl (append-only JSONL, one record per line)
+Storage is pluggable (see storage.py).
+Default: ~/.greybeard/history.jsonl (append-only JSONL, one record per line)
 
 Schema per entry:
   {
@@ -18,13 +19,15 @@ Pattern detection flags any risk that appears 3+ times in the last 30 days.
 
 from __future__ import annotations
 
-import json
 import re
 from collections import Counter
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from .storage import FileHistoryStorage, HistoryStorage
+
+# For backward compatibility with cli.py and tests
 HISTORY_DIR = Path.home() / ".greybeard"
 HISTORY_FILE = HISTORY_DIR / "history.jsonl"
 
@@ -69,11 +72,25 @@ RISK_ADVICE: dict[str, str] = {
 }
 
 
-# ── Storage helpers ───────────────────────────────────────────────────────────
+# ── Global storage instance (injectable for testing) ──────────────────────────
+_storage: HistoryStorage | None = None
 
 
-def _ensure_dir() -> None:
-    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+def _get_storage() -> HistoryStorage:
+    """Get or create the default storage instance.
+
+    Uses lazy initialization so monkeypatching of HISTORY_FILE works in tests.
+    """
+    global _storage
+    if _storage is None:
+        _storage = FileHistoryStorage(HISTORY_FILE)
+    return _storage
+
+
+def set_storage(storage: HistoryStorage) -> None:
+    """Set the history storage backend (for testing or alternative backends)."""
+    global _storage
+    _storage = storage
 
 
 def _now_utc() -> str:
@@ -165,7 +182,7 @@ def _clean_phrase(text: str) -> str:
 
 
 def save_decision(name: str, review_text: str, pack: str, mode: str) -> Path:
-    """Append one review entry to the history file.
+    """Append one review entry to the history.
 
     Args:
         name:        User-supplied decision label (e.g. "auth-migration-q1").
@@ -175,9 +192,7 @@ def save_decision(name: str, review_text: str, pack: str, mode: str) -> Path:
 
     Returns:
         Path to the history file.
-
     """
-    _ensure_dir()
     entry: dict[str, Any] = {
         "timestamp": _now_utc(),
         "decision_name": name,
@@ -187,8 +202,7 @@ def save_decision(name: str, review_text: str, pack: str, mode: str) -> Path:
         "key_risks": _extract_key_risks(review_text),
         "key_questions": _extract_key_questions(review_text),
     }
-    with HISTORY_FILE.open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(entry) + "\n")
+    _get_storage().save_entry(entry)
     return HISTORY_FILE
 
 
@@ -201,44 +215,8 @@ def load_history(days: int = 30, pack: str | None = None) -> list[dict[str, Any]
 
     Returns:
         List of entry dicts, newest first.
-
     """
-    if not HISTORY_FILE.exists():
-        return []
-
-    cutoff = (
-        datetime.now(tz=UTC) - timedelta(days=days)
-        if days > 0
-        else datetime.min.replace(tzinfo=UTC)
-    )
-
-    entries: list[dict[str, Any]] = []
-    with HISTORY_FILE.open("r", encoding="utf-8") as fh:
-        for lineno, line in enumerate(fh, 1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
-                # Skip malformed lines silently
-                continue
-
-            # Timestamp filter
-            try:
-                ts = datetime.fromisoformat(entry["timestamp"].replace("Z", "+00:00"))
-            except (KeyError, ValueError):
-                continue
-            if ts < cutoff:
-                continue
-
-            # Pack filter
-            if pack and entry.get("pack") != pack:
-                continue
-
-            entries.append(entry)
-
-    return list(reversed(entries))  # newest first
+    return _get_storage().load_entries(days=days, pack=pack)
 
 
 def analyze_trends(history: list[dict[str, Any]]) -> dict[str, Any]:

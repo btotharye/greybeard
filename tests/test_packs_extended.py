@@ -41,6 +41,8 @@ class TestPackSourceManagement:
 
         # Create mock cache directory
         monkeypatch.setattr("greybeard.packs.PACK_CACHE_DIR", tmp_path)
+        # Reset the global _storage so it uses the monkeypatched PACK_CACHE_DIR
+        monkeypatch.setattr("greybeard.packs._storage", None)
 
         # Create test pack files
         source_dir = tmp_path / "test-source"
@@ -67,6 +69,8 @@ class TestPackSourceManagement:
 
         # Create mock cache directory
         monkeypatch.setattr("greybeard.packs.PACK_CACHE_DIR", tmp_path)
+        # Reset the global _storage so it uses the monkeypatched PACK_CACHE_DIR
+        monkeypatch.setattr("greybeard.packs._storage", None)
 
         # Create test pack files with longer name
         source_dir = tmp_path / "github-owner-repo-abc123"

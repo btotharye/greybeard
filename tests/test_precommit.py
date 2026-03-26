@@ -568,9 +568,13 @@ class TestRunDiffReview:
         self, mock_files, mock_diff, mock_load_pack, mock_run_review
     ):
         """Review with critical concerns returns fail."""
+        from greybeard.models import ContentPack
+
         mock_files.return_value = ["src/main.py"]
         mock_diff.return_value = "diff content"
-        mock_load_pack.return_value = MagicMock()
+        mock_load_pack.return_value = ContentPack(
+            name="staff-core", perspective="test", tone="constructive"
+        )
         mock_run_review.return_value = "[CRITICAL] This will break production"
         config = PreCommitConfig(fail_on_concerns="critical")
         result = run_diff_review(config)
@@ -639,9 +643,13 @@ class TestRunDiffReview:
     @patch("greybeard.precommit.get_staged_files")
     def test_long_review_truncated(self, mock_files, mock_diff, mock_load_pack, mock_run_review):
         """Review result longer than 200 chars is truncated in message."""
+        from greybeard.models import ContentPack
+
         mock_files.return_value = ["src/main.py"]
         mock_diff.return_value = "diff content"
-        mock_load_pack.return_value = MagicMock()
+        mock_load_pack.return_value = ContentPack(
+            name="staff-core", perspective="test", tone="constructive"
+        )
         mock_run_review.return_value = "x" * 300
         result = run_diff_review(PreCommitConfig())
         assert result.message.endswith("...")

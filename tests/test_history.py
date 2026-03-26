@@ -31,6 +31,8 @@ def tmp_history(tmp_path, monkeypatch):
     history_file = history_dir / "history.jsonl"
     monkeypatch.setattr("greybeard.history.HISTORY_DIR", history_dir)
     monkeypatch.setattr("greybeard.history.HISTORY_FILE", history_file)
+    # Reset the storage instance so it reinitializes with new HISTORY_FILE
+    monkeypatch.setattr("greybeard.history._storage", None)
     # Also patch the cli module's imports (they imported directly)
     monkeypatch.setattr("greybeard.cli.HISTORY_FILE", history_file)
     return history_file

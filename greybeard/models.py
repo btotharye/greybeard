@@ -1,25 +1,27 @@
-"""Data models for staff-review."""
+"""Data models for staff-review using Pydantic."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Literal
+
+from pydantic import BaseModel, Field
 
 Mode = Literal["review", "mentor", "coach", "self-check"]
 Audience = Literal["team", "peers", "leadership", "customer"]
 OutputFormat = Literal["markdown", "json", "html", "jira", "pdf"]
 
 
-@dataclass
-class ContentPack:
+class ContentPack(BaseModel):
     """A loaded content pack defining perspective, tone, and heuristics."""
+
+    model_config = {"str_strip_whitespace": True}
 
     name: str
     perspective: str
     tone: str
-    focus_areas: list[str] = field(default_factory=list)
-    heuristics: list[str] = field(default_factory=list)
-    example_questions: list[str] = field(default_factory=list)
+    focus_areas: list[str] = Field(default_factory=list)
+    heuristics: list[str] = Field(default_factory=list)
+    example_questions: list[str] = Field(default_factory=list)
     communication_style: str = ""
     description: str = ""
 
@@ -44,9 +46,10 @@ class ContentPack:
         return "\n".join(lines)
 
 
-@dataclass
-class ReviewRequest:
+class ReviewRequest(BaseModel):
     """A review request with all context assembled."""
+
+    model_config = {"str_strip_whitespace": True}
 
     mode: Mode
     pack: ContentPack

@@ -80,12 +80,30 @@ class LLMConfig:
 
 
 @dataclass
+class GroqFallbackConfig:
+    """Groq fallback provider configuration."""
+
+    enabled: bool = True
+    use_for_simple_tasks: bool = True
+    model: str = "llama-3.1-8b-instant"
+    api_key_env: str = "GROQ_API_KEY"
+
+    def resolved_api_key(self) -> str | None:
+        return os.getenv(self.api_key_env)
+
+    @property
+    def available(self) -> bool:
+        return self.enabled and bool(self.resolved_api_key())
+
+
+@dataclass
 class GreybeardConfig:
     """Top-level greybeard configuration."""
 
     default_pack: str = "staff-core"
     default_mode: str = "review"
     llm: LLMConfig = field(default_factory=LLMConfig)
+    groq: GroqFallbackConfig = field(default_factory=GroqFallbackConfig)
     pack_sources: list[str] = field(default_factory=list)
 
     @classmethod
@@ -97,6 +115,20 @@ class GreybeardConfig:
         with CONFIG_FILE.open() as f:
             data = yaml.safe_load(f) or {}
 
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> GreybeardConfig:
+        """Create a GreybeardConfig from a dictionary.
+
+        Useful for SaaS integrations that construct config programmatically.
+
+        Args:
+            data: Dict with optional keys: llm, groq, default_pack, default_mode, pack_sources.
+
+        Returns:
+            A fully initialized GreybeardConfig.
+        """
         llm_data = data.get("llm", {})
         llm = LLMConfig(
             backend=llm_data.get("backend", "openai"),
@@ -105,10 +137,19 @@ class GreybeardConfig:
             api_key_env=llm_data.get("api_key_env", ""),
         )
 
+        groq_data = data.get("groq", {})
+        groq = GroqFallbackConfig(
+            enabled=groq_data.get("enabled", True),
+            use_for_simple_tasks=groq_data.get("use_for_simple_tasks", True),
+            model=groq_data.get("model", "llama-3.1-8b-instant"),
+            api_key_env=groq_data.get("api_key_env", "GROQ_API_KEY"),
+        )
+
         return cls(
             default_pack=data.get("default_pack", "staff-core"),
             default_mode=data.get("default_mode", "review"),
             llm=llm,
+            groq=groq,
             pack_sources=data.get("pack_sources", []),
         )
 
@@ -123,6 +164,12 @@ class GreybeardConfig:
                 "model": self.llm.model,
                 "base_url": self.llm.base_url,
                 "api_key_env": self.llm.api_key_env,
+            },
+            "groq": {
+                "enabled": self.groq.enabled,
+                "use_for_simple_tasks": self.groq.use_for_simple_tasks,
+                "model": self.groq.model,
+                "api_key_env": self.groq.api_key_env,
             },
             "pack_sources": self.pack_sources,
         }
@@ -140,5 +187,9 @@ class GreybeardConfig:
             "llm.model": self.llm.resolved_model(),
             "llm.base_url": self.llm.resolved_base_url() or "(default)",
             "llm.api_key_env": self.llm.resolved_api_key_env() or "(none)",
+            "groq.enabled": self.groq.enabled,
+            "groq.use_for_simple_tasks": self.groq.use_for_simple_tasks,
+            "groq.model": self.groq.model,
+            "groq.available": self.groq.available,
             "pack_sources": self.pack_sources or [],
         }

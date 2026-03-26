@@ -26,11 +26,15 @@ from greybeard.history import (
 @pytest.fixture
 def tmp_history(tmp_path, monkeypatch):
     """Redirect HISTORY_FILE and HISTORY_DIR to a temporary directory."""
+    from greybeard import history as history_module
+    
     history_dir = tmp_path / ".greybeard"
     history_dir.mkdir(parents=True, exist_ok=True)
     history_file = history_dir / "history.jsonl"
     monkeypatch.setattr("greybeard.history.HISTORY_DIR", history_dir)
     monkeypatch.setattr("greybeard.history.HISTORY_FILE", history_file)
+    # Reset the storage instance so it reinitializes with new HISTORY_FILE
+    monkeypatch.setattr("greybeard.history._storage", None)
     # Also patch the cli module's imports (they imported directly)
     monkeypatch.setattr("greybeard.cli.HISTORY_FILE", history_file)
     return history_file

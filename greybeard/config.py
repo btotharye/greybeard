@@ -17,7 +17,7 @@ CONFIG_FILE = CONFIG_DIR / "config.yaml"
 PACK_CACHE_DIR = CONFIG_DIR / "packs"
 
 # Backend names we know about
-KNOWN_BACKENDS = ["openai", "anthropic", "ollama", "lmstudio", "copilot"]
+KNOWN_BACKENDS = ["openai", "anthropic", "ollama", "lmstudio", "copilot", "groq"]
 
 # Default models per backend.
 # Anthropic default is claude-haiku-4-5-20251001 (not Sonnet) — a deliberate
@@ -32,6 +32,7 @@ DEFAULT_MODELS: dict[str, str] = {
     "ollama": "llama3.2",
     "lmstudio": "local-model",
     "copilot": "gpt-4-turbo",  # Copilot provides access to Copilot-managed models
+    "groq": "llama-3.1-8b-instant",  # Fast and cheap, good for simple tasks
 }
 
 # Default base URLs for local/alternate backends
@@ -47,6 +48,7 @@ DEFAULT_API_KEY_ENVS: dict[str, str] = {
     "ollama": "",  # no key needed
     "lmstudio": "",  # no key needed
     "copilot": "GITHUB_TOKEN",  # GitHub Personal Access Token or GitHub CLI token
+    "groq": "GROQ_API_KEY",  # Groq API key
 }
 
 

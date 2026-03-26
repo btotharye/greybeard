@@ -390,3 +390,82 @@ class TestCopilotModelSelection:
         """Test Copilot can override default model."""
         config = LLMConfig(backend="copilot", model="gpt-4o")
         assert config.resolved_model() == "gpt-4o"
+
+
+class TestCopilotAPIErrorHandling:
+    """Test error handling for GitHub Copilot API errors."""
+
+    def test_copilot_404_error_handling(self, monkeypatch):
+        """Test Copilot handles 404 errors (endpoint not found)."""
+        from greybeard.analyzer import _run_copilot
+
+        monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+
+        with patch("openai.OpenAI") as mock_openai_class:
+            from openai import APIStatusError
+
+            mock_client = MagicMock()
+            mock_openai_class.return_value = mock_client
+
+            # Mock 404 error
+            error_response = MagicMock()
+            error_response.status_code = 404
+            mock_client.chat.completions.create.side_effect = APIStatusError(
+                "Not Found",
+                response=error_response,
+                body={"error": "Not found"},
+            )
+
+            llm = LLMConfig(backend="copilot")
+            with pytest.raises(SystemExit):
+                _run_copilot(llm, "gpt-4-turbo", "system", "user", stream=False)
+
+    def test_copilot_401_error_handling(self, monkeypatch):
+        """Test Copilot handles 401 errors (authentication failed)."""
+        from greybeard.analyzer import _run_copilot
+
+        monkeypatch.setenv("GITHUB_TOKEN", "invalid-token")
+
+        with patch("openai.OpenAI") as mock_openai_class:
+            from openai import APIStatusError
+
+            mock_client = MagicMock()
+            mock_openai_class.return_value = mock_client
+
+            # Mock 401 error
+            error_response = MagicMock()
+            error_response.status_code = 401
+            mock_client.chat.completions.create.side_effect = APIStatusError(
+                "Unauthorized",
+                response=error_response,
+                body={"error": "Invalid token"},
+            )
+
+            llm = LLMConfig(backend="copilot")
+            with pytest.raises(SystemExit):
+                _run_copilot(llm, "gpt-4-turbo", "system", "user", stream=False)
+
+    def test_copilot_403_error_handling(self, monkeypatch):
+        """Test Copilot handles 403 errors (access forbidden)."""
+        from greybeard.analyzer import _run_copilot
+
+        monkeypatch.setenv("GITHUB_TOKEN", "test-token")
+
+        with patch("openai.OpenAI") as mock_openai_class:
+            from openai import APIStatusError
+
+            mock_client = MagicMock()
+            mock_openai_class.return_value = mock_client
+
+            # Mock 403 error
+            error_response = MagicMock()
+            error_response.status_code = 403
+            mock_client.chat.completions.create.side_effect = APIStatusError(
+                "Forbidden",
+                response=error_response,
+                body={"error": "No Copilot access"},
+            )
+
+            llm = LLMConfig(backend="copilot")
+            with pytest.raises(SystemExit):
+                _run_copilot(llm, "gpt-4-turbo", "system", "user", stream=False)

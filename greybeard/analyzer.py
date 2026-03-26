@@ -313,7 +313,7 @@ def _run_copilot(
 ) -> tuple[str, int, int]:
     """Run via GitHub Copilot API (OpenAI-compatible endpoint)."""
     try:
-        from openai import OpenAI
+        from openai import OpenAI, APIStatusError
     except ImportError:
         print("Error: openai package not installed. Run: uv pip install openai", file=sys.stderr)
         sys.exit(1)
@@ -335,24 +335,54 @@ def _run_copilot(
         {"role": "user", "content": user_message},
     ]
 
-    if stream:
-        text = _stream_openai(client, model, messages)
-        input_tokens = len(system_prompt.split()) + len(user_message.split())
-        output_tokens = len(text.split())
-        return text, input_tokens, output_tokens
-    else:
-        resp = client.chat.completions.create(
-            model=model,
-            messages=messages,  # type: ignore[arg-type]
-            stream=False,
-        )
-        text = resp.choices[0].message.content or ""  # type: ignore[union-attr]
-        usage = resp.usage  # type: ignore[union-attr]
-        return (
-            text,
-            (usage.prompt_tokens if usage else 0),
-            (usage.completion_tokens if usage else 0),
-        )
+    try:
+        if stream:
+            text = _stream_openai(client, model, messages)
+            input_tokens = len(system_prompt.split()) + len(user_message.split())
+            output_tokens = len(text.split())
+            return text, input_tokens, output_tokens
+        else:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,  # type: ignore[arg-type]
+                stream=False,
+            )
+            text = resp.choices[0].message.content or ""  # type: ignore[union-attr]
+            usage = resp.usage  # type: ignore[union-attr]
+            return (
+                text,
+                (usage.prompt_tokens if usage else 0),
+                (usage.completion_tokens if usage else 0),
+            )
+    except APIStatusError as e:
+        if e.status_code == 404:
+            print(
+                f"Error: GitHub Copilot API endpoint not found (404).\n"
+                f"Check that the base URL is correct: {base_url}\n"
+                f"Ensure your GitHub token is valid and has access to Copilot.",
+                file=sys.stderr,
+            )
+        elif e.status_code == 401:
+            print(
+                f"Error: GitHub Copilot authentication failed (401).\n"
+                f"Your GitHub token is invalid or expired.\n"
+                f"Please update your {llm.resolved_api_key_env()} token.",
+                file=sys.stderr,
+            )
+        elif e.status_code == 403:
+            print(
+                f"Error: GitHub Copilot access forbidden (403).\n"
+                f"Your GitHub account may not have Copilot access.\n"
+                f"Check your GitHub subscription and Copilot availability.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"Error: GitHub Copilot API error ({e.status_code}).\n"
+                f"Details: {e.message}",
+                file=sys.stderr,
+            )
+        sys.exit(1)
 
 
 def _stream_openai(client: object, model: str, messages: list[dict[str, str]]) -> str:

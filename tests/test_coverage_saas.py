@@ -131,7 +131,7 @@ class TestRunGroq:
         mock_client.chat.completions.create.return_value = [mock_chunk, mock_chunk]
         mock_openai.return_value = mock_client
 
-        with patch("builtins.print") as mock_print:
+        with patch("builtins.print"):
             text, in_tok, out_tok = run_groq(
                 system_prompt="Act as X",
                 user_message="Question?",
@@ -504,7 +504,9 @@ class TestRunReview:
 
     def test_run_review_skips_groq_when_complex(self):
         """Test run_review skips Groq for complex tasks."""
-        req = ReviewRequest(mode="review", pack=self._make_pack(), input_text="Architectural decision")
+        req = ReviewRequest(
+            mode="review", pack=self._make_pack(), input_text="Architectural decision"
+        )
         cfg = Mock()
         cfg.llm.backend = "openai"
         cfg.llm.resolved_model.return_value = "gpt-4"
@@ -592,7 +594,11 @@ class TestRunReviewAsync:
 
     def test_run_review_async_calls_sync(self):
         """Test async wrapper delegates to sync run_review."""
-        req = ReviewRequest(mode="review", pack=ContentPack(name="test", perspective="Staff", tone="direct"), input_text="test")
+        req = ReviewRequest(
+            mode="review",
+            pack=ContentPack(name="test", perspective="Staff", tone="direct"),
+            input_text="test",
+        )
         with patch("greybeard.analyzer.run_review") as mock_run:
             mock_run.return_value = "async result"
             # Just test that it calls run_review for now (skip asyncio decorator)
@@ -1039,7 +1045,7 @@ class TestLoadUrlPack:
             storage.save_pack = Mock()
             mock_storage.return_value = storage
 
-            pack = _load_url_pack(
+            _ = _load_url_pack(
                 "https://example.com/pack.yaml",
                 cache=True,
             )

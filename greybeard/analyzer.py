@@ -26,8 +26,8 @@ from .modes import build_system_prompt
 
 # Token logging (best-effort — never crash the CLI if it fails)
 try:
-    import sys as _sys
     import os as _os
+    import sys as _sys
 
     _modules_path = _os.environ.get("OPENCLAW_MODULES_PATH") or str(
         Path.home() / ".openclaw" / "workspace" / "modules"

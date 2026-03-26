@@ -419,8 +419,8 @@ def run_risk_check(config: PreCommitConfig, verbose: bool = False) -> PreCommitR
         )
 
     branch = get_current_branch()
-    failed_gates = []
-    all_concerns = []
+    failed_gates: list[RiskGate] = []
+    all_concerns: list[str] = []
 
     for file_path in staged_files:
         if should_skip_file(file_path, config.excluded_paths):

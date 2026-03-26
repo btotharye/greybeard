@@ -115,7 +115,7 @@ class TestRunReviewMocked:
         cfg = GreybeardConfig()  # defaults to openai
 
         with patch("greybeard.analyzer._run_openai_compat") as mock_run:
-            mock_run.return_value = "## Summary\n\nMocked review."
+            mock_run.return_value = ("## Summary\n\nMocked review.", 100, 50)
             result = run_review(req, config=cfg, stream=False)
 
         mock_run.assert_called_once()
@@ -131,7 +131,7 @@ class TestRunReviewMocked:
         cfg.llm.backend = "anthropic"
 
         with patch("greybeard.analyzer._run_anthropic") as mock_run:
-            mock_run.return_value = "## Summary\n\nAnthropic review."
+            mock_run.return_value = ("## Summary\n\nAnthropic review.", 100, 50)
             result = run_review(req, config=cfg, stream=False)
 
         mock_run.assert_called_once()
@@ -146,7 +146,7 @@ class TestRunReviewMocked:
         cfg = GreybeardConfig()
 
         with patch("greybeard.analyzer._run_openai_compat") as mock_run:
-            mock_run.return_value = "result"
+            mock_run.return_value = ("result", 100, 50)
             run_review(req, config=cfg, model_override="gpt-4o-mini", stream=False)
 
         call_args = mock_run.call_args
@@ -245,11 +245,16 @@ class TestStreamingFunctionality:
             mock_stream.__exit__ = MagicMock(return_value=False)
             mock_stream.text_stream = ["Hello", " ", "Anthropic"]
 
+            mock_final_msg = MagicMock()
+            mock_final_msg.usage.input_tokens = 100
+            mock_final_msg.usage.output_tokens = 50
+            mock_stream.get_final_message.return_value = mock_final_msg
+
             mock_client.messages.stream.return_value = mock_stream
 
             result = _run_anthropic(llm, "claude-3-5-sonnet", "system", "user", stream=True)
 
-            assert result == "Hello Anthropic"
+            assert result == ("Hello Anthropic", 100, 50)
             captured = capsys.readouterr()
             assert "Hello Anthropic" in captured.out
         finally:
@@ -283,11 +288,13 @@ class TestStreamingFunctionality:
             mock_response = MagicMock()
             mock_response.content = [MagicMock()]
             mock_response.content[0].text = "Non-streamed response"
+            mock_response.usage.input_tokens = 100
+            mock_response.usage.output_tokens = 50
             mock_client.messages.create.return_value = mock_response
 
             result = _run_anthropic(llm, "claude-3-5-sonnet", "system", "user", stream=False)
 
-            assert result == "Non-streamed response"
+            assert result == ("Non-streamed response", 100, 50)
         finally:
             # Clean up the mock module
             if "anthropic" in sys.modules:

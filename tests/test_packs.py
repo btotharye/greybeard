@@ -191,6 +191,8 @@ class TestListInstalledPacks:
             )
         )
         monkeypatch.setattr("greybeard.packs.PACK_CACHE_DIR", cache)
+        # Reset the global _storage so it uses the monkeypatched PACK_CACHE_DIR
+        monkeypatch.setattr("greybeard.packs._storage", None)
 
         result = list_installed_packs()
         assert len(result) == 1

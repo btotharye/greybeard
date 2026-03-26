@@ -9,10 +9,10 @@ from typing import Any
 
 import pytest
 
-from greybeard.analyzer import run_review, run_review_async
+from greybeard.analyzer import run_review_async
 from greybeard.config import GreybeardConfig
-from greybeard.history import load_history, save_decision, analyze_trends
-from greybeard.models import ContentPack, ReviewRequest, Mode
+from greybeard.history import analyze_trends
+from greybeard.models import ContentPack, ReviewRequest
 from greybeard.storage import FileHistoryStorage, FilePacksStorage, HistoryStorage, PacksStorage
 
 
@@ -205,24 +205,28 @@ class TestHistoryStorage:
             history_file = Path(tmpdir) / "history.jsonl"
             storage = FileHistoryStorage(history_file)
 
-            storage.save_entry({
-                "timestamp": "2026-03-25T12:00:00Z",
-                "pack": "staff-core",
-                "mode": "review",
-                "decision_name": "decision1",
-                "summary": "",
-                "key_risks": [],
-                "key_questions": [],
-            })
-            storage.save_entry({
-                "timestamp": "2026-03-25T13:00:00Z",
-                "pack": "security-reviewer",
-                "mode": "review",
-                "decision_name": "decision2",
-                "summary": "",
-                "key_risks": [],
-                "key_questions": [],
-            })
+            storage.save_entry(
+                {
+                    "timestamp": "2026-03-25T12:00:00Z",
+                    "pack": "staff-core",
+                    "mode": "review",
+                    "decision_name": "decision1",
+                    "summary": "",
+                    "key_risks": [],
+                    "key_questions": [],
+                }
+            )
+            storage.save_entry(
+                {
+                    "timestamp": "2026-03-25T13:00:00Z",
+                    "pack": "security-reviewer",
+                    "mode": "review",
+                    "decision_name": "decision2",
+                    "summary": "",
+                    "key_risks": [],
+                    "key_questions": [],
+                }
+            )
 
             loaded = storage.load_entries(days=30, pack="staff-core")
             assert len(loaded) == 1
@@ -271,8 +275,7 @@ class MockPacksStorage(PacksStorage):
 
     def list_installed(self) -> list[dict[str, str]]:
         return [
-            {"name": n, "source": s, "path": f"/mock/{s}/{n}.yaml"}
-            for n, s in self.packs.keys()
+            {"name": n, "source": s, "path": f"/mock/{s}/{n}.yaml"} for n, s in self.packs.keys()
         ]
 
     def remove_source(self, source_slug: str) -> int:
@@ -351,7 +354,7 @@ class TestAnalyzerDictConfig:
     def test_run_review_with_dict_config(self):
         """Test run_review accepts dict config."""
         pack = ContentPack(name="test", perspective="Test", tone="calm")
-        req = ReviewRequest(
+        ReviewRequest(
             mode="review",
             pack=pack,
             input_text="simple code snippet",
@@ -377,16 +380,11 @@ class TestAnalyzerDictConfig:
     def test_run_review_async_callable(self):
         """Test that run_review_async is callable (doesn't need API keys for signature test)."""
         pack = ContentPack(name="test", perspective="Test", tone="calm")
-        req = ReviewRequest(
+        ReviewRequest(
             mode="review",
             pack=pack,
             input_text="code",
         )
-
-        config = {
-            "llm": {"backend": "ollama"},
-            "groq": {"enabled": False},
-        }
 
         # Just verify the function is callable with async/await
         # (actual execution would fail without ollama running)
@@ -411,7 +409,10 @@ class TestHistoryWithStorage:
         # Save a decision
         history.save_decision(
             name="test-decision",
-            review_text="- Missing tests is a critical issue\n- No monitoring setup\n- Knowledge concentration risk",
+            review_text=(
+                "- Missing tests is a critical issue\n- No monitoring setup\n"
+                "- Knowledge concentration risk"
+            ),
             pack="staff-core",
             mode="review",
         )
@@ -479,10 +480,12 @@ class TestIntegration:
         monkeypatch.setattr(history, "_storage", mock_storage)
 
         # Create config from dict (like SaaS would)
-        config = GreybeardConfig.from_dict({
-            "llm": {"backend": "anthropic"},
-            "groq": {"enabled": False},
-        })
+        config = GreybeardConfig.from_dict(
+            {
+                "llm": {"backend": "anthropic"},
+                "groq": {"enabled": False},
+            }
+        )
         assert config.llm.backend == "anthropic"
 
         # Create request from user input

@@ -11,7 +11,6 @@ Task complexity heuristics:
 from __future__ import annotations
 
 import os
-import sys
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -84,7 +83,7 @@ def run_groq(
     Raises RuntimeError on failure so the caller can fall back.
     """
     try:
-        from openai import OpenAI, RateLimitError
+        from openai import OpenAI
     except ImportError:
         raise RuntimeError("openai package not installed; cannot use Groq fallback")
 
@@ -108,8 +107,8 @@ def run_groq(
                 messages=messages,  # type: ignore[arg-type]
                 stream=True,
             )
-            for chunk in resp:
-                delta = chunk.choices[0].delta.content or ""
+            for chunk in resp:  # type: ignore[union-attr]
+                delta = chunk.choices[0].delta.content or ""  # type: ignore[union-attr]
                 print(delta, end="", flush=True)
                 full_text += delta
             console.print("\n")

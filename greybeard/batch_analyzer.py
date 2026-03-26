@@ -418,6 +418,8 @@ class BatchAnalyzer:
         if not self.aggregated:
             self.analyze()
 
+        assert self.aggregated is not None, "aggregated should be set after analyze()"
+
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -450,6 +452,8 @@ class BatchAnalyzer:
         """
         if not self.aggregated:
             self.analyze()
+
+        assert self.aggregated is not None, "aggregated should be set after analyze()"
 
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)

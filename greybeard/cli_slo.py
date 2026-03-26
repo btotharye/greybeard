@@ -12,6 +12,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from .agents import SLOAgent
+from .agents.slo_agent import SLORecommendation
 
 console = Console()
 
@@ -90,15 +91,15 @@ def slo_check(context: tuple[str], repo: str | None, output: str, file: str | No
         _output_table(recommendation)
 
 
-def _output_json(rec: object) -> None:
+def _output_json(rec: SLORecommendation) -> None:
     """Output as JSON."""
-    data = rec.to_dict()  # type: ignore[union-attr]
+    data = rec.to_dict()
     console.print(json.dumps(data, indent=2))
 
 
-def _output_markdown(rec: object) -> None:
+def _output_markdown(rec: SLORecommendation) -> None:
     """Output as Markdown."""
-    rec_dict = rec.to_dict()  # type: ignore[union-attr]
+    rec_dict = rec.to_dict()
 
     lines = [
         f"# SLO Recommendations: {rec_dict['service_type'].upper()}",
@@ -132,9 +133,9 @@ def _output_markdown(rec: object) -> None:
     console.print("\n".join(lines))
 
 
-def _output_table(rec: object) -> None:
+def _output_table(rec: SLORecommendation) -> None:
     """Output as a nice table."""
-    rec_dict = rec.to_dict()  # type: ignore[union-attr]
+    rec_dict = rec.to_dict()
 
     console.print(
         Panel(

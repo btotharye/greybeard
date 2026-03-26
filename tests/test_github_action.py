@@ -567,7 +567,9 @@ class TestRunGitHubAction:
         diff_file = tmp_path / "test.diff"
         diff_file.write_text("diff --git a/file.py b/file.py\n+new line")
 
-        mock_load_pack.return_value = ContentPack(name="staff-core", perspective="test")
+        mock_load_pack.return_value = ContentPack(
+            name="staff-core", perspective="test", tone="constructive"
+        )
         mock_run_review.return_value = "## Summary\n\nAll good, no blocking issues."
 
         result = run_github_action(str(diff_file), "staff-core", "high")
@@ -582,7 +584,9 @@ class TestRunGitHubAction:
         diff_file = tmp_path / "test.diff"
         diff_file.write_text("diff --git a/file.py b/file.py\n+new line")
 
-        mock_load_pack.return_value = ContentPack(name="staff-core", perspective="test")
+        mock_load_pack.return_value = ContentPack(
+            name="staff-core", perspective="test", tone="constructive"
+        )
         mock_run_review.return_value = "This will cause a production incident"
 
         result = run_github_action(str(diff_file), "staff-core", "high")

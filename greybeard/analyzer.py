@@ -238,7 +238,7 @@ def _run_openai_compat(
             stream=False,
         )
         text = resp.choices[0].message.content or ""  # type: ignore[union-attr]
-        usage = resp.usage
+        usage = resp.usage  # type: ignore[union-attr]
         return (
             text,
             (usage.prompt_tokens if usage else 0),
@@ -347,7 +347,7 @@ def _run_copilot(
             stream=False,
         )
         text = resp.choices[0].message.content or ""  # type: ignore[union-attr]
-        usage = resp.usage
+        usage = resp.usage  # type: ignore[union-attr]
         return (
             text,
             (usage.prompt_tokens if usage else 0),

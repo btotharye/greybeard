@@ -449,7 +449,7 @@ def run_risk_check(config: PreCommitConfig, verbose: bool = False) -> PreCommitR
         passed=passed,
         message=message,
         concerns=all_concerns,
-        failed_gates=failed_gates,
+        failed_gates=[gate.name for gate in failed_gates],
     )
 
 

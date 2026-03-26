@@ -122,8 +122,8 @@ def run_groq(
                 messages=messages,  # type: ignore[arg-type]
                 stream=False,
             )
-            text = resp.choices[0].message.content or ""
-            usage = resp.usage
+            text = resp.choices[0].message.content or ""  # type: ignore[union-attr]
+            usage = resp.usage  # type: ignore[union-attr]
             input_tokens = usage.prompt_tokens if usage else 0
             output_tokens = usage.completion_tokens if usage else 0
             return text, input_tokens, output_tokens

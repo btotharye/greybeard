@@ -38,7 +38,7 @@ jobs:
           git fetch origin ${{ github.base_ref }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           version: "latest"
 
